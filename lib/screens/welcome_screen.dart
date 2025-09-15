@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
+import 'login_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   @override
@@ -98,13 +99,16 @@ class WelcomeScreen extends StatelessWidget {
               // Botões
               Column(
                 children: [
-                  // Botão "Já sou membro"
+                  // Botão "Já sou membro" (com navegação para login)
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () {
-                        print('Login clicado');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => LoginScreen()),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.papayaSensorial,

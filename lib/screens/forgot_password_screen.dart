@@ -198,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 16),
 
-                  // Botão Recuperar senha (com navegação)
+                  // Botão Recuperar senha (alinhamento corrigido)
                   SizedBox(
                     width: double.infinity,
                     height: 56,
