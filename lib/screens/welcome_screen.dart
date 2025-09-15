@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
+import '../widgets/custom_buttons.dart';
 import 'login_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -96,64 +97,28 @@ class WelcomeScreen extends StatelessWidget {
               // Espaçamento flexível para empurrar botões para baixo
               Expanded(child: SizedBox()),
 
-              // Botões
+              // Botões usando componentes padronizados
               Column(
                 children: [
-                  // Botão "Já sou membro" (com navegação para login)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => LoginScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.papayaSensorial,
-                        foregroundColor: AppColors.whiteWhite,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Já sou membro',
-                        style: GoogleFonts.albertSans(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  // Botão "Já sou membro" usando PrimaryButton
+                  PrimaryButton(
+                    text: 'Já sou membro',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                      );
+                    },
                   ),
 
                   SizedBox(height: 16),
 
-                  // Botão "Criar conta grátis"
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        print('Cadastro clicado');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.velvetMerlot,
-                        foregroundColor: AppColors.papayaSensorial,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Criar conta grátis',
-                        style: GoogleFonts.albertSans(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                  // Botão "Criar conta grátis" usando OutlineButton
+                  OutlineButton(
+                    text: 'Criar conta grátis',
+                    onPressed: () {
+                      print('Cadastro clicado');
+                    },
                   ),
                 ],
               ),
