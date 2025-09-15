@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
+import 'welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -36,7 +37,9 @@ class _SplashScreenState extends State<SplashScreen>
     // Navegar para próxima tela após 3 segundos
     Future.delayed(Duration(seconds: 3), () {
       _animationController.reverse().then((_) {
-        Navigator.of(context).pushReplacementNamed('/welcome');
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => WelcomeScreen()),
+        );
       });
     });
   }

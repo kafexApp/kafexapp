@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Cores Especiais de Café
-  static const Color velvetMerlot = Color(0xFF6B1B3A);
-  static const Color velvetBourbon = Color(0xFF7A2448);
+  // Special Coffee
+  static const Color velvetMerlot = Color(0xFF481009);
+  static const Color velvetBourbon = Color(0xFF45242D);
 
-  // Cores Neutras
-  static const Color carbon = Color(0xFF1C1C1C);
-  static const Color grayScale1 = Color(0xFF4A4A4A);
-  static const Color grayScale2 = Color(0xFF7A7A7A);
+  // Neutral
+  static const Color carbon = Color(0xFF1D1D1B);
+  static const Color grayScale1 = Color(0xFF595959);
+  static const Color grayScale2 = Color(0xFFA0A0A0);
   static const Color whiteWhite = Color(0xFFFFFFFF);
-  static const Color moonAsh = Color(0xFFE8E8E8);
-  static const Color roseClay = Color(0xFFD4B5A0);
-  static const Color oatWhite = Color(0xFFF5F5F0);
+  static const Color moonAsh = Color(0xFFF4F4F4);
+  static const Color roseClay = Color(0xFFBAA69E);
+  static const Color oatWhite = Color(0xFFE7E4DE);
 
-  // Cores de Contraste
-  static const Color forestInk = Color(0xFF2D5A3D);
-  static const Color eletricBlue = Color(0xFF00BFFF);
-  static const Color cyberLime = Color(0xFF39FF14);
-  static const Color pear = Color(0xFFD1E231);
-  static const Color spiced = Color(0xFFE53E3E);
-  static const Color sunsetBlaze = Color(0xFFFF6B35);
-  static const Color papayaSensorial = Color(0xFFFFAB40);
-  static const Color softRose = Color(0xFFFFB6C1);
+  // Contrast Color
+  static const Color forestInk = Color(0xFF00503A);
+  static const Color eletricBlue = Color(0xFF00F2FF);
+  static const Color cyberLime = Color(0xFF00FF87);
+  static const Color pear = Color(0xFFC2F530);
+  static const Color spiced = Color(0xFFFF3A2A);
+  static const Color sunsetBlaze = Color(0xFFFF583C);
+  static const Color papayaSensorial = Color(0xFFEB8052);
+  static const Color softRose = Color(0xFFF7B8B3);
 
   // Cores principais do tema Kafex
   static const Color primary = velvetMerlot;
@@ -42,15 +42,15 @@ class AppColors {
   static const Color textOnSecondary = carbon;
 
   // Cores específicas para café
-  static const Color coffeeBean = Color(0xFF8B4513);
-  static const Color coffeeLight = Color(0xFFD2B48C);
-  static const Color coffeeDark = Color(0xFF654321);
+  static const Color coffeeBean = velvetBourbon;
+  static const Color coffeeLight = roseClay;
+  static const Color coffeeDark = velvetMerlot;
 
   // Gradientes
   static const LinearGradient coffeeGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [velvetMerlot, coffeeBean],
+    colors: [velvetMerlot, velvetBourbon],
   );
 
   static const LinearGradient neutralGradient = LinearGradient(
