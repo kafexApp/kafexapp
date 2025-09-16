@@ -113,8 +113,8 @@ class WelcomeScreen extends StatelessWidget {
 
                   SizedBox(height: 16),
 
-                  // Botão "Criar conta grátis" usando OutlineButton
-                  OutlineButton(
+                  // Botão "Criar conta grátis" usando OutlineButton customizado
+                  CustomOutlineButton(
                     text: 'Criar conta grátis',
                     onPressed: () {
                       print('Cadastro clicado');

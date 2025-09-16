@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'app_colors.dart';
+import '../utils/app_colors.dart';
 
 // BOTÃO PRIMÁRIO - Papaya Sensorial com texto Velvet Merlot
 class PrimaryButton extends StatelessWidget {
@@ -111,14 +112,14 @@ class SecondaryButton extends StatelessWidget {
 }
 
 // BOTÃO OUTLINED - Fundo transparente com borda Velvet Merlot
-class OutlineButton extends StatelessWidget {
+class CustomOutlineButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
   final bool isLoading;
   final double? width;
   final double height;
 
-  const OutlineButton({
+  const CustomOutlineButton({
     Key? key,
     required this.text,
     required this.onPressed,
@@ -168,14 +169,14 @@ class OutlineButton extends StatelessWidget {
 }
 
 // BOTÃO TEXTO - Apenas texto, sem fundo
-class TextButton extends StatelessWidget {
+class CustomTextButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
   final Color? textColor;
   final double fontSize;
   final FontWeight fontWeight;
 
-  const TextButton({
+  const CustomTextButton({
     Key? key,
     required this.text,
     required this.onPressed,
@@ -203,14 +204,14 @@ class TextButton extends StatelessWidget {
 }
 
 // BOTÃO DE ÍCONE - Para ações específicas
-class IconButton extends StatelessWidget {
+class CustomIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
   final Color? backgroundColor;
   final Color? iconColor;
   final double size;
 
-  const IconButton({
+  const CustomIconButton({
     Key? key,
     required this.icon,
     required this.onPressed,
@@ -242,11 +243,69 @@ class IconButton extends StatelessWidget {
 
 // BOTÃO SOCIAL LOGIN - Para Google, Apple, etc.
 class SocialLoginButton extends StatelessWidget {
+  final String text;
+  final String iconPath;
+  final VoidCallback onPressed;
+  final double? width;
+  final double height;
+
+  const SocialLoginButton({
+    Key? key,
+    required this.text,
+    required this.iconPath,
+    required this.onPressed,
+    this.width,
+    this.height = 56,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width ?? double.infinity,
+      height: height,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.whiteWhite,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          side: BorderSide(
+            color: AppColors.grayScale2.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              iconPath,
+              width: 20,
+              height: 20,
+            ),
+            SizedBox(width: 12),
+            Text(
+              text,
+              style: GoogleFonts.albertSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// BOTÃO SOCIAL LOGIN SIMPLES - Apenas ícone (versão do código original)
+class SocialLoginIconButton extends StatelessWidget {
   final String svgAsset;
   final VoidCallback onPressed;
   final double size;
 
-  const SocialLoginButton({
+  const SocialLoginIconButton({
     Key? key,
     required this.svgAsset,
     required this.onPressed,
