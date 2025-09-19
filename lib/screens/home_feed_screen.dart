@@ -124,7 +124,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
           ),
           
-          // Navbar sobreposta
+          // Navbar sobreposta - CORREÇÃO AQUI!
           Positioned(
             left: 0,
             right: 0,
@@ -134,10 +134,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                 print('Abrir menu sidebar');
                 // TODO: Implementar abertura do menu lateral
               },
-              onSearchPressed: () {
-                print('Abrir explorador de cafeterias');
-                // TODO: Navegar para CafeExplorerScreen
-              },
+              // REMOVI o onSearchPressed para usar a navegação automática!
+              // A navbar agora vai navegar automaticamente para CafeExplorerScreen
             ),
           ),
         ],

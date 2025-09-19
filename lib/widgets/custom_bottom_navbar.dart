@@ -15,12 +15,21 @@ class CustomBottomNavbar extends StatelessWidget {
   }) : super(key: key);
 
   void _navigateToCafeExplorer(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CafeExplorerScreen(),
-      ),
-    );
+    print('🚀 Navegando para CafeExplorerScreen...');
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CafeExplorerScreen(),
+        ),
+      ).then((value) {
+        print('✅ Navegação concluída com sucesso!');
+      }).catchError((error) {
+        print('❌ Erro na navegação: $error');
+      });
+    } catch (e) {
+      print('❌ Erro ao tentar navegar: $e');
+    }
   }
 
   @override
@@ -39,10 +48,15 @@ class CustomBottomNavbar extends StatelessWidget {
                   height: 70,
                   child: ElevatedButton(
                     onPressed: () {
+                      print('🔥 Botão "Encontrar cafeterias" clicado!');
+                      print('🔍 onSearchPressed é null? ${onSearchPressed == null}');
+                      
                       // Se houver um callback personalizado, usa ele, senão navega para CafeExplorerScreen
                       if (onSearchPressed != null) {
+                        print('📞 Executando onSearchPressed personalizado...');
                         onSearchPressed!();
                       } else {
+                        print('🎯 Usando navegação padrão para CafeExplorerScreen...');
                         _navigateToCafeExplorer(context);
                       }
                     },
@@ -86,7 +100,10 @@ class CustomBottomNavbar extends StatelessWidget {
               
               // Botão Menu
               GestureDetector(
-                onTap: onMenuPressed,
+                onTap: () {
+                  print('📱 Menu clicado!');
+                  onMenuPressed();
+                },
                 child: Container(
                   width: 70,
                   height: 70,
