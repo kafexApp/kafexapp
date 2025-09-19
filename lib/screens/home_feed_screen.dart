@@ -3,6 +3,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../utils/app_colors.dart';
+import '../widgets/custom_bottom_navbar.dart';
+import '../widgets/custom_app_bar.dart';
 
 // Enum para tipos de post
 enum PostType {
@@ -99,65 +101,43 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.oatWhite,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header com logo e notificação
-            _buildHeader(),
-            
-            // Conteúdo scrollável
-            Expanded(
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                child: Column(
-                  children: [
-                    // Seção de boas-vindas
-                    _buildWelcomeSection(),
-                    
-                    // Lista de usuários (avatares)
-                    _buildUsersSection(),
-                    
-                    // Lista de posts
-                    _buildPostsList(),
-                    
-                    // Espaçamento para o bottom nav
-                    SizedBox(height: 100),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      // Bottom Navigation Bar fixo
-      bottomNavigationBar: _buildBottomNavBar(),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      color: AppColors.oatWhite,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      appBar: CustomAppBar(),
+      body: Stack(
         children: [
-          // Logo Kafex
-          SvgPicture.asset(
-            'assets/images/kafex_logo_positive.svg',
-            height: 28,
+          // Conteúdo principal
+          SingleChildScrollView(
+            controller: _scrollController,
+            child: Column(
+              children: [
+                // Seção de boas-vindas
+                _buildWelcomeSection(),
+                
+                // Lista de usuários (avatares)
+                _buildUsersSection(),
+                
+                // Lista de posts
+                _buildPostsList(),
+                
+                // Espaçamento para a navbar sobreposta
+                SizedBox(height: 110),
+              ],
+            ),
           ),
-          // Ícone de notificação
-          GestureDetector(
-            onTap: () {
-              print('Abrir notificações');
-            },
-            child: Container(
-              padding: EdgeInsets.all(8),
-              child: SvgPicture.asset(
-                'assets/images/notification.svg',
-                width: 24,
-                height: 24,
-              ),
+          
+          // Navbar sobreposta
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: CustomBottomNavbar(
+              onMenuPressed: () {
+                print('Abrir menu sidebar');
+                // TODO: Implementar abertura do menu lateral
+              },
+              onSearchPressed: () {
+                print('Abrir explorador de cafeterias');
+                // TODO: Navegar para CafeExplorerScreen
+              },
             ),
           ),
         ],
@@ -168,82 +148,99 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
   Widget _buildWelcomeSection() {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.whiteWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
+      height: 120,
+      child: Stack(
         children: [
-          // Avatar do usuário
+          // Card branco de fundo
           Container(
-            width: 50,
-            height: 50,
+            margin: EdgeInsets.only(top: 25),
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20),
             decoration: BoxDecoration(
-              color: AppColors.moonAsh,
-              shape: BoxShape.circle,
+              color: AppColors.whiteWhite,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
-            child: Center(
-              child: SvgPicture.asset(
-                'assets/images/default-avatar.svg',
-                width: 30,
-                height: 30,
-              ),
-            ),
-          ),
-          SizedBox(width: 16),
-          
-          // Texto de boas-vindas
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                RichText(
-                  text: TextSpan(
+                // Avatar do usuário
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: AppColors.moonAsh,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/images/default-avatar.svg',
+                      width: 30,
+                      height: 30,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 16),
+                
+                // Texto de boas-vindas
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      TextSpan(
-                        text: 'Olá, ',
-                        style: GoogleFonts.albertSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.textPrimary,
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Olá, ',
+                              style: GoogleFonts.albertSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'Francisca!',
+                              style: GoogleFonts.albertSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.papayaSensorial,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      TextSpan(
-                        text: 'Francisca!',
+                      SizedBox(height: 4),
+                      Text(
+                        'Que tal um cafezinho?',
                         style: GoogleFonts.albertSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.papayaSensorial,
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  'Que tal um cafezinho?',
-                  style: GoogleFonts.albertSans(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                
+                // Espaço para a mão que vai sobrepor
+                SizedBox(width: 95),
               ],
             ),
           ),
           
-          // Ilustração da mão com café
-          SvgPicture.asset(
-            'assets/images/hand-coffee.svg',
-            width: 48,
-            height: 48,
+          // Ilustração da mão com café (colada na base do card)
+          Positioned(
+            right: 15,
+            bottom: 0,
+            child: SvgPicture.asset(
+              'assets/images/hand-coffee.svg',
+              width: 95.32,
+              height: 142.09,
+            ),
           ),
         ],
       ),
@@ -374,11 +371,11 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                     print('Abrir menu do post');
                   },
                   child: Container(
-                    padding: EdgeInsets.all(8),
+                    padding: EdgeInsets.all(4),
                     child: SvgPicture.asset(
                       'assets/images/more.svg',
-                      width: 20,
-                      height: 20,
+                      width: 34,
+                      height: 34,
                     ),
                   ),
                 ),
@@ -452,7 +449,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                             '${post.likes}',
                             style: GoogleFonts.albertSans(
                               fontSize: 14,
-                              color: AppColors.textSecondary,
+                              color: AppColors.grayScale2,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -467,17 +464,17 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                       },
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 24,
-                            color: AppColors.textSecondary,
+                          SvgPicture.asset(
+                            'assets/images/comment.svg',
+                            width: 24,
+                            height: 24,
                           ),
                           SizedBox(width: 6),
                           Text(
                             '${post.comments}',
                             style: GoogleFonts.albertSans(
                               fontSize: 14,
-                              color: AppColors.textSecondary,
+                              color: AppColors.grayScale2,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -487,51 +484,65 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                     
                     Spacer(),
                     
-                    GestureDetector(
-                      onTap: () {
-                        print('Toggle favorito');
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(4),
-                        child: SvgPicture.asset(
-                          'assets/images/favorite.svg',
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    
-                    GestureDetector(
-                      onTap: () {
-                        print('Quero visitar');
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.papayaSensorial.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SvgPicture.asset(
-                              'assets/images/flag.svg',
-                              width: 16,
-                              height: 16,
+                    Row(
+                      children: [
+                        // Botão Favorito
+                        GestureDetector(
+                          onTap: () {
+                            print('Toggle favorito');
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.moonAsh,
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Quero visitar',
-                              style: GoogleFonts.albertSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.papayaSensorial,
+                            child: Center(
+                              child: SvgPicture.asset(
+                                'assets/images/favorite.svg',
+                                width: 20,
+                                height: 20,
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                        SizedBox(width: 12),
+                        
+                        // Botão "Quero visitar"
+                        GestureDetector(
+                          onTap: () {
+                            print('Quero visitar');
+                          },
+                          child: Container(
+                            height: 40,
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.moonAsh,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/images/flag.svg',
+                                  width: 16,
+                                  height: 16,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Quero visitar',
+                                  style: GoogleFonts.albertSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.papayaSensorial,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -551,96 +562,6 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavBar() {
-    return Container(
-      height: 90,
-      decoration: BoxDecoration(
-        color: AppColors.whiteWhite,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      print('Encontrar cafeterias');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.papayaSensorial,
-                      foregroundColor: AppColors.whiteWhite,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SvgPicture.asset(
-                          'assets/images/search.svg',
-                          width: 20,
-                          height: 20,
-                          colorFilter: ColorFilter.mode(
-                            AppColors.whiteWhite,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                        SizedBox(width: 10),
-                        Text(
-                          'Encontrar cafeterias',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 12),
-              GestureDetector(
-                onTap: () {
-                  print('Abrir menu lateral');
-                },
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppColors.velvetMerlot,
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      'assets/images/menu.svg',
-                      width: 24,
-                      height: 24,
-                      colorFilter: ColorFilter.mode(
-                        AppColors.whiteWhite,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

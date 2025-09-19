@@ -324,7 +324,7 @@ class SocialLoginIconButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: AppColors.moonAsh,
-            width: 1,
+            width: 0.5,
           ),
           boxShadow: [
             BoxShadow(
