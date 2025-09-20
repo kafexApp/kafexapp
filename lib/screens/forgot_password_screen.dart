@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_buttons.dart';
+import '../services/auth_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   @override
@@ -12,7 +13,11 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   final FocusNode _emailFocus = FocusNode();
+  final AuthService _authService = AuthService();
+  
   bool _isEmailSent = false;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -20,14 +25,71 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     _emailFocus.addListener(() => setState(() {}));
   }
 
-  void _sendResetEmail() {
-    if (_emailController.text.isNotEmpty) {
+  void _sendResetEmail() async {
+    final email = _emailController.text.trim();
+    
+    // Validações
+    if (email.isEmpty) {
       setState(() {
-        _isEmailSent = true;
+        _errorMessage = 'Por favor, digite seu email';
       });
-      // Aqui você adicionaria a lógica real de envio de email
-      print('Email de recuperação enviado para: ${_emailController.text}');
+      return;
     }
+
+    if (!_authService.isValidEmail(email)) {
+      setState(() {
+        _errorMessage = 'Por favor, digite um email válido';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await _authService.resetPassword(email);
+      
+      if (result['success']) {
+        setState(() {
+          _isEmailSent = true;
+          _isLoading = false;
+          _errorMessage = null;
+        });
+        
+        // Mostrar snackbar de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Email enviado com sucesso!',
+              style: GoogleFonts.albertSans(color: AppColors.whiteWhite),
+            ),
+            backgroundColor: AppColors.forestInk,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        setState(() {
+          _errorMessage = result['message'];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erro inesperado. Tente novamente.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _resetForm() {
+    setState(() {
+      _isEmailSent = false;
+      _errorMessage = null;
+      _isLoading = false;
+    });
+    _emailController.clear();
   }
 
   @override
@@ -154,15 +216,74 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             width: 2,
                           ),
                         ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: AppColors.spiced,
+                            width: 2,
+                          ),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: AppColors.spiced,
+                            width: 2,
+                          ),
+                        ),
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 16,
                         ),
                       ),
+                      onChanged: (value) {
+                        if (_errorMessage != null) {
+                          setState(() {
+                            _errorMessage = null;
+                          });
+                        }
+                      },
                     ),
                   ],
                 ),
-                SizedBox(height: 40),
+                
+                SizedBox(height: 24),
+
+                // Exibir erro se houver
+                if (_errorMessage != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.spiced.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.spiced.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: AppColors.spiced,
+                          size: 20,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: GoogleFonts.albertSans(
+                              fontSize: 14,
+                              color: AppColors.spiced,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                ],
               ],
 
               // Botão principal usando PrimaryButton
@@ -171,6 +292,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 onPressed: _isEmailSent 
                     ? () => Navigator.pop(context)
                     : _sendResetEmail,
+                isLoading: _isLoading,
               ),
 
               // Botão secundário (apenas se o email foi enviado)
@@ -178,12 +300,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 SizedBox(height: 16),
                 CustomOutlineButton(
                   text: 'Reenviar Email',
-                  onPressed: () {
-                    setState(() {
-                      _isEmailSent = false;
-                    });
-                    _emailController.clear();
-                  },
+                  onPressed: _resetForm,
                 ),
               ],
 

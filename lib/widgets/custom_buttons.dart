@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 
-// BOTÃO PRIMÁRIO - Papaya Sensorial com texto Velvet Merlot
+// BOTÃO PRIMÁRIO - Papaya Sensorial com texto White White
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -29,19 +29,23 @@ class PrimaryButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.papayaSensorial,
-          foregroundColor: AppColors.velvetMerlot,
+          foregroundColor: AppColors.whiteWhite,
           disabledBackgroundColor: AppColors.grayScale2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
           elevation: 0,
+          shadowColor: Colors.transparent,
+        ).copyWith(
+          elevation: MaterialStateProperty.all(0),
+          shadowColor: MaterialStateProperty.all(Colors.transparent),
         ),
         child: isLoading
             ? SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.velvetMerlot),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.whiteWhite),
                   strokeWidth: 2,
                 ),
               )
@@ -89,6 +93,10 @@ class SecondaryButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 0,
+          shadowColor: Colors.transparent,
+        ).copyWith(
+          elevation: MaterialStateProperty.all(0),
+          shadowColor: MaterialStateProperty.all(Colors.transparent),
         ),
         child: isLoading
             ? SizedBox(
@@ -144,8 +152,13 @@ class CustomOutlineButton extends StatelessWidget {
           ),
           side: BorderSide(
             color: isLoading ? AppColors.grayScale2 : AppColors.velvetMerlot,
-            width: 2,
+            width: 1.5,
           ),
+          elevation: 0,
+          shadowColor: Colors.transparent,
+        ).copyWith(
+          elevation: MaterialStateProperty.all(0),
+          shadowColor: MaterialStateProperty.all(Colors.transparent),
         ),
         child: isLoading
             ? SizedBox(
@@ -274,6 +287,11 @@ class SocialLoginButton extends StatelessWidget {
             color: AppColors.grayScale2.withOpacity(0.3),
             width: 1,
           ),
+          elevation: 0,
+          shadowColor: Colors.transparent,
+        ).copyWith(
+          elevation: MaterialStateProperty.all(0),
+          shadowColor: MaterialStateProperty.all(Colors.transparent),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -326,13 +344,6 @@ class SocialLoginIconButton extends StatelessWidget {
             color: AppColors.moonAsh,
             width: 0.5,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.grayScale2.withOpacity(0.1),
-              blurRadius: 8,
-              offset: Offset(0, 4),
-            ),
-          ],
         ),
         child: Center(
           child: SvgPicture.asset(

@@ -18,6 +18,52 @@ class AuthService {
   // Verificar se usuário está logado
   bool get isLoggedIn => currentUser != null;
 
+  // **RECUPERAR SENHA - NOVO MÉTODO**
+  Future<Map<String, dynamic>> resetPassword(String email) async {
+    try {
+      print('📧 Enviando email de recuperação para: $email');
+      
+      await _auth.sendPasswordResetEmail(email: email);
+      
+      print('✅ Email de recuperação enviado com sucesso!');
+      return {
+        'success': true,
+        'message': 'Email de recuperação enviado com sucesso!'
+      };
+    } on FirebaseAuthException catch (e) {
+      print('❌ Erro ao enviar email de recuperação: ${e.code}');
+      String errorMessage;
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = 'Usuário não encontrado. Verifique o email digitado.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Email inválido. Verifique o formato do email.';
+          break;
+        case 'too-many-requests':
+          errorMessage = 'Muitas tentativas. Tente novamente em alguns minutos.';
+          break;
+        default:
+          errorMessage = 'Erro inesperado: ${e.message}';
+      }
+      return {
+        'success': false,
+        'message': errorMessage
+      };
+    } catch (e) {
+      print('❌ Erro de conexão: $e');
+      return {
+        'success': false,
+        'message': 'Erro de conexão. Verifique sua internet e tente novamente.'
+      };
+    }
+  }
+
+  // **VALIDAR EMAIL - NOVO MÉTODO**
+  bool isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
   // **LOGIN COM EMAIL E SENHA**
   Future<AuthResult> signInWithEmailAndPassword({
     required String email,
