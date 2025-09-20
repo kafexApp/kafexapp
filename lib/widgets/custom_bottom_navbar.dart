@@ -1,16 +1,18 @@
+// lib/widgets/custom_bottom_navbar.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../screens/cafe_explorer_screen.dart';
+import 'side_menu_overlay.dart';
 
 class CustomBottomNavbar extends StatelessWidget {
-  final VoidCallback onMenuPressed;
+  final VoidCallback? onMenuPressed;
   final VoidCallback? onSearchPressed;
 
   const CustomBottomNavbar({
     Key? key,
-    required this.onMenuPressed,
+    this.onMenuPressed,
     this.onSearchPressed,
   }) : super(key: key);
 
@@ -30,6 +32,11 @@ class CustomBottomNavbar extends StatelessWidget {
     } catch (e) {
       print('❌ Erro ao tentar navegar: $e');
     }
+  }
+
+  void _openSideMenu(BuildContext context) {
+    print('📱 Abrindo sidemenu...');
+    showSideMenu(context);
   }
 
   @override
@@ -102,7 +109,15 @@ class CustomBottomNavbar extends StatelessWidget {
               GestureDetector(
                 onTap: () {
                   print('📱 Menu clicado!');
-                  onMenuPressed();
+                  
+                  // Se houver callback personalizado, usar ele; senão abrir sidemenu
+                  if (onMenuPressed != null) {
+                    print('📞 Executando onMenuPressed personalizado...');
+                    onMenuPressed!();
+                  } else {
+                    print('🎯 Abrindo sidemenu padrão...');
+                    _openSideMenu(context);
+                  }
                 },
                 child: Container(
                   width: 70,
