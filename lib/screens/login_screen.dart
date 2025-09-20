@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:io' show Platform;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
@@ -19,141 +17,16 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final FocusNode _emailFocus = FocusNode();
   final FocusNode _passwordFocus = FocusNode();
-  final AuthService _authService = AuthService();
-  
   bool _isPasswordVisible = false;
   bool _isLoading = false;
-  String? _errorMessage;
+
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
     _emailFocus.addListener(() => setState(() {}));
     _passwordFocus.addListener(() => setState(() {}));
-  }
-
-  // Fazer login com email e senha
-  Future<void> _loginWithEmail() async {
-    // Validar campos
-    if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
-      setState(() {
-        _errorMessage = 'Por favor, preencha todos os campos';
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final result = await _authService.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      if (result.isSuccess) {
-        // Login realizado com sucesso
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
-        );
-      } else {
-        // Erro no login
-        setState(() {
-          _errorMessage = result.errorMessage;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro inesperado. Tente novamente.';
-      });
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-  }
-
-  // Fazer login com Google
-  Future<void> _loginWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final result = await _authService.signInWithGoogle();
-
-      if (result.isSuccess) {
-        // Login realizado com sucesso
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
-        );
-      } else {
-        // Erro no login
-        setState(() {
-          _errorMessage = result.errorMessage;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao fazer login com Google.';
-      });
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-  }
-
-  // Verificar se deve mostrar botão Apple
-  bool get _shouldShowAppleLogin {
-    if (kIsWeb) {
-      // No web, Apple login funciona, então pode mostrar
-      return true;
-    }
-    
-    try {
-      // No mobile, só mostrar se for iOS ou macOS
-      return Platform.isIOS || Platform.isMacOS;
-    } catch (e) {
-      // Se der erro na detecção, não mostrar
-      return false;
-    }
-  }
-  Future<void> _loginWithApple() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final result = await _authService.signInWithApple();
-
-      if (result.isSuccess) {
-        // Login realizado com sucesso
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
-        );
-      } else {
-        // Erro no login
-        setState(() {
-          _errorMessage = result.errorMessage;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Erro ao fazer login com Apple.';
-      });
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
@@ -187,31 +60,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   
                   SizedBox(height: 40),
-
-                  // Mensagem de erro (se houver)
-                  if (_errorMessage != null)
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      margin: EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.spiced.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.spiced.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        _errorMessage!,
-                        style: GoogleFonts.albertSans(
-                          fontSize: 14,
-                          color: AppColors.spiced,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
 
                   // Campo de Email
                   Container(
@@ -263,14 +111,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           vertical: 18,
                         ),
                       ),
-                      onChanged: (value) {
-                        // Limpar erro quando usuário começar a digitar
-                        if (_errorMessage != null) {
-                          setState(() {
-                            _errorMessage = null;
-                          });
-                        }
-                      },
                     ),
                   ),
 
@@ -328,10 +168,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : Icons.visibility,
                             color: AppColors.grayScale2,
                           ),
-                          onPressed: _isLoading ? null : () {
-                            setState(() {
-                              _isPasswordVisible = !_isPasswordVisible;
-                            });
+                          onPressed: () {
+                            if (!_isLoading) {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            }
                           },
                         ),
                         contentPadding: EdgeInsets.symmetric(
@@ -339,45 +181,63 @@ class _LoginScreenState extends State<LoginScreen> {
                           vertical: 18,
                         ),
                       ),
-                      onChanged: (value) {
-                        // Limpar erro quando usuário começar a digitar
-                        if (_errorMessage != null) {
-                          setState(() {
-                            _errorMessage = null;
-                          });
-                        }
-                      },
-                      onSubmitted: (value) {
-                        if (!_isLoading) {
-                          _loginWithEmail();
-                        }
-                      },
                     ),
                   ),
 
                   SizedBox(height: 32),
 
-                  // Botão "Acessar"
-                  PrimaryButton(
-                    text: 'Acessar',
-                    isLoading: _isLoading,
-                    onPressed: _isLoading ? () {} : _loginWithEmail,
+                  // Botão "Acessar" com loading
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.papayaSensorial,
+                        disabledBackgroundColor: AppColors.grayScale2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: _isLoading
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.whiteWhite,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              'Acessar',
+                              style: GoogleFonts.albertSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.whiteWhite,
+                              ),
+                            ),
+                    ),
                   ),
 
                   SizedBox(height: 16),
 
                   // Botão "Recuperar senha"
-                  CustomOutlineButton(
-                    text: 'Recuperar senha',
-                    onPressed: _isLoading ? () {} : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ForgotPasswordScreen(),
-                        ),
-                      );
-                    },
-                  ),
+CustomOutlineButton(
+  text: 'Recuperar senha',
+  onPressed: () {
+    if (!_isLoading) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ForgotPasswordScreen(),
+        ),
+      );
+    }
+  },
+),
 
                   SizedBox(height: 32),
 
@@ -396,11 +256,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Botão Google (sempre disponível)
+                      // Botão Google
                       GestureDetector(
-                        onTap: _isLoading ? null : _loginWithGoogle,
+                        onTap: _isLoading ? null : _handleGoogleSignIn,
                         child: Opacity(
-                          opacity: _isLoading ? 0.5 : 1.0,
+                          opacity: _isLoading ? 0.6 : 1.0,
                           child: SvgPicture.asset(
                             'assets/images/google-sociallogin.svg',
                             width: 70,
@@ -409,21 +269,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      // Botão Apple (apenas iOS/macOS/Web)
-                      if (_shouldShowAppleLogin) ...[
-                        SizedBox(width: 24),
-                        GestureDetector(
-                          onTap: _isLoading ? null : _loginWithApple,
-                          child: Opacity(
-                            opacity: _isLoading ? 0.5 : 1.0,
-                            child: SvgPicture.asset(
-                              'assets/images/apple-sociallogin.svg',
-                              width: 70,
-                              height: 70,
-                            ),
+                      SizedBox(width: 24),
+
+                      // Botão Apple
+                      GestureDetector(
+                        onTap: _isLoading ? null : _handleAppleSignIn,
+                        child: Opacity(
+                          opacity: _isLoading ? 0.6 : 1.0,
+                          child: SvgPicture.asset(
+                            'assets/images/apple-sociallogin.svg',
+                            width: 70,
+                            height: 70,
                           ),
                         ),
-                      ],
+                      ),
                     ],
                   ),
 
@@ -433,6 +292,120 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _handleLogin() async {
+    if (_emailController.text.isEmpty) {
+      _showErrorMessage('Por favor, digite seu email');
+      return;
+    }
+
+    if (_passwordController.text.isEmpty) {
+      _showErrorMessage('Por favor, digite sua senha');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (result.isSuccess) {
+        _showSuccessMessage('Login realizado com sucesso!');
+        // Navegar para tela principal
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+        );
+      } else {
+        _showErrorMessage(result.errorMessage ?? 'Erro no login');
+      }
+    } catch (e) {
+      _showErrorMessage('Erro inesperado: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.signInWithGoogle();
+
+      if (result.isSuccess) {
+        _showSuccessMessage('Login com Google realizado com sucesso!');
+        // Navegar para tela principal
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+        );
+      } else {
+        _showErrorMessage(result.errorMessage ?? 'Erro no login com Google');
+      }
+    } catch (e) {
+      _showErrorMessage('Erro no login com Google: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleAppleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.signInWithApple();
+
+      if (result.isSuccess) {
+        _showSuccessMessage('Login com Apple realizado com sucesso!');
+        // Navegar para tela principal
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+        );
+      } else {
+        _showErrorMessage(result.errorMessage ?? 'Erro no login com Apple');
+      }
+    } catch (e) {
+      _showErrorMessage('Erro no login com Apple: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.spiced,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.forestInk,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

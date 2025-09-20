@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_buttons.dart';
+import '../services/auth_service.dart';
+import 'home_feed_screen.dart';
 import 'login_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -26,6 +29,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptTerms = false;
+  bool _isLoading = false;
+
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -256,14 +262,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                             children: [
                               // Botão Google
                               GestureDetector(
-                                onTap: () {
-                                  print('🔍 Iniciando login com Google...');
-                                  // TODO: Implementar login com Google
-                                },
-                                child: SvgPicture.asset(
-                                  'assets/images/google-sociallogin.svg',
-                                  width: 70,
-                                  height: 70,
+                                onTap: _isLoading ? null : () => _handleGoogleSignIn(),
+                                child: Opacity(
+                                  opacity: _isLoading ? 0.6 : 1.0,
+                                  child: SvgPicture.asset(
+                                    'assets/images/google-sociallogin.svg',
+                                    width: 70,
+                                    height: 70,
+                                  ),
                                 ),
                               ),
 
@@ -271,14 +277,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
                               // Botão Apple
                               GestureDetector(
-                                onTap: () {
-                                  print('🍎 Iniciando login com Apple...');
-                                  // TODO: Implementar login com Apple
-                                },
-                                child: SvgPicture.asset(
-                                  'assets/images/apple-sociallogin.svg',
-                                  width: 70,
-                                  height: 70,
+                                onTap: _isLoading ? null : () => _handleAppleSignIn(),
+                                child: Opacity(
+                                  opacity: _isLoading ? 0.6 : 1.0,
+                                  child: SvgPicture.asset(
+                                    'assets/images/apple-sociallogin.svg',
+                                    width: 70,
+                                    height: 70,
+                                  ),
                                 ),
                               ),
                             ],
@@ -318,7 +324,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                               SizedBox(width: 16),
                               Expanded(
                                 child: ElevatedButton(
-                                  onPressed: _acceptTerms ? () {
+                                  onPressed: (_acceptTerms && !_isLoading) ? () {
                                     _handleCreateAccount();
                                   } : null,
                                   style: ElevatedButton.styleFrom(
@@ -330,14 +336,25 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                     padding: EdgeInsets.symmetric(vertical: 16),
                                     elevation: 0,
                                   ),
-                                  child: Text(
-                                    'Criar conta',
-                                    style: GoogleFonts.albertSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.whiteWhite,
-                                    ),
-                                  ),
+                                  child: _isLoading
+                                      ? SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(
+                                              AppColors.whiteWhite,
+                                            ),
+                                          ),
+                                        )
+                                      : Text(
+                                          'Criar conta',
+                                          style: GoogleFonts.albertSans(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.whiteWhite,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ],
@@ -457,7 +474,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     );
   }
 
-  void _handleCreateAccount() {
+  void _handleCreateAccount() async {
     // Validações básicas
     if (_nameController.text.isEmpty) {
       _showErrorMessage('Por favor, digite seu nome');
@@ -489,14 +506,107 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       return;
     }
 
-    // TODO: Implementar criação da conta
-    print('Criando conta...');
-    print('Nome: ${_nameController.text}');
-    print('Email: ${_emailController.text}');
-    print('Telefone: ${_phoneController.text}');
-    
-    // Simular sucesso na criação da conta
-    _showSuccessMessage('Conta criada com sucesso!');
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Usar Firebase Auth diretamente para criar conta
+      final UserCredential result = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      // Atualizar perfil do usuário
+      if (result.user != null) {
+        await result.user!.updateDisplayName(_nameController.text.trim());
+        await result.user!.reload();
+      }
+
+      _showSuccessMessage('Conta criada com sucesso!');
+      // Navegar para tela principal
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      _showErrorMessage(_getErrorMessage(e.code));
+    } catch (e) {
+      _showErrorMessage('Erro inesperado: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.signInWithGoogle();
+
+      if (result.isSuccess) {
+        _showSuccessMessage('Login com Google realizado com sucesso!');
+        // Navegar para tela principal
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+        );
+      } else {
+        _showErrorMessage(result.errorMessage ?? 'Erro no login com Google');
+      }
+    } catch (e) {
+      _showErrorMessage('Erro no login com Google: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _handleAppleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.signInWithApple();
+
+      if (result.isSuccess) {
+        _showSuccessMessage('Login com Apple realizado com sucesso!');
+        // Navegar para tela principal
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+        );
+      } else {
+        _showErrorMessage(result.errorMessage ?? 'Erro no login com Apple');
+      }
+    } catch (e) {
+      _showErrorMessage('Erro no login com Apple: ${e.toString()}');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _getErrorMessage(String errorCode) {
+    switch (errorCode) {
+      case 'email-already-in-use':
+        return 'Este email já está em uso';
+      case 'weak-password':
+        return 'Senha muito fraca';
+      case 'invalid-email':
+        return 'Email inválido';
+      case 'operation-not-allowed':
+        return 'Operação não permitida';
+      default:
+        return 'Erro desconhecido: $errorCode';
+    }
   }
 
   void _showErrorMessage(String message) {
