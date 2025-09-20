@@ -14,6 +14,7 @@ import '../utils/app_colors.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_boxcafe_minicard.dart';
+import '../widgets/side_menu_overlay.dart'; // LINHA ADICIONADA
 
 // Modelo para sugestões de lugares
 class PlaceSuggestion {
@@ -1539,7 +1540,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             ],
           ),
           
-          // Navbar na parte inferior
+          // Navbar na parte inferior - MUDANÇA AQUI
           Positioned(
             left: 0,
             right: 0,
@@ -1547,6 +1548,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             child: CustomBottomNavbar(
               onMenuPressed: () {
                 print('Abrir menu sidebar');
+                showSideMenu(context); // LINHA ADICIONADA
               },
               onSearchPressed: () {
                 print('Já estamos na tela de busca');

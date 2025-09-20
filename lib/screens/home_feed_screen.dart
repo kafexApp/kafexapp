@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/side_menu_overlay.dart';
 
 // Enum para tipos de post
 enum PostType {
@@ -124,7 +125,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
           ),
           
-          // Navbar sobreposta - CORREÇÃO AQUI!
+          // Navbar sobreposta
           Positioned(
             left: 0,
             right: 0,
@@ -132,10 +133,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             child: CustomBottomNavbar(
               onMenuPressed: () {
                 print('Abrir menu sidebar');
-                // TODO: Implementar abertura do menu lateral
+                showSideMenu(context);
               },
-              // REMOVI o onSearchPressed para usar a navegação automática!
-              // A navbar agora vai navegar automaticamente para CafeExplorerScreen
             ),
           ),
         ],
