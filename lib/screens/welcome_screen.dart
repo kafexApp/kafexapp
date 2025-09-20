@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_buttons.dart';
 import 'login_screen.dart';
+import 'create_account_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   @override
@@ -117,7 +118,10 @@ class WelcomeScreen extends StatelessWidget {
                   CustomOutlineButton(
                     text: 'Criar conta grátis',
                     onPressed: () {
-                      print('Cadastro clicado');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => CreateAccountScreen()),
+                      );
                     },
                   ),
                 ],
