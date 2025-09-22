@@ -10,13 +10,13 @@ import 'side_menu_overlay.dart';
 class CustomBottomNavbar extends StatelessWidget {
   final VoidCallback? onMenuPressed;
   final VoidCallback? onSearchPressed;
-  final bool isInCafeExplorer; // Novo parâmetro
+  final bool isInCafeExplorer;
 
   const CustomBottomNavbar({
     Key? key,
     this.onMenuPressed,
     this.onSearchPressed,
-    this.isInCafeExplorer = false, // Default false
+    this.isInCafeExplorer = false,
   }) : super(key: key);
 
   void _navigateToCafeExplorer(BuildContext context) {
@@ -64,7 +64,7 @@ class CustomBottomNavbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 90,
-      color: Colors.transparent, // Fundo transparente
+      color: Colors.transparent,
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -100,8 +100,7 @@ class CustomBottomNavbar extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 0,
-                      padding: EdgeInsets.zero, // Remove o padding interno
-                      // Adiciona um efeito visual ao pressionar
+                      padding: EdgeInsets.zero,
                       splashFactory: InkRipple.splashFactory,
                     ),
                     child: Row(
@@ -173,14 +172,6 @@ class CustomBottomNavbar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.velvetMerlot,
                     borderRadius: BorderRadius.circular(16),
-                    // Adiciona uma sombra sutil
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.velvetMerlot.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
                   ),
                   child: Center(
                     child: SvgPicture.asset(

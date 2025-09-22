@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_buttons.dart';
+import '../widgets/custom_toast.dart'; // ADICIONADO
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
 import 'home_feed_screen.dart';
@@ -79,6 +80,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       focusNode: _emailFocus,
                       keyboardType: TextInputType.emailAddress,
                       enabled: !_isLoading,
+                      textInputAction: TextInputAction.next, // ADICIONADO
+                      onSubmitted: (_) => _passwordFocus.requestFocus(), // ADICIONADO - vai para senha
                       style: GoogleFonts.albertSans(
                         fontSize: 16,
                         color: AppColors.carbon,
@@ -134,6 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       focusNode: _passwordFocus,
                       obscureText: !_isPasswordVisible,
                       enabled: !_isLoading,
+                      textInputAction: TextInputAction.done, // ADICIONADO
+                      onSubmitted: (_) => _handleLogin(), // ADICIONADO - faz login ao pressionar Enter
                       style: GoogleFonts.albertSans(
                         fontSize: 16,
                         color: AppColors.carbon,
@@ -225,19 +230,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   SizedBox(height: 16),
 
                   // Botão "Recuperar senha"
-CustomOutlineButton(
-  text: 'Recuperar senha',
-  onPressed: () {
-    if (!_isLoading) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ForgotPasswordScreen(),
-        ),
-      );
-    }
-  },
-),
+                  CustomOutlineButton(
+                    text: 'Recuperar senha',
+                    onPressed: () {
+                      if (!_isLoading) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ForgotPasswordScreen(),
+                          ),
+                        );
+                      }
+                    },
+                  ),
 
                   SizedBox(height: 32),
 
@@ -298,12 +303,12 @@ CustomOutlineButton(
 
   void _handleLogin() async {
     if (_emailController.text.isEmpty) {
-      _showErrorMessage('Por favor, digite seu email');
+      CustomToast.showError(context, message: 'Por favor, digite seu email');
       return;
     }
 
     if (_passwordController.text.isEmpty) {
-      _showErrorMessage('Por favor, digite sua senha');
+      CustomToast.showError(context, message: 'Por favor, digite sua senha');
       return;
     }
 
@@ -318,17 +323,17 @@ CustomOutlineButton(
       );
 
       if (result.isSuccess) {
-        _showSuccessMessage('Login realizado com sucesso!');
+        CustomToast.showSuccess(context, message: 'Login realizado com sucesso!');
         // Navegar para tela principal
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeFeedScreen()),
         );
       } else {
-        _showErrorMessage(result.errorMessage ?? 'Erro no login');
+        CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login');
       }
     } catch (e) {
-      _showErrorMessage('Erro inesperado: ${e.toString()}');
+      CustomToast.showError(context, message: 'Erro inesperado: ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
@@ -345,17 +350,17 @@ CustomOutlineButton(
       final result = await _authService.signInWithGoogle();
 
       if (result.isSuccess) {
-        _showSuccessMessage('Login com Google realizado com sucesso!');
+        CustomToast.showSuccess(context, message: 'Login com Google realizado com sucesso!');
         // Navegar para tela principal
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeFeedScreen()),
         );
       } else {
-        _showErrorMessage(result.errorMessage ?? 'Erro no login com Google');
+        CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login com Google');
       }
     } catch (e) {
-      _showErrorMessage('Erro no login com Google: ${e.toString()}');
+      CustomToast.showError(context, message: 'Erro no login com Google: ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
@@ -372,42 +377,22 @@ CustomOutlineButton(
       final result = await _authService.signInWithApple();
 
       if (result.isSuccess) {
-        _showSuccessMessage('Login com Apple realizado com sucesso!');
+        CustomToast.showSuccess(context, message: 'Login com Apple realizado com sucesso!');
         // Navegar para tela principal
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeFeedScreen()),
         );
       } else {
-        _showErrorMessage(result.errorMessage ?? 'Erro no login com Apple');
+        CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login com Apple');
       }
     } catch (e) {
-      _showErrorMessage('Erro no login com Apple: ${e.toString()}');
+      CustomToast.showError(context, message: 'Erro no login com Apple: ${e.toString()}');
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
-  }
-
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.spiced,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showSuccessMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.forestInk,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override

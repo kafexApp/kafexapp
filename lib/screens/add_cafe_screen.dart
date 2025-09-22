@@ -7,6 +7,7 @@ import 'dart:async';
 import '../utils/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_navbar.dart';
+import '../widgets/custom_toast.dart';
 
 // Modelo para sugestões de lugares (reutilizando do cafe_explorer)
 class PlaceSuggestion {
@@ -239,14 +240,14 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
       
     } catch (e) {
       print('Erro ao selecionar foto: $e');
-      _showErrorSnackBar('Erro ao selecionar foto. Tente novamente.');
+      CustomToast.showError(context, message: 'Erro ao selecionar foto. Tente novamente.');
     }
   }
 
   // Função para enviar cafeteria
   void _submitCafe() {
     if (_selectedPlace == null) {
-      _showErrorSnackBar('Por favor, selecione uma cafeteria primeiro.');
+      CustomToast.showError(context, message: 'Por favor, selecione uma cafeteria primeiro.');
       return;
     }
 
@@ -260,60 +261,32 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
     print('Pet Friendly: $_isPetFriendly');
     print('Veg Friendly: $_isVegFriendly');
 
-    _showSuccessSnackBar('Cafeteria enviada com sucesso!');
+    CustomToast.showSuccess(context, message: 'Cafeteria enviada com sucesso!');
     
     Future.delayed(Duration(seconds: 2), () {
       Navigator.pop(context);
     });
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: GoogleFonts.albertSans(color: AppColors.whiteWhite),
-        ),
-        backgroundColor: AppColors.spiced,
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: GoogleFonts.albertSans(color: AppColors.whiteWhite),
-        ),
-        backgroundColor: AppColors.forestInk,
-        duration: Duration(seconds: 3),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.oatWhite,
+      appBar: CustomAppBar(),
       body: Stack(
         children: [
-          // Background com imagem e overlay
-          _buildBackground(),
-          
-          // Conteúdo principal
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 120),
+          // Conteúdo principal com scroll
+          SingleChildScrollView(
+            padding: EdgeInsets.only(bottom: 110), // Espaço para navbar
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 60), // Espaço para o título sobrepor a imagem
+                  // Banner do topo com títulos
+                  _buildTopBanner(),
                   
-                  // Títulos
-                  _buildTitles(),
-                  SizedBox(height: 40),
+                  SizedBox(height: 30),
                   
                   // Campo de busca
                   _buildSearchField(),
@@ -335,12 +308,14 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
                   
                   // Botão enviar
                   _buildSubmitButton(),
+                  
+                  SizedBox(height: 20),
                 ],
               ),
             ),
           ),
           
-          // Navbar fixada na parte inferior
+          // Navbar sempre fixada na parte inferior
           Positioned(
             left: 0,
             right: 0,
@@ -357,68 +332,58 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
     );
   }
 
-  Widget _buildBackground() {
+  Widget _buildTopBanner() {
     return Container(
-      height: 300,
+      width: double.infinity,
+      height: 200,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.velvetMerlot,
-            AppColors.velvetMerlot.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(16),
+        image: DecorationImage(
+          image: AssetImage('assets/images/coffeeshop_banner.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: Container(
+        padding: EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withOpacity(0.3),
+              Colors.black.withOpacity(0.6),
+            ],
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Conhece lugares legais para tomar bons cafés?',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.albertSans(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: AppColors.whiteWhite,
+                height: 1.3,
+              ),
+            ),
+            
+            SizedBox(height: 12),
+            
+            Text(
+              'Adicione em nosso explorador de cafeterias',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.albertSans(
+                fontSize: 16,
+                color: AppColors.papayaSensorial,
+                height: 1.4,
+              ),
+            ),
           ],
         ),
       ),
-      child: Stack(
-        children: [
-          // Imagem de fundo (silhueta do homem com café)
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: NetworkImage('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800'),
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(
-                    AppColors.velvetMerlot.withOpacity(0.7),
-                    BlendMode.multiply,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTitles() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          'Conhece lugares legais para tomar bons cafés?',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.albertSans(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: AppColors.whiteWhite,
-            height: 1.3,
-          ),
-        ),
-        
-        SizedBox(height: 12),
-        
-        Text(
-          'Adicione cafeterias em nosso explorador de cafeterias.',
-          textAlign: TextAlign.center,
-          style: GoogleFonts.albertSans(
-            fontSize: 16,
-            color: AppColors.papayaSensorial,
-            height: 1.4,
-          ),
-        ),
-      ],
     );
   }
 
@@ -427,13 +392,6 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
       decoration: BoxDecoration(
         color: AppColors.whiteWhite,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
       child: TextField(
         controller: _searchController,
@@ -490,13 +448,6 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
       decoration: BoxDecoration(
         color: AppColors.whiteWhite,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: Offset(0, 4),
-          ),
-        ],
       ),
       child: ListView.separated(
         shrinkWrap: true,
@@ -561,194 +512,237 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
   }
 
   Widget _buildPhotoSection() {
-    return GestureDetector(
-      onTap: _addCustomPhoto, // Adicionar clique no container inteiro
-      child: Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.whiteWhite,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Ícone da foto (usando coffeeshop.svg)
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.pear,
-                borderRadius: BorderRadius.circular(16),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.whiteWhite,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Título da seção
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Text(
+              'Foto da cafeteria',
+              style: GoogleFonts.albertSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.carbon,
               ),
-              child: Center(
-                child: SvgPicture.asset(
-                  'assets/images/coffeshop.svg', // Ícone coffeeshop
-                  width: 32,
-                  height: 32,
-                  colorFilter: ColorFilter.mode(
-                    AppColors.carbon,
-                    BlendMode.srcIn,
-                  ),
+            ),
+          ),
+          
+          // Campo de upload
+          GestureDetector(
+            onTap: _addCustomPhoto,
+            child: Container(
+              margin: EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: _customPhotoPath != null 
+                    ? AppColors.cyberLime.withOpacity(0.1)
+                    : AppColors.moonAsh.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _customPhotoPath != null 
+                      ? AppColors.cyberLime
+                      : AppColors.grayScale2.withOpacity(0.5),
+                  width: 2,
+                  style: BorderStyle.solid,
                 ),
               ),
-            ),
-            
-            SizedBox(width: 20),
-            
-            // Textos
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Text(
-                    'Inclua uma foto da cafeteria',
-                    style: GoogleFonts.albertSans(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.papayaSensorial,
+                  // Ícone
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _customPhotoPath != null 
+                          ? AppColors.cyberLime
+                          : AppColors.grayScale2,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        _customPhotoPath != null 
+                            ? Icons.check_circle
+                            : Icons.add_photo_alternate,
+                        size: 24,
+                        color: AppColors.whiteWhite,
+                      ),
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Clique ao lado para fazer upload de uma foto da cafeteria',
-                    style: GoogleFonts.albertSans(
-                      fontSize: 14,
-                      color: AppColors.grayScale1,
-                      height: 1.4,
+                  
+                  SizedBox(width: 16),
+                  
+                  // Texto
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _customPhotoPath != null 
+                              ? 'Foto selecionada!'
+                              : 'Selecionar foto',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: _customPhotoPath != null 
+                                ? AppColors.cyberLime
+                                : AppColors.carbon,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          _customPhotoPath != null 
+                              ? 'Toque para trocar a foto'
+                              : 'Toque para abrir a galeria',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 14,
+                            color: AppColors.grayScale1,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  
+                  // Seta
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppColors.grayScale2,
                   ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          
+          SizedBox(height: 20),
+        ],
       ),
     );
   }
 
   Widget _buildMoreInfoAccordion() {
-    return Column(
-      children: [
-        // Header do accordion
-        GestureDetector(
-          onTap: () {
-            setState(() {
-              _showMoreInfo = !_showMoreInfo;
-            });
-          },
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              color: AppColors.whiteWhite,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Mais informações?',
-                    style: GoogleFonts.albertSans(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.carbon,
-                    ),
-                  ),
-                ),
-                Icon(
-                  _showMoreInfo ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: AppColors.grayScale1,
-                  size: 24,
-                ),
-              ],
-            ),
-          ),
-        ),
-        
-        SizedBox(height: 12),
-        
-        // Box explicativo (mostrar apenas se accordion estiver fechado)
-        if (!_showMoreInfo)
-          Container(
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.papayaSensorial.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.papayaSensorial.withOpacity(0.3),
-                width: 2,
-              ),
-            ),
-            child: Text(
-              'Quer adicionar mais detalhes sobre a cafeteria? É só clicar aqui e preencher. Mas se não quiser, relaxa: a gente faz isso por você depois! ♥️',
-              style: GoogleFonts.albertSans(
-                fontSize: 14,
-                color: AppColors.carbon,
-                height: 1.4,
-              ),
-            ),
-          ),
-        
-        // Switches (mostrar apenas se accordion estiver aberto)
-        if (_showMoreInfo) ...[
-          SizedBox(height: 16),
-          _buildFacilitiesSwitches(),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildFacilitiesSwitches() {
     return Container(
-      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.whiteWhite,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         children: [
-          _buildFacilitySwitch(
-            title: 'Este local permite a entrada de animais de estimação?',
-            value: _isPetFriendly,
-            onChanged: (value) => setState(() => _isPetFriendly = value),
-            icon: 'assets/images/icon-pet-friendly.svg',
+          // Header do accordion
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _showMoreInfo = !_showMoreInfo;
+              });
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Mais informações?',
+                      style: GoogleFonts.albertSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.carbon,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    _showMoreInfo ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    color: AppColors.grayScale1,
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
           ),
           
-          SizedBox(height: 16),
+          // Box explicativo (visível apenas quando fechado)
+          if (!_showMoreInfo) 
+            Container(
+              margin: EdgeInsets.fromLTRB(20, 0, 20, 20),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.papayaSensorial.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.papayaSensorial.withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: Text(
+                'Quer adicionar mais detalhes sobre a cafeteria? É só clicar aqui e preencher. Mas se não quiser, relaxa: a gente faz isso por você depois! ♥️',
+                style: GoogleFonts.albertSans(
+                  fontSize: 14,
+                  color: AppColors.carbon,
+                  height: 1.4,
+                ),
+              ),
+            ),
           
-          _buildFacilitySwitch(
-            title: 'Oferece opções veganas ou vegetarianas?',
-            value: _isVegFriendly,
-            onChanged: (value) => setState(() => _isVegFriendly = value),
-            icon: 'assets/images/icon-veg-friendly.svg',
-          ),
-          
-          SizedBox(height: 16),
-          
-          _buildFacilitySwitch(
-            title: 'Está autorizado trabalhar nesse local?',
-            value: _isOfficeFriendly,
-            onChanged: (value) => setState(() => _isOfficeFriendly = value),
-            icon: 'assets/images/icon-office-friendly.svg',
+          // Conteúdo expandível do accordion
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            height: _showMoreInfo ? null : 0,
+            child: _showMoreInfo 
+              ? Column(
+                  children: [
+                    SizedBox(height: 8),
+                    
+                    // Switches de facilidades
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.moonAsh.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildFacilitySwitch(
+                            title: 'Este local permite a entrada de animais de estimação?',
+                            value: _isPetFriendly,
+                            onChanged: (value) => setState(() => _isPetFriendly = value),
+                            icon: 'assets/images/icon-pet-friendly.svg',
+                          ),
+                          
+                          SizedBox(height: 12),
+                          
+                          _buildFacilitySwitch(
+                            title: 'Oferece opções veganas ou vegetarianas?',
+                            value: _isVegFriendly,
+                            onChanged: (value) => setState(() => _isVegFriendly = value),
+                            icon: 'assets/images/icon-veg-friendly.svg',
+                          ),
+                          
+                          SizedBox(height: 12),
+                          
+                          _buildFacilitySwitch(
+                            title: 'Está autorizado trabalhar nesse local?',
+                            value: _isOfficeFriendly,
+                            onChanged: (value) => setState(() => _isOfficeFriendly = value),
+                            icon: 'assets/images/icon-office-friendly.svg',
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    SizedBox(height: 20),
+                  ],
+                )
+              : SizedBox.shrink(),
           ),
         ],
       ),
@@ -762,12 +756,12 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
     required String icon,
   }) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.moonAsh.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.whiteWhite,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: AppColors.papayaSensorial.withOpacity(0.3),
+          color: AppColors.papayaSensorial.withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -783,18 +777,20 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
             ),
           ),
           
-          SizedBox(width: 16),
+          SizedBox(width: 16), // Aumentado de 12 para 16
           
           Expanded(
             child: Text(
               title,
               style: GoogleFonts.albertSans(
-                fontSize: 14,
+                fontSize: 13,
                 color: AppColors.carbon,
-                height: 1.4,
+                height: 1.3,
               ),
             ),
           ),
+          
+          SizedBox(width: 20), // Aumentado de implícito para 20
           
           Switch(
             value: value,
