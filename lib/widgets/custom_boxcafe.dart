@@ -670,7 +670,7 @@ class CustomBoxcafe extends StatelessWidget {
               width: 20,
               height: 20,
               colorFilter: ColorFilter.mode(
-                AppColors.carbon,
+                AppColors.spiced,
                 BlendMode.srcIn,
               ),
             ),

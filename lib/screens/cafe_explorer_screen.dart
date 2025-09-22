@@ -1550,6 +1550,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             right: 0,
             bottom: 0,
             child: CustomBottomNavbar(
+              isInCafeExplorer: true, // Indica que estamos na tela de exploração
               onMenuPressed: () {
                 print('Abrir menu sidebar');
                 showSideMenu(context); // LINHA ADICIONADA
