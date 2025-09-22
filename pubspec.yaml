@@ -51,6 +51,10 @@ dependencies:
   google_sign_in: ^6.2.1
   sign_in_with_apple: ^6.1.2
 
+  # NOVAS DEPENDÊNCIAS PARA SELEÇÃO DE IMAGENS
+  image_picker: ^1.0.4           # Para seleção de imagens da galeria e câmera
+  permission_handler: ^11.0.1    # Para gerenciar permissões de câmera e galeria
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

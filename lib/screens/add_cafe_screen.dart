@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_bottom_navbar.dart';
@@ -79,7 +82,8 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
   bool _isLoadingPlaceDetails = false;
 
   // Upload de foto personalizada
-  String? _customPhotoPath;
+  File? _selectedImage;
+  final ImagePicker _imagePicker = ImagePicker();
 
   // Accordion "Mais informações"
   bool _showMoreInfo = false;
@@ -222,25 +226,286 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
     }
   }
 
-  // Função para adicionar foto personalizada
-  void _addCustomPhoto() async {
-    // TODO: Implementar seleção de foto da galeria/câmera
+  // Função para verificar e solicitar permissões
+  Future<bool> _requestPermission(Permission permission) async {
+    final status = await permission.status;
+    
+    if (status.isGranted) {
+      return true;
+    }
+    
+    if (status.isDenied) {
+      final result = await permission.request();
+      return result.isGranted;
+    }
+    
+    if (status.isPermanentlyDenied) {
+      // Mostrar dialog para ir para configurações
+      _showPermissionDialog();
+      return false;
+    }
+    
+    return false;
+  }
+
+  // Dialog para permissões negadas permanentemente
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Permissão necessária',
+            style: GoogleFonts.albertSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.carbon,
+            ),
+          ),
+          content: Text(
+            'Para selecionar fotos, é necessário permitir o acesso à câmera e galeria. Vá para as configurações do app e habilite as permissões.',
+            style: GoogleFonts.albertSans(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Cancelar',
+                style: GoogleFonts.albertSans(
+                  fontSize: 14,
+                  color: AppColors.grayScale2,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await openAppSettings();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.papayaSensorial,
+                foregroundColor: AppColors.velvetMerlot,
+              ),
+              child: Text(
+                'Configurações',
+                style: GoogleFonts.albertSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Bottom sheet para selecionar fonte da imagem
+  void _showImageSourceBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.whiteWhite,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Indicador de arraste
+                Container(
+                  margin: EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.grayScale2.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                
+                // Título
+                Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Text(
+                    'Selecionar foto',
+                    style: GoogleFonts.albertSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.carbon,
+                    ),
+                  ),
+                ),
+                
+                // Opções
+                Column(
+                  children: [
+                    _buildImageSourceOption(
+                      icon: Icons.camera_alt,
+                      title: 'Tirar foto',
+                      subtitle: 'Usar a câmera',
+                      onTap: () => _selectImageFromSource(ImageSource.camera),
+                    ),
+                    _buildImageSourceOption(
+                      icon: Icons.photo_library,
+                      title: 'Escolher da galeria',
+                      subtitle: 'Selecionar uma foto salva',
+                      onTap: () => _selectImageFromSource(ImageSource.gallery),
+                    ),
+                    // Opção para remover foto (se já tiver uma selecionada)
+                    if (_selectedImage != null)
+                      _buildImageSourceOption(
+                        icon: Icons.delete_outline,
+                        title: 'Remover foto',
+                        subtitle: 'Excluir foto selecionada',
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            _selectedImage = null;
+                          });
+                        },
+                        isDestructive: true,
+                      ),
+                  ],
+                ),
+                
+                SizedBox(height: 20),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageSourceOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isDestructive 
+                      ? Colors.red.withOpacity(0.1)
+                      : AppColors.papayaSensorial.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: isDestructive 
+                      ? Colors.red
+                      : AppColors.papayaSensorial,
+                  size: 24,
+                ),
+              ),
+              
+              SizedBox(width: 16),
+              
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.albertSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDestructive 
+                            ? Colors.red
+                            : AppColors.carbon,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.albertSans(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: AppColors.grayScale2,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Selecionar imagem da câmera ou galeria
+  Future<void> _selectImageFromSource(ImageSource source) async {
+    Navigator.pop(context); // Fechar bottom sheet
+    
     try {
-      // Simulação de seleção de foto - em produção usar image_picker
-      print('Abrindo galeria de fotos...');
+      // Verificar permissões
+      Permission permission = source == ImageSource.camera 
+          ? Permission.camera 
+          : Permission.photos;
       
-      // Mock - simular seleção de foto após delay
-      await Future.delayed(Duration(milliseconds: 800));
+      bool hasPermission = await _requestPermission(permission);
       
-      setState(() {
-        _customPhotoPath = 'mock_selected_photo.jpg';
-      });
+      if (!hasPermission) {
+        return;
+      }
       
-      print('Foto selecionada: $_customPhotoPath');
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+        
+        CustomToast.showSuccess(
+          context, 
+          message: source == ImageSource.camera 
+              ? 'Foto capturada com sucesso!' 
+              : 'Foto selecionada com sucesso!'
+        );
+        
+        print('Imagem selecionada: ${pickedFile.path}');
+      }
       
     } catch (e) {
-      print('Erro ao selecionar foto: $e');
-      CustomToast.showError(context, message: 'Erro ao selecionar foto. Tente novamente.');
+      print('Erro ao selecionar imagem: $e');
+      
+      String errorMessage = source == ImageSource.camera 
+          ? 'Erro ao tirar foto. Tente novamente.'
+          : 'Erro ao selecionar foto. Tente novamente.';
+      
+      CustomToast.showError(context, message: errorMessage);
     }
   }
 
@@ -256,7 +521,7 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
     print('Endereço: ${_selectedPlace!.address}');
     print('Telefone: ${_selectedPlace!.phone}');
     print('Website: ${_selectedPlace!.website}');
-    print('Foto personalizada: $_customPhotoPath');
+    print('Foto personalizada: ${_selectedImage?.path ?? 'Nenhuma'}');
     print('Office Friendly: $_isOfficeFriendly');
     print('Pet Friendly: $_isPetFriendly');
     print('Veg Friendly: $_isVegFriendly');
@@ -533,19 +798,35 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
             ),
           ),
           
+          // Preview da imagem selecionada (se houver)
+          if (_selectedImage != null)
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 20),
+              height: 200,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                image: DecorationImage(
+                  image: FileImage(_selectedImage!),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          
+          if (_selectedImage != null) SizedBox(height: 16),
+          
           // Campo de upload
           GestureDetector(
-            onTap: _addCustomPhoto,
+            onTap: _showImageSourceBottomSheet,
             child: Container(
               margin: EdgeInsets.symmetric(horizontal: 20),
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: _customPhotoPath != null 
+                color: _selectedImage != null 
                     ? AppColors.cyberLime.withOpacity(0.1)
                     : AppColors.moonAsh.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: _customPhotoPath != null 
+                  color: _selectedImage != null 
                       ? AppColors.cyberLime
                       : AppColors.grayScale2.withOpacity(0.5),
                   width: 2,
@@ -559,15 +840,15 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _customPhotoPath != null 
+                      color: _selectedImage != null 
                           ? AppColors.cyberLime
                           : AppColors.grayScale2,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
                       child: Icon(
-                        _customPhotoPath != null 
-                            ? Icons.check_circle
+                        _selectedImage != null 
+                            ? Icons.edit
                             : Icons.add_photo_alternate,
                         size: 24,
                         color: AppColors.whiteWhite,
@@ -583,22 +864,22 @@ class _AddCafeScreenState extends State<AddCafeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _customPhotoPath != null 
+                          _selectedImage != null 
                               ? 'Foto selecionada!'
                               : 'Selecionar foto',
                           style: GoogleFonts.albertSans(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: _customPhotoPath != null 
+                            color: _selectedImage != null 
                                 ? AppColors.cyberLime
                                 : AppColors.carbon,
                           ),
                         ),
                         SizedBox(height: 4),
                         Text(
-                          _customPhotoPath != null 
-                              ? 'Toque para trocar a foto'
-                              : 'Toque para abrir a galeria',
+                          _selectedImage != null 
+                              ? 'Toque para trocar ou remover'
+                              : 'Câmera ou galeria',
                           style: GoogleFonts.albertSans(
                             fontSize: 14,
                             color: AppColors.grayScale1,
