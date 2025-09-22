@@ -4,44 +4,54 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_icons.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/side_menu_overlay.dart';
 
-// Enum para tipos de post
-enum PostType {
-  image,
-  video,
-  cafeReview,
-  newCafe,
-}
-
-// Modelo de dados para posts
+// Modelo de dados para o post (temporário até criar o arquivo separado)
 class PostData {
   final String id;
   final String authorName;
   final String authorAvatar;
   final String date;
-  final PostType type;
   final String? imageUrl;
+  final String? videoUrl;
   final String content;
   final int likes;
   final int comments;
   final bool isLiked;
-  final String? cafeName;
+  final List<CommentData> recentComments;
 
   PostData({
     required this.id,
     required this.authorName,
     required this.authorAvatar,
     required this.date,
-    required this.type,
     this.imageUrl,
+    this.videoUrl,
     required this.content,
     this.likes = 0,
     this.comments = 0,
     this.isLiked = false,
-    this.cafeName,
+    this.recentComments = const [],
+  });
+}
+
+// Modelo de dados para comentários (temporário)
+class CommentData {
+  final String id;
+  final String authorName;
+  final String authorAvatar;
+  final String content;
+  final String date;
+
+  CommentData({
+    required this.id,
+    required this.authorName,
+    required this.authorAvatar,
+    required this.content,
+    required this.date,
   });
 }
 
@@ -53,49 +63,64 @@ class HomeFeedScreen extends StatefulWidget {
 class _HomeFeedScreenState extends State<HomeFeedScreen> {
   final ScrollController _scrollController = ScrollController();
   
-  // Dados mock para demonstração
-  final List<String> userAvatars = [
-    'assets/images/default-avatar.svg',
-    'assets/images/default-avatar.svg',
-    'assets/images/default-avatar.svg',
-    'assets/images/default-avatar.svg',
-    'assets/images/default-avatar.svg',
-  ];
-
   final List<PostData> posts = [
     PostData(
       id: '1',
       authorName: 'Paulo Cristiano',
       authorAvatar: 'assets/images/default-avatar.svg',
       date: '03/01/2024',
-      type: PostType.cafeReview,
       imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
       content: 'Acabei de experimentar um cappuccino com uma crema perfeita! A textura estava cremosa e suave, com uma cor dourada que indicava a extração ideal do espresso. A crema adicionou um toque de doçura...',
       likes: 42,
       comments: 8,
+      recentComments: [
+        CommentData(
+          id: '1',
+          authorName: 'Amanda Klein',
+          authorAvatar: 'assets/images/default-avatar.svg',
+          content: 'A crema realmente faz toda a diferença. É incrível como ela intensifica o sabor e a experiência.',
+          date: '03/05/2024',
+        ),
+      ],
     ),
     PostData(
       id: '2',
       authorName: 'Amanda Klein',
       authorAvatar: 'assets/images/default-avatar.svg',
       date: '02/01/2024',
-      type: PostType.image,
       imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
       content: 'A cena realmente faz toda a diferença. É incrível como a atmosfera e o sabor da experiência.',
       likes: 28,
       comments: 5,
       isLiked: true,
+      recentComments: [
+        CommentData(
+          id: '2',
+          authorName: 'João Silva',
+          authorAvatar: 'assets/images/default-avatar.svg',
+          content: 'Concordo totalmente! O ambiente é fundamental para a experiência do café.',
+          date: '02/02/2024',
+        ),
+      ],
     ),
     PostData(
       id: '3',
       authorName: 'Paulo Cristiano',
       authorAvatar: 'assets/images/default-avatar.svg',
       date: '01/01/2024',
-      type: PostType.newCafe,
       imageUrl: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-      content: 'Acabei de experimentar um cappuccino com uma crema perfeita! A textura estava cremosa e suave, com uma cor dourada que indicava a extração ideal do espresso. A crema adicionou um toque de doçura...',
+      content: 'Descobri uma nova cafeteria no centro da cidade. O lugar tem uma atmosfera incrível e o café é excepcional!',
       likes: 67,
       comments: 12,
+      recentComments: [
+        CommentData(
+          id: '3',
+          authorName: 'Maria Santos',
+          authorAvatar: 'assets/images/default-avatar.svg',
+          content: 'Qual é o nome da cafeteria? Estou sempre procurando novos lugares para experimentar!',
+          date: '01/02/2024',
+        ),
+      ],
     ),
   ];
 
@@ -105,19 +130,33 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     return fullName.split(' ').first;
   }
 
-  // Função para gerar nomes mock para os avatares
-  String _getUserName(int index) {
-    final List<String> mockNames = [
-      'Ana Silva',
-      'Carlos Lima',
-      'Maria José',
-      'João Pedro',
-      'Beatriz Costa',
-    ];
-    return mockNames[index % mockNames.length];
+  // Callbacks para ações dos posts
+  void _handleLike(String postId) {
+    print('Like no post: $postId');
+    // TODO: Implementar lógica de like
   }
 
-  // Função para mostrar modal de opções do post
+  void _handleComment(String postId) {
+    print('Comentário no post: $postId');
+    // TODO: Navegar para tela de comentários
+  }
+
+  void _handleEdit(String postId) {
+    print('Editar post: $postId');
+    // TODO: Implementar edição do post
+  }
+
+  void _handleDelete(String postId) {
+    print('Excluir post: $postId');
+    // TODO: Implementar confirmação e exclusão do post
+  }
+
+  void _handleViewAllComments(String postId) {
+    print('Ver todos os comentários do post: $postId');
+    // TODO: Navegar para tela de comentários completa
+  }
+
+  // Modal de opções do post
   void _showPostOptionsModal(BuildContext context, PostData post) {
     showModalBottomSheet(
       context: context,
@@ -151,11 +190,10 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               ListTile(
                 onTap: () {
                   Navigator.pop(context);
-                  print('Editar post: ${post.id}');
-                  // TODO: Implementar edição do post
+                  _handleEdit(post.id);
                 },
                 leading: Icon(
-                  Icons.edit_outlined,
+                  AppIcons.edit,
                   color: AppColors.papayaSensorial,
                   size: 24,
                 ),
@@ -182,11 +220,10 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               ListTile(
                 onTap: () {
                   Navigator.pop(context);
-                  print('Excluir post: ${post.id}');
-                  // TODO: Implementar confirmação e exclusão do post
+                  _handleDelete(post.id);
                 },
                 leading: Icon(
-                  Icons.delete_outline,
+                  AppIcons.delete,
                   color: AppColors.spiced,
                   size: 24,
                 ),
@@ -223,10 +260,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                 // Seção de boas-vindas
                 _buildWelcomeSection(),
                 
-                // Lista de usuários (avatares)
-                _buildUsersSection(),
-                
-                // Lista de posts
+                // Lista de posts (removida seção de usuários)
                 _buildPostsList(),
                 
                 // Espaçamento para a navbar sobreposta
@@ -375,76 +409,6 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     );
   }
 
-  Widget _buildUsersSection() {
-    return Container(
-      margin: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Curadoria dos melhores',
-            style: GoogleFonts.albertSans(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 16),
-          SizedBox(
-            height: 110, // Aumentado de 100 para 110 para corrigir overflow
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: BouncingScrollPhysics(), // Adiciona efeito de bounce no iOS
-              itemCount: userAvatars.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: EdgeInsets.only(right: 20), // Aumentado de 16 para 20
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min, // Adiciona para evitar overflow
-                    children: [
-                      // Avatar container - SEM BORDA
-                      Container(
-                        width: 80, // Aumentado de 60 para 80
-                        height: 80, // Aumentado de 60 para 80
-                        decoration: BoxDecoration(
-                          color: AppColors.moonAsh,
-                          shape: BoxShape.circle,
-                          // REMOVIDAS as bordas e shadows
-                        ),
-                        child: Center(
-                          child: SvgPicture.asset(
-                            userAvatars[index],
-                            width: 48, // Aumentado de 36 para 48
-                            height: 48, // Aumentado de 36 para 48
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 6), // Reduzido de 8 para 6
-                      // Nome do usuário (mock data por enquanto)
-                      Flexible( // Adiciona Flexible para evitar overflow
-                        child: Text(
-                          _getUserName(index),
-                          style: GoogleFonts.albertSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildPostsList() {
     return ListView.builder(
       shrinkWrap: true,
@@ -565,7 +529,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                     color: AppColors.moonAsh,
                     child: Center(
                       child: Icon(
-                        Icons.image_not_supported,
+                        AppIcons.image, // Ícone Phosphor
                         color: AppColors.textSecondary,
                         size: 48,
                       ),

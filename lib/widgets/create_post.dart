@@ -1,4 +1,4 @@
-// lib/screens/create_post_screen.dart
+// lib/widgets/create_post.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,16 +8,16 @@ import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../utils/user_manager.dart';
+import './custom_buttons.dart';
 
 class CreatePostScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Abre o modal automaticamente quando a tela é carregada
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      showCreatePostModal(context).then((_) {
-        // Volta para a tela anterior quando o modal é fechado
-        Navigator.of(context).pop();
-      });
+      showCreatePostModal(context);
+      // Remove o .then() porque showCreatePostModal retorna void
+      Navigator.of(context).pop();
     });
 
     // Retorna uma tela transparente
@@ -55,7 +55,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
       ),
       child: Column(
         children: [
-          // Header do modal
+          // Header do modal (apenas título e botão fechar)
           _buildHeader(),
           
           // Conteúdo do modal
@@ -85,7 +85,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
                   
                   SizedBox(height: 20),
                   
-                  // Botões de ação
+                  // Botões de ação (apenas na parte inferior)
                   _buildActionButtons(),
                 ],
               ),
@@ -109,7 +109,19 @@ class _CreatePostModalState extends State<CreatePostModal> {
       ),
       child: Row(
         children: [
-          // Botão fechar
+          // Título "Criar Post" à esquerda
+          Expanded(
+            child: Text(
+              'Criar post',
+              style: GoogleFonts.albertSans(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          
+          // Botão fechar à direita
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
@@ -124,54 +136,6 @@ class _CreatePostModalState extends State<CreatePostModal> {
                 color: AppColors.textSecondary,
                 size: 20,
               ),
-            ),
-          ),
-          
-          SizedBox(width: 16),
-          
-          // Título
-          Expanded(
-            child: Text(
-              'Criar Post',
-              style: GoogleFonts.albertSans(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-          
-          // Botão publicar
-          Container(
-            height: 36,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _publishPost,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.papayaSensorial,
-                disabledBackgroundColor: AppColors.grayScale2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                elevation: 0,
-                padding: EdgeInsets.symmetric(horizontal: 20),
-              ),
-              child: _isLoading
-                  ? SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.whiteWhite),
-                      ),
-                    )
-                  : Text(
-                      'Publicar',
-                      style: GoogleFonts.albertSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.whiteWhite,
-                      ),
-                    ),
             ),
           ),
         ],
@@ -514,62 +478,22 @@ class _CreatePostModalState extends State<CreatePostModal> {
   Widget _buildActionButtons() {
     return Row(
       children: [
+        // Botão Cancelar usando CustomOutlineButton
         Expanded(
-          child: OutlinedButton(
+          child: CustomOutlineButton(
+            text: 'Cancelar',
             onPressed: () => Navigator.of(context).pop(),
-            style: OutlinedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              side: BorderSide(
-                color: AppColors.grayScale2,
-                width: 1,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: Text(
-              'Cancelar',
-              style: GoogleFonts.albertSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.grayScale2,
-              ),
-            ),
           ),
         ),
         
         SizedBox(width: 16),
         
+        // Botão Publicar usando PrimaryButton
         Expanded(
-          child: ElevatedButton(
-            onPressed: _isLoading ? null : _publishPost,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.papayaSensorial,
-              disabledBackgroundColor: AppColors.grayScale2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-              padding: EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: _isLoading
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.whiteWhite),
-                    ),
-                  )
-                : Text(
-                    'Publicar',
-                    style: GoogleFonts.albertSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.whiteWhite,
-                    ),
-                  ),
+          child: PrimaryButton(
+            text: 'Publicar',
+            onPressed: _publishPost,
+            isLoading: _isLoading,
           ),
         ),
       ],
@@ -627,9 +551,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
       }
     } catch (e) {
       print('Erro ao selecionar mídia: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao selecionar mídia')),
-      );
+      _showCustomToast('Erro ao selecionar mídia');
     }
   }
 
@@ -653,11 +575,43 @@ class _CreatePostModalState extends State<CreatePostModal> {
     }
   }
 
+  void _showCustomToast(String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.warning_rounded : Icons.check_circle_rounded,
+              color: AppColors.whiteWhite,
+              size: 20,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.albertSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.whiteWhite,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isError ? AppColors.spiced : AppColors.papayaSensorial,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: EdgeInsets.all(16),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
   Future<void> _publishPost() async {
     if (_descriptionController.text.trim().isEmpty && _selectedMedia == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Adicione uma descrição ou mídia')),
-      );
+      _showCustomToast('Adicione uma descrição ou mídia para continuar');
       return;
     }
 
@@ -677,12 +631,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
       
       Navigator.of(context).pop();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Post publicado com sucesso!'),
-          backgroundColor: AppColors.papayaSensorial,
-        ),
-      );
+      _showCustomToast('Post publicado com sucesso!', isError: false);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao publicar post')),
