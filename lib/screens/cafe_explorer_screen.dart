@@ -1015,10 +1015,14 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                                   ),
                                 ),
                               )
-                            : Icon(
-                                Icons.search,
-                                color: AppColors.whiteWhite,
-                                size: 20,
+                            : SvgPicture.asset(
+                                'assets/images/search.svg',
+                                width: 20,
+                                height: 20,
+                                colorFilter: ColorFilter.mode(
+                                  AppColors.whiteWhite,
+                                  BlendMode.srcIn,
+                                ),
                               ),
                       ),
                     ),
@@ -1299,7 +1303,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
           // Botões de toggle sobrepostos
           Positioned(
-            top: 80, // Posição fixa independente das sugestões
+            top: 80, // Voltando para posição original
             left: 0,
             right: 0,
             child: _buildToggleButtons(),
@@ -1375,7 +1379,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             if (_visibleCafes.isNotEmpty)
               // Lista de cafeterias
               ListView.builder(
-                padding: EdgeInsets.fromLTRB(20, 140, 20, 120), // Padding fixo
+                padding: EdgeInsets.fromLTRB(20, 180, 20, 120), // Padding aumentado de 160 para 180
                 itemCount: _visibleCafes.length,
                 itemBuilder: (context, index) {
                   return Container(
@@ -1418,7 +1422,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
             // Botões de toggle sobrepostos
             Positioned(
-              top: 80, // Posição fixa
+              top: 80, // Voltando para posição original
               left: 0,
               right: 0,
               child: _buildToggleButtons(),

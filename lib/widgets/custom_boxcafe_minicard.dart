@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../screens/cafe_explorer_screen.dart';
+import 'custom_boxcafe.dart';
 
 class CustomBoxcafeMinicard extends StatelessWidget {
   final CafeModel cafe;
@@ -17,7 +18,10 @@ class CustomBoxcafeMinicard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        showCafeModal(context, cafe);
+        if (onTap != null) onTap!();
+      },
       child: Container(
         height: 141, // Altura padronizada
         decoration: BoxDecoration(
