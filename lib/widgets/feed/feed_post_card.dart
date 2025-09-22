@@ -4,52 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
-
-// Modelo de dados para o post
-class PostData {
-  final String id;
-  final String authorName;
-  final String authorAvatar;
-  final String date;
-  final String? imageUrl;
-  final String? videoUrl;
-  final String content;
-  final int likes;
-  final int comments;
-  final bool isLiked;
-  final List<CommentData> recentComments;
-
-  PostData({
-    required this.id,
-    required this.authorName,
-    required this.authorAvatar,
-    required this.date,
-    this.imageUrl,
-    this.videoUrl,
-    required this.content,
-    this.likes = 0,
-    this.comments = 0,
-    this.isLiked = false,
-    this.recentComments = const [],
-  });
-}
-
-// Modelo de dados para comentários
-class CommentData {
-  final String id;
-  final String authorName;
-  final String authorAvatar;
-  final String content;
-  final String date;
-
-  CommentData({
-    required this.id,
-    required this.authorName,
-    required this.authorAvatar,
-    required this.content,
-    required this.date,
-  });
-}
+import '../../models/post_models.dart'; // IMPORT ADICIONADO
 
 class FeedPostCard extends StatefulWidget {
   final PostData post;
@@ -279,7 +234,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
             child: Container(
               padding: EdgeInsets.all(8),
               child: Icon(
-                AppIcons.menu,
+                AppIcons.dotsThree, // Usando ícone dots-three do Phosphor
                 color: AppColors.grayScale2,
                 size: 20,
               ),
@@ -291,19 +246,27 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   Widget _buildPostMedia() {
-    return Container(
-      width: double.infinity,
-      height: 300,
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: AppColors.moonAsh,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: widget.post.videoUrl != null
-            ? _buildVideoPlayer()
-            : _buildImageMedia(),
+    return GestureDetector(
+      onDoubleTap: () {
+        // Double tap para dar like
+        if (!_isLiked) {
+          _toggleLike();
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        height: 300,
+        margin: EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: AppColors.moonAsh,
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: widget.post.videoUrl != null
+              ? _buildVideoPlayer()
+              : _buildImageMedia(),
+        ),
       ),
     );
   }
@@ -368,13 +331,13 @@ class _FeedPostCardState extends State<FeedPostCard> {
       padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(
         children: [
-          // Botão Like
+          // Botão Like com ícones Phosphor
           GestureDetector(
             onTap: _toggleLike,
             child: Container(
               padding: EdgeInsets.all(8),
               child: Icon(
-                _isLiked ? AppIcons.heartFill : AppIcons.heart,
+                _isLiked ? AppIcons.heartFill : AppIcons.heart, // Regular quando não curtido, Fill quando curtido
                 color: _isLiked ? AppColors.spiced : AppColors.grayScale2,
                 size: 24,
               ),
@@ -571,3 +534,5 @@ class _FeedPostCardState extends State<FeedPostCard> {
     );
   }
 }
+
+// REMOVIDAS AS CLASSES PostData e CommentData - ELAS AGORA ESTÃO EM models/post_models.dart

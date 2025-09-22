@@ -8,52 +8,8 @@ import '../utils/app_icons.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/side_menu_overlay.dart';
-
-// Modelo de dados para o post (temporário até criar o arquivo separado)
-class PostData {
-  final String id;
-  final String authorName;
-  final String authorAvatar;
-  final String date;
-  final String? imageUrl;
-  final String? videoUrl;
-  final String content;
-  final int likes;
-  final int comments;
-  final bool isLiked;
-  final List<CommentData> recentComments;
-
-  PostData({
-    required this.id,
-    required this.authorName,
-    required this.authorAvatar,
-    required this.date,
-    this.imageUrl,
-    this.videoUrl,
-    required this.content,
-    this.likes = 0,
-    this.comments = 0,
-    this.isLiked = false,
-    this.recentComments = const [],
-  });
-}
-
-// Modelo de dados para comentários (temporário)
-class CommentData {
-  final String id;
-  final String authorName;
-  final String authorAvatar;
-  final String content;
-  final String date;
-
-  CommentData({
-    required this.id,
-    required this.authorName,
-    required this.authorAvatar,
-    required this.content,
-    required this.date,
-  });
-}
+import '../widgets/feed/feed_post_card.dart'; 
+import '../models/post_models.dart'; // IMPORT ADICIONADO PARA OS MODELOS
 
 class HomeFeedScreen extends StatefulWidget {
   @override
@@ -62,6 +18,12 @@ class HomeFeedScreen extends StatefulWidget {
 
 class _HomeFeedScreenState extends State<HomeFeedScreen> {
   final ScrollController _scrollController = ScrollController();
+  
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
   
   final List<PostData> posts = [
     PostData(
@@ -156,95 +118,6 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     // TODO: Navegar para tela de comentários completa
   }
 
-  // Modal de opções do post
-  void _showPostOptionsModal(BuildContext context, PostData post) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.whiteWhite,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Indicador visual do modal
-              Container(
-                margin: EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.grayScale2,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              
-              SizedBox(height: 20),
-              
-              // Botão Editar
-              ListTile(
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleEdit(post.id);
-                },
-                leading: Icon(
-                  AppIcons.edit,
-                  color: AppColors.papayaSensorial,
-                  size: 24,
-                ),
-                title: Text(
-                  'Editar',
-                  style: GoogleFonts.albertSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ),
-              
-              // Divisor
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: AppColors.moonAsh,
-                indent: 16,
-                endIndent: 16,
-              ),
-              
-              // Botão Excluir
-              ListTile(
-                onTap: () {
-                  Navigator.pop(context);
-                  _handleDelete(post.id);
-                },
-                leading: Icon(
-                  AppIcons.delete,
-                  color: AppColors.spiced,
-                  size: 24,
-                ),
-                title: Text(
-                  'Excluir',
-                  style: GoogleFonts.albertSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.spiced,
-                  ),
-                ),
-              ),
-              
-              SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -252,21 +125,25 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       appBar: CustomAppBar(),
       body: Stack(
         children: [
-          // Conteúdo principal
-          SingleChildScrollView(
+          // Conteúdo principal usando ListView
+          ListView(
             controller: _scrollController,
-            child: Column(
-              children: [
-                // Seção de boas-vindas
-                _buildWelcomeSection(),
-                
-                // Lista de posts (removida seção de usuários)
-                _buildPostsList(),
-                
-                // Espaçamento para a navbar sobreposta
-                SizedBox(height: 110),
-              ],
-            ),
+            padding: EdgeInsets.only(bottom: 110),
+            children: [
+              // Seção de boas-vindas
+              _buildWelcomeSection(),
+              
+              // Posts individuais
+              ...posts.map((post) => FeedPostCard(
+                key: ValueKey(post.id),
+                post: post,
+                onLike: () => _handleLike(post.id),
+                onComment: () => _handleComment(post.id),
+                onEdit: () => _handleEdit(post.id),
+                onDelete: () => _handleDelete(post.id),
+                onViewAllComments: () => _handleViewAllComments(post.id),
+              )).toList(),
+            ],
           ),
           
           // Navbar sobreposta
@@ -276,8 +153,10 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             bottom: 0,
             child: CustomBottomNavbar(
               onMenuPressed: () {
-                print('Abrir menu sidebar');
-                showSideMenu(context);
+                if (mounted) {
+                  print('Abrir menu sidebar');
+                  showSideMenu(context);
+                }
               },
             ),
           ),
@@ -293,7 +172,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      height: 130, // Aumentado de 120 para 130 para acomodar texto maior
+      height: 130,
       child: Stack(
         children: [
           // Card branco de fundo
@@ -315,8 +194,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               children: [
                 // Avatar do usuário - agora dinâmico
                 Container(
-                  width: 84, // Aumentado de 55 para 84
-                  height: 84, // Aumentado de 55 para 84
+                  width: 84,
+                  height: 84,
                   decoration: BoxDecoration(
                     color: AppColors.moonAsh,
                     shape: BoxShape.circle,
@@ -335,7 +214,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                         )
                       : _buildDefaultAvatar(),
                 ),
-                SizedBox(width: 2), // Reduzido para 2
+                SizedBox(width: 2),
                 
                 // Texto de boas-vindas
                 Expanded(
@@ -349,7 +228,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                             TextSpan(
                               text: 'Olá, ',
                               style: GoogleFonts.albertSans(
-                                fontSize: 18, // Aumentado de 16 para 18
+                                fontSize: 18,
                                 fontWeight: FontWeight.w400,
                                 color: AppColors.textPrimary,
                               ),
@@ -357,7 +236,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                             TextSpan(
                               text: '$firstName!',
                               style: GoogleFonts.albertSans(
-                                fontSize: 18, // Aumentado de 16 para 18
+                                fontSize: 18,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.papayaSensorial,
                               ),
@@ -365,11 +244,11 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 1), // Reduzido para 1
+                      SizedBox(height: 1),
                       Text(
                         'Que tal um cafezinho?',
                         style: GoogleFonts.albertSans(
-                          fontSize: 16, // Aumentado de 14 para 16
+                          fontSize: 16,
                           color: AppColors.textSecondary,
                         ),
                       ),
@@ -403,366 +282,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     return Center(
       child: SvgPicture.asset(
         'assets/images/default-avatar.svg',
-        width: 50, // Ajustado proporcionalmente
-        height: 50, // Ajustado proporcionalmente
-      ),
-    );
-  }
-
-  Widget _buildPostsList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      itemCount: posts.length,
-      itemBuilder: (context, index) {
-        return _buildPostCard(posts[index]);
-      },
-    );
-  }
-
-  Widget _buildPostCard(PostData post) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.whiteWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header do post
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.moonAsh,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: SvgPicture.asset(
-                      post.authorAvatar,
-                      width: 20,
-                      height: 20,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.authorName,
-                        style: GoogleFonts.albertSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        post.date,
-                        style: GoogleFonts.albertSans(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    _showPostOptionsModal(context, post);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    child: SvgPicture.asset(
-                      'assets/images/more.svg',
-                      width: 20,
-                      height: 20,
-                      color: AppColors.grayScale2,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Imagem do post
-          if (post.imageUrl != null)
-            Container(
-              width: double.infinity,
-              height: 300,
-              margin: EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: AppColors.moonAsh,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: CachedNetworkImage(
-                  imageUrl: post.imageUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: AppColors.moonAsh,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.papayaSensorial,
-                        ),
-                      ),
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: AppColors.moonAsh,
-                    child: Center(
-                      child: Icon(
-                        AppIcons.image, // Ícone Phosphor
-                        color: AppColors.textSecondary,
-                        size: 48,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // Ações do post
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
-              children: [
-                // Botão Like
-                GestureDetector(
-                  onTap: () {
-                    print('Toggle like');
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    child: SvgPicture.asset(
-                      post.isLiked 
-                          ? 'assets/images/like-full.svg'
-                          : 'assets/images/like.svg',
-                      width: 24,
-                      height: 24,
-                    ),
-                  ),
-                ),
-                
-                // Botão Comentário
-                GestureDetector(
-                  onTap: () {
-                    print('Abrir comentários');
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    child: SvgPicture.asset(
-                      'assets/images/comment.svg',
-                      width: 24,
-                      height: 24,
-                    ),
-                  ),
-                ),
-                
-                Spacer(),
-                
-                // Botão Favorito
-                GestureDetector(
-                  onTap: () {
-                    print('Toggle favorito');
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    child: SvgPicture.asset(
-                      'assets/images/favorite.svg',
-                      width: 22,
-                      height: 22,
-                    ),
-                  ),
-                ),
-                
-                // Botão "Quero visitar"
-                GestureDetector(
-                  onTap: () {
-                    print('Quero visitar');
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.moonAsh,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SvgPicture.asset(
-                          'assets/images/flag.svg',
-                          width: 14,
-                          height: 14,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          'Quero visitar',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.papayaSensorial,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Contador de likes
-          if (post.likes > 0)
-            Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(
-                '${post.likes} curtidas',
-                style: GoogleFonts.albertSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-
-          // Conteúdo do post
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '${post.authorName} ',
-                    style: GoogleFonts.albertSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  TextSpan(
-                    text: post.content,
-                    style: GoogleFonts.albertSans(
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Preview de comentários
-          if (post.comments > 0)
-            Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: GestureDetector(
-                onTap: () {
-                  print('Ver todos os comentários');
-                },
-                child: Text(
-                  'Ver todos os ${post.comments} comentários',
-                  style: GoogleFonts.albertSans(
-                    fontSize: 14,
-                    color: AppColors.grayScale2,
-                  ),
-                ),
-              ),
-            ),
-          
-          // Comentário preview
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.oatWhite,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Avatar do comentário
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.moonAsh,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: SvgPicture.asset(
-                        'assets/images/default-avatar.svg',
-                        width: 16,
-                        height: 16,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  // Conteúdo do comentário
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Nome e data
-                        Row(
-                          children: [
-                            Text(
-                              'Amanda Klein',
-                              style: GoogleFonts.albertSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.papayaSensorial,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              '03/05/2024',
-                              style: GoogleFonts.albertSans(
-                                fontSize: 12,
-                                color: AppColors.grayScale2,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        // Texto do comentário
-                        Text(
-                          'A crema realmente faz toda a diferença. É incrível como ela intensifica o sabor e a experiência.',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 13,
-                            color: AppColors.textPrimary,
-                            height: 1.4,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        width: 50,
+        height: 50,
       ),
     );
   }
