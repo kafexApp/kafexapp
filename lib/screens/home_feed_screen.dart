@@ -192,28 +192,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
             child: Row(
               children: [
-                // Avatar do usuário - agora dinâmico
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    color: AppColors.moonAsh,
-                    shape: BoxShape.circle,
-                  ),
-                  child: currentUser?.photoURL != null
-                      ? Container(
-                          width: 84,
-                          height: 84,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: CachedNetworkImageProvider(currentUser!.photoURL!),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        )
-                      : _buildDefaultAvatar(),
-                ),
+                // Avatar do usuário com verificação robusta
+                _buildUserAvatar(currentUser),
                 SizedBox(width: 2),
                 
                 // Texto de boas-vindas
@@ -277,13 +257,122 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     );
   }
 
+  // Widget melhorado para avatar do usuário
+  Widget _buildUserAvatar(User? currentUser) {
+    String? photoURL = currentUser?.photoURL;
+    
+    if (photoURL != null && photoURL.isNotEmpty) {
+      String correctedURL = _fixGooglePhotoURL(photoURL);
+      print('Photo URL: $photoURL');
+      print('Corrected URL: $correctedURL');
+      
+      return Container(
+        width: 84,
+        height: 84,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.moonAsh,
+          image: DecorationImage(
+            image: CachedNetworkImageProvider(correctedURL),
+            fit: BoxFit.cover,
+            onError: (exception, stackTrace) {
+              print('Erro ao carregar imagem: $exception');
+            },
+          ),
+        ),
+      );
+    }
+    
+    // Avatar padrão quando não há foto
+    return Container(
+      width: 84,
+      height: 84,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.moonAsh,
+      ),
+      child: Center(
+        child: SvgPicture.asset(
+          'assets/images/default-avatar.svg',
+          width: 50,
+          height: 50,
+          colorFilter: ColorFilter.mode(
+            AppColors.grayScale2,
+            BlendMode.srcIn,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarContent(User? currentUser) {
+    // Verifica se existe uma URL de foto válida
+    String? photoURL = currentUser?.photoURL;
+    
+    // Debug: imprimir a URL da foto
+    print('Photo URL: $photoURL');
+    
+    if (photoURL != null && photoURL.isNotEmpty) {
+      // Corrige URL do Google para melhor compatibilidade
+      String correctedURL = _fixGooglePhotoURL(photoURL);
+      print('Corrected URL: $correctedURL');
+      
+      return CachedNetworkImage(
+        imageUrl: correctedURL,
+        width: 84,
+        height: 84,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          width: 84,
+          height: 84,
+          color: AppColors.moonAsh,
+          child: Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppColors.papayaSensorial,
+              ),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) {
+          print('Erro ao carregar imagem: $error');
+          return _buildDefaultAvatar();
+        },
+      );
+    }
+    
+    // Se não há foto, usar avatar padrão
+    return _buildDefaultAvatar();
+  }
+
+  // Função para corrigir URLs do Google Photos
+  String _fixGooglePhotoURL(String url) {
+    // Se for URL do Google, modifica os parâmetros para melhor compatibilidade
+    if (url.contains('googleusercontent.com')) {
+      // Remove parâmetros problemáticos e adiciona tamanho adequado
+      String baseURL = url.split('=')[0];
+      return '$baseURL=s200-c'; // s200 para qualidade melhor, c para crop circular
+    }
+    return url;
+  }
+
   // Widget para avatar padrão quando não há foto do usuário
   Widget _buildDefaultAvatar() {
-    return Center(
-      child: SvgPicture.asset(
-        'assets/images/default-avatar.svg',
-        width: 50,
-        height: 50,
+    return Container(
+      width: 84,
+      height: 84,
+      color: AppColors.moonAsh,
+      child: Center(
+        child: SvgPicture.asset(
+          'assets/images/default-avatar.svg',
+          width: 50,
+          height: 50,
+          colorFilter: ColorFilter.mode(
+            AppColors.grayScale2,
+            BlendMode.srcIn,
+          ),
+        ),
       ),
     );
   }

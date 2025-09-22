@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart'; // Nossa classe de ícones
 import '../screens/notifications_screen.dart';
+import '../screens/home_feed_screen.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationPressed;
@@ -30,6 +31,15 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+  void _navigateToHome(BuildContext context) {
+    // Navega para a home, removendo todas as telas do stack
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -41,7 +51,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Botão voltar (se necessário) ou logo
+              // Botão voltar (se necessário) ou logo clicável
               showBackButton
                   ? GestureDetector(
                       onTap: onBackPressed ?? () => Navigator.of(context).pop(),
@@ -66,10 +76,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         ),
                       ),
                     )
-                  : SvgPicture.asset(
-                      'assets/images/kafex_logo_positive.svg',
-                      width: 140,
-                      height: 40,
+                  : GestureDetector(
+                      onTap: () => _navigateToHome(context),
+                      child: SvgPicture.asset(
+                        'assets/images/kafex_logo_positive.svg',
+                        width: 140,
+                        height: 40,
+                      ),
                     ),
 
               // Ícone de notificação com badge (usando Phosphor Icons)
