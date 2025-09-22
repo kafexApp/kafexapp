@@ -58,6 +58,9 @@ dependencies:
   # PHOSPHOR ICONS - ÍCONES MODERNOS E ELEGANTES
   phosphor_flutter: ^2.1.0
 
+  # SHARED PREFERENCES - Para armazenamento local de dados do usuário
+  shared_preferences: ^2.2.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

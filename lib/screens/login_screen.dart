@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
+import '../utils/user_manager.dart'; // ADICIONAR ESTE IMPORT
 import '../widgets/custom_buttons.dart';
-import '../widgets/custom_toast.dart'; // ADICIONADO
+import '../widgets/custom_toast.dart';
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
 import 'home_feed_screen.dart';
@@ -80,8 +81,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       focusNode: _emailFocus,
                       keyboardType: TextInputType.emailAddress,
                       enabled: !_isLoading,
-                      textInputAction: TextInputAction.next, // ADICIONADO
-                      onSubmitted: (_) => _passwordFocus.requestFocus(), // ADICIONADO - vai para senha
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) => _passwordFocus.requestFocus(),
                       style: GoogleFonts.albertSans(
                         fontSize: 16,
                         color: AppColors.carbon,
@@ -137,8 +138,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       focusNode: _passwordFocus,
                       obscureText: !_isPasswordVisible,
                       enabled: !_isLoading,
-                      textInputAction: TextInputAction.done, // ADICIONADO
-                      onSubmitted: (_) => _handleLogin(), // ADICIONADO - faz login ao pressionar Enter
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _handleLogin(),
                       style: GoogleFonts.albertSans(
                         fontSize: 16,
                         color: AppColors.carbon,
@@ -323,7 +324,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (result.isSuccess) {
+        // SALVAR DADOS NO USER MANAGER
+        String email = _emailController.text.trim();
+        String name = result.user?.displayName ?? 
+                     UserManager.instance.extractNameFromEmail(email);
+        
+        UserManager.instance.setUserData(
+          name: name,
+          email: email,
+          photoUrl: result.user?.photoURL,
+        );
+
         CustomToast.showSuccess(context, message: 'Login realizado com sucesso!');
+        
         // Navegar para tela principal
         Navigator.pushReplacement(
           context,
@@ -350,7 +363,19 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _authService.signInWithGoogle();
 
       if (result.isSuccess) {
+        // SALVAR DADOS DO GOOGLE NO USER MANAGER
+        String email = result.user?.email ?? 'usuario@gmail.com';
+        String name = result.user?.displayName ?? 
+                     UserManager.instance.extractNameFromEmail(email);
+        
+        UserManager.instance.setUserData(
+          name: name,
+          email: email,
+          photoUrl: result.user?.photoURL,
+        );
+
         CustomToast.showSuccess(context, message: 'Login com Google realizado com sucesso!');
+        
         // Navegar para tela principal
         Navigator.pushReplacement(
           context,
@@ -377,7 +402,19 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _authService.signInWithApple();
 
       if (result.isSuccess) {
+        // SALVAR DADOS DO APPLE NO USER MANAGER
+        String email = result.user?.email ?? 'usuario@icloud.com';
+        String name = result.user?.displayName ?? 
+                     UserManager.instance.extractNameFromEmail(email);
+        
+        UserManager.instance.setUserData(
+          name: name,
+          email: email,
+          photoUrl: result.user?.photoURL,
+        );
+
         CustomToast.showSuccess(context, message: 'Login com Apple realizado com sucesso!');
+        
         // Navegar para tela principal
         Navigator.pushReplacement(
           context,
