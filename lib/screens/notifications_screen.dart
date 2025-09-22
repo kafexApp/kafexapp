@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_icons.dart';
 
 class NotificationsScreen extends StatefulWidget {
   @override
@@ -102,7 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back_ios,
+            AppIcons.back, // Phosphor: arrowLeft
             color: AppColors.carbon,
           ),
           onPressed: () => Navigator.pop(context),
@@ -184,7 +185,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.notifications_none_outlined,
+              AppIcons.notification, // Phosphor: bell
               size: 60,
               color: AppColors.grayScale2,
             ),
@@ -226,7 +227,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
-          Icons.delete_outline,
+          AppIcons.delete, // Phosphor: trash
           color: AppColors.whiteWhite,
           size: 24,
         ),
@@ -349,17 +350,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   IconData _getNotificationIcon(NotificationType type) {
     switch (type) {
       case NotificationType.newPlace:
-        return Icons.location_on_outlined;
+        return AppIcons.locationFill; // Phosphor: mapPin filled
       case NotificationType.promotion:
-        return Icons.local_offer_outlined;
+        return AppIcons.tagFill; // Phosphor: tag filled
       case NotificationType.review:
-        return Icons.star_outline;
+        return AppIcons.starFill; // Phosphor: star filled
       case NotificationType.appUpdate:
-        return Icons.system_update_outlined;
+        return AppIcons.download; // Phosphor: download
       case NotificationType.community:
-        return Icons.people_outline;
+        return AppIcons.usersFill; // Phosphor: users filled
       default:
-        return Icons.notifications_outlined;
+        return AppIcons.notificationFill; // Phosphor: bell filled
     }
   }
 

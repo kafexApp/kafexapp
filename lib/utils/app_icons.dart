@@ -1,105 +1,246 @@
+import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-// Classe centralizada com todos os ícones do Kafex usando Phosphor
+/// Classe centralizada de ícones do Kafex usando Phosphor Regular
 class AppIcons {
-  // ===== NAVEGAÇÃO =====
-  static PhosphorIconData get home => PhosphorIcons.house();
-  static PhosphorIconData get homeFill => PhosphorIcons.house(PhosphorIconsStyle.fill);
-  static PhosphorIconData get back => PhosphorIcons.arrowLeft();
-  static PhosphorIconData get forward => PhosphorIcons.arrowRight();
-  static PhosphorIconData get close => PhosphorIcons.x();
-  static PhosphorIconData get menu => PhosphorIcons.list();
+  
+  // =============================================================================
+  // 🧭 NAVEGAÇÃO E DIREÇÕES
+  // =============================================================================
+  
+  static PhosphorIconData get home => PhosphorIcons.house(PhosphorIconsStyle.regular);
+  static PhosphorIconData get homeFill => PhosphorIcons.house(PhosphorIconsStyle.regular);
+  static PhosphorIconData get back => PhosphorIcons.arrowLeft(PhosphorIconsStyle.regular);
+  static PhosphorIconData get forward => PhosphorIcons.arrowRight(PhosphorIconsStyle.regular);
+  static PhosphorIconData get up => PhosphorIcons.arrowUp(PhosphorIconsStyle.regular);
+  static PhosphorIconData get down => PhosphorIcons.arrowDown(PhosphorIconsStyle.regular);
+  static PhosphorIconData get close => PhosphorIcons.x(PhosphorIconsStyle.regular);
+  static PhosphorIconData get menu => PhosphorIcons.list(PhosphorIconsStyle.regular);
+  
+  // Chevrons (setas menores/decorativas)
+  static PhosphorIconData get chevronUp => PhosphorIcons.caretUp(PhosphorIconsStyle.regular);
+  static PhosphorIconData get chevronDown => PhosphorIcons.caretDown(PhosphorIconsStyle.regular);
+  static PhosphorIconData get chevronLeft => PhosphorIcons.caretLeft(PhosphorIconsStyle.regular);
+  static PhosphorIconData get chevronRight => PhosphorIcons.caretRight(PhosphorIconsStyle.regular);
 
-  // ===== CAFÉ & COMIDA =====
-  static PhosphorIconData get coffee => PhosphorIcons.coffee();
-  static PhosphorIconData get coffeeFill => PhosphorIcons.coffee(PhosphorIconsStyle.fill);
-  static PhosphorIconData get coffeeCup => PhosphorIcons.coffeeCup();
-  static PhosphorIconData get wineCup => PhosphorIcons.wine(); // Para café especial
+  // =============================================================================
+  // ☕ CAFÉ E ESTABELECIMENTOS
+  // =============================================================================
+  
+  static PhosphorIconData get coffee => PhosphorIcons.coffee(PhosphorIconsStyle.regular);
+  static PhosphorIconData get coffeeFill => PhosphorIcons.coffee(PhosphorIconsStyle.regular);
+  static PhosphorIconData get coffeeCup => PhosphorIcons.coffee(PhosphorIconsStyle.regular);
+  static PhosphorIconData get storefront => PhosphorIcons.storefront(PhosphorIconsStyle.regular);
+  static PhosphorIconData get storefrontFill => PhosphorIcons.storefront(PhosphorIconsStyle.regular);
+  static PhosphorIconData get wine => PhosphorIcons.wine(PhosphorIconsStyle.regular);
+  
+  // =============================================================================
+  // 📍 LOCALIZAÇÃO E MAPAS
+  // =============================================================================
+  
+  static PhosphorIconData get location => PhosphorIcons.mapPin(PhosphorIconsStyle.regular);
+  static PhosphorIconData get locationFill => PhosphorIcons.mapPin(PhosphorIconsStyle.regular);
+  static PhosphorIconData get map => PhosphorIcons.mapTrifold(PhosphorIconsStyle.regular);
+  static PhosphorIconData get mapTrifold => PhosphorIcons.mapTrifold(PhosphorIconsStyle.regular);
+  static PhosphorIconData get compass => PhosphorIcons.compass(PhosphorIconsStyle.regular);
+  static PhosphorIconData get navigate => PhosphorIcons.compass(PhosphorIconsStyle.regular);
+  static PhosphorIconData get navigation => PhosphorIcons.compass(PhosphorIconsStyle.regular);
 
-  // ===== LOCALIZAÇÃO =====
-  static PhosphorIconData get location => PhosphorIcons.mapPin();
-  static PhosphorIconData get locationFill => PhosphorIcons.mapPin(PhosphorIconsStyle.fill);
-  static PhosphorIconData get map => PhosphorIcons.map();
-  static PhosphorIconData get compass => PhosphorIcons.compass();
-  static PhosphorIconData get navigation => PhosphorIcons.navigation();
+  // =============================================================================
+  // 🔍 BUSCA E FILTROS
+  // =============================================================================
+  
+  static PhosphorIconData get search => PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular);
+  static PhosphorIconData get filter => PhosphorIcons.funnel(PhosphorIconsStyle.regular);
+  static PhosphorIconData get filterFill => PhosphorIcons.funnel(PhosphorIconsStyle.regular);
+  static PhosphorIconData get sliders => PhosphorIcons.sliders(PhosphorIconsStyle.regular);
 
-  // ===== BUSCA & FILTROS =====
-  static PhosphorIconData get search => PhosphorIcons.magnifyingGlass();
-  static PhosphorIconData get filter => PhosphorIcons.funnel();
-  static PhosphorIconData get filterFill => PhosphorIcons.funnel(PhosphorIconsStyle.fill);
-  static PhosphorIconData get sliders => PhosphorIcons.sliders();
+  // =============================================================================
+  // 💖 INTERAÇÕES SOCIAIS
+  // =============================================================================
+  
+  static PhosphorIconData get heart => PhosphorIcons.heart(PhosphorIconsStyle.regular);
+  static PhosphorIconData get heartFill => PhosphorIcons.heart(PhosphorIconsStyle.regular);
+  static PhosphorIconData get star => PhosphorIcons.star(PhosphorIconsStyle.regular);
+  static PhosphorIconData get starFill => PhosphorIcons.star(PhosphorIconsStyle.regular);
+  static PhosphorIconData get thumbsUp => PhosphorIcons.thumbsUp(PhosphorIconsStyle.regular);
+  static PhosphorIconData get thumbsUpFill => PhosphorIcons.thumbsUp(PhosphorIconsStyle.regular);
+  static PhosphorIconData get thumbsDown => PhosphorIcons.thumbsDown(PhosphorIconsStyle.regular);
+  static PhosphorIconData get share => PhosphorIcons.shareNetwork(PhosphorIconsStyle.regular);
+  static PhosphorIconData get bookmark => PhosphorIcons.bookmark(PhosphorIconsStyle.regular);
+  static PhosphorIconData get bookmarkFill => PhosphorIcons.bookmark(PhosphorIconsStyle.regular);
 
-  // ===== INTERAÇÕES =====
-  static PhosphorIconData get heart => PhosphorIcons.heart();
-  static PhosphorIconData get heartFill => PhosphorIcons.heart(PhosphorIconsStyle.fill);
-  static PhosphorIconData get star => PhosphorIcons.star();
-  static PhosphorIconData get starFill => PhosphorIcons.star(PhosphorIconsStyle.fill);
-  static PhosphorIconData get thumbsUp => PhosphorIcons.thumbsUp();
-  static PhosphorIconData get thumbsUpFill => PhosphorIcons.thumbsUp(PhosphorIconsStyle.fill);
-  static PhosphorIconData get share => PhosphorIcons.shareNetwork();
+  // =============================================================================
+  // 💬 COMUNICAÇÃO
+  // =============================================================================
+  
+  static PhosphorIconData get comment => PhosphorIcons.chatCircle(PhosphorIconsStyle.regular);
+  static PhosphorIconData get commentFill => PhosphorIcons.chatCircle(PhosphorIconsStyle.regular);
+  static PhosphorIconData get notification => PhosphorIcons.bell(PhosphorIconsStyle.regular);
+  static PhosphorIconData get notificationFill => PhosphorIcons.bell(PhosphorIconsStyle.regular);
+  static PhosphorIconData get mail => PhosphorIcons.envelope(PhosphorIconsStyle.regular);
+  static PhosphorIconData get mailFill => PhosphorIcons.envelope(PhosphorIconsStyle.regular);
+  static PhosphorIconData get phone => PhosphorIcons.phone(PhosphorIconsStyle.regular);
+  static PhosphorIconData get chat => PhosphorIcons.chatTeardrop(PhosphorIconsStyle.regular);
 
-  // ===== COMUNICAÇÃO =====
-  static PhosphorIconData get comment => PhosphorIcons.chatCircle();
-  static PhosphorIconData get commentFill => PhosphorIcons.chatCircle(PhosphorIconsStyle.fill);
-  static PhosphorIconData get notification => PhosphorIcons.bell();
-  static PhosphorIconData get notificationFill => PhosphorIcons.bell(PhosphorIconsStyle.fill);
-  static PhosphorIconData get mail => PhosphorIcons.envelope();
-  static PhosphorIconData get phone => PhosphorIcons.phone();
+  // =============================================================================
+  // 👤 USUÁRIO E PERFIL
+  // =============================================================================
+  
+  static PhosphorIconData get user => PhosphorIcons.user(PhosphorIconsStyle.regular);
+  static PhosphorIconData get userFill => PhosphorIcons.user(PhosphorIconsStyle.regular);
+  static PhosphorIconData get users => PhosphorIcons.users(PhosphorIconsStyle.regular);
+  static PhosphorIconData get usersFill => PhosphorIcons.users(PhosphorIconsStyle.regular);
+  static PhosphorIconData get userCircle => PhosphorIcons.userCircle(PhosphorIconsStyle.regular);
+  static PhosphorIconData get userCircleFill => PhosphorIcons.userCircle(PhosphorIconsStyle.regular);
 
-  // ===== USUÁRIO =====
-  static PhosphorIconData get user => PhosphorIcons.user();
-  static PhosphorIconData get userFill => PhosphorIcons.user(PhosphorIconsStyle.fill);
-  static PhosphorIconData get users => PhosphorIcons.users();
-  static PhosphorIconData get userProfile => PhosphorIcons.userCircle();
+  // =============================================================================
+  // ⚙️ CONFIGURAÇÕES E AÇÕES
+  // =============================================================================
+  
+  static PhosphorIconData get settings => PhosphorIcons.gear(PhosphorIconsStyle.regular);
+  static PhosphorIconData get settingsFill => PhosphorIcons.gear(PhosphorIconsStyle.regular);
+  static PhosphorIconData get edit => PhosphorIcons.pencil(PhosphorIconsStyle.regular);
+  static PhosphorIconData get editFill => PhosphorIcons.pencil(PhosphorIconsStyle.regular);
+  static PhosphorIconData get delete => PhosphorIcons.trash(PhosphorIconsStyle.regular);
+  static PhosphorIconData get deleteFill => PhosphorIcons.trash(PhosphorIconsStyle.regular);
+  static PhosphorIconData get plus => PhosphorIcons.plus(PhosphorIconsStyle.regular);
+  static PhosphorIconData get minus => PhosphorIcons.minus(PhosphorIconsStyle.regular);
+  static PhosphorIconData get signOut => PhosphorIcons.signOut(PhosphorIconsStyle.regular);
+  static PhosphorIconData get copy => PhosphorIcons.copy(PhosphorIconsStyle.regular);
+  static PhosphorIconData get download => PhosphorIcons.download(PhosphorIconsStyle.regular);
+  static PhosphorIconData get upload => PhosphorIcons.upload(PhosphorIconsStyle.regular);
 
-  // ===== CONFIGURAÇÕES =====
-  static PhosphorIconData get settings => PhosphorIcons.gear();
-  static PhosphorIconData get settingsFill => PhosphorIcons.gear(PhosphorIconsStyle.fill);
-  static PhosphorIconData get edit => PhosphorIcons.pencil();
-  static PhosphorIconData get delete => PhosphorIcons.trash();
-  static PhosphorIconData get plus => PhosphorIcons.plus();
-  static PhosphorIconData get minus => PhosphorIcons.minus();
+  // =============================================================================
+  // 🕐 TEMPO E DATA
+  // =============================================================================
+  
+  static PhosphorIconData get calendar => PhosphorIcons.calendar(PhosphorIconsStyle.regular);
+  static PhosphorIconData get calendarFill => PhosphorIcons.calendar(PhosphorIconsStyle.regular);
+  static PhosphorIconData get clock => PhosphorIcons.clock(PhosphorIconsStyle.regular);
+  static PhosphorIconData get clockFill => PhosphorIcons.clock(PhosphorIconsStyle.regular);
+  static PhosphorIconData get timer => PhosphorIcons.timer(PhosphorIconsStyle.regular);
+  static PhosphorIconData get history => PhosphorIcons.clockCounterClockwise(PhosphorIconsStyle.regular);
 
-  // ===== TEMPO & DATA =====
-  static PhosphorIconData get calendar => PhosphorIcons.calendar();
-  static PhosphorIconData get calendarFill => PhosphorIcons.calendar(PhosphorIconsStyle.fill);
-  static PhosphorIconData get clock => PhosphorIcons.clock();
-  static PhosphorIconData get clockFill => PhosphorIcons.clock(PhosphorIconsStyle.fill);
+  // =============================================================================
+  // 📷 MÍDIA E CONTEÚDO
+  // =============================================================================
+  
+  static PhosphorIconData get camera => PhosphorIcons.camera(PhosphorIconsStyle.regular);
+  static PhosphorIconData get cameraFill => PhosphorIcons.camera(PhosphorIconsStyle.regular);
+  static PhosphorIconData get image => PhosphorIcons.image(PhosphorIconsStyle.regular);
+  static PhosphorIconData get imageFill => PhosphorIcons.image(PhosphorIconsStyle.regular);
+  static PhosphorIconData get images => PhosphorIcons.images(PhosphorIconsStyle.regular);
+  static PhosphorIconData get video => PhosphorIcons.videoCamera(PhosphorIconsStyle.regular);
+  static PhosphorIconData get play => PhosphorIcons.play(PhosphorIconsStyle.regular);
+  static PhosphorIconData get playFill => PhosphorIcons.play(PhosphorIconsStyle.regular);
+  static PhosphorIconData get pause => PhosphorIcons.pause(PhosphorIconsStyle.regular);
+  static PhosphorIconData get stop => PhosphorIcons.stop(PhosphorIconsStyle.regular);
 
-  // ===== MÍDIA =====
-  static PhosphorIconData get camera => PhosphorIcons.camera();
-  static PhosphorIconData get cameraFill => PhosphorIcons.camera(PhosphorIconsStyle.fill);
-  static PhosphorIconData get image => PhosphorIcons.image();
-  static PhosphorIconData get play => PhosphorIcons.play();
-  static PhosphorIconData get playFill => PhosphorIcons.play(PhosphorIconsStyle.fill);
+  // =============================================================================
+  // 🔒 SEGURANÇA E PRIVACIDADE
+  // =============================================================================
+  
+  static PhosphorIconData get eye => PhosphorIcons.eye(PhosphorIconsStyle.regular);
+  static PhosphorIconData get eyeFill => PhosphorIcons.eye(PhosphorIconsStyle.regular);
+  static PhosphorIconData get eyeSlash => PhosphorIcons.eyeSlash(PhosphorIconsStyle.regular);
+  static PhosphorIconData get eyeSlashFill => PhosphorIcons.eyeSlash(PhosphorIconsStyle.regular);
+  static PhosphorIconData get lock => PhosphorIcons.lock(PhosphorIconsStyle.regular);
+  static PhosphorIconData get lockFill => PhosphorIcons.lock(PhosphorIconsStyle.regular);
+  static PhosphorIconData get lockOpen => PhosphorIcons.lockOpen(PhosphorIconsStyle.regular);
+  static PhosphorIconData get key => PhosphorIcons.key(PhosphorIconsStyle.regular);
 
-  // ===== SENHA & SEGURANÇA =====
-  static PhosphorIconData get eye => PhosphorIcons.eye();
-  static PhosphorIconData get eyeSlash => PhosphorIcons.eyeSlash();
-  static PhosphorIconData get lock => PhosphorIcons.lock();
-  static PhosphorIconData get lockOpen => PhosphorIcons.lockOpen();
+  // =============================================================================
+  // ✅ STATUS E FEEDBACK
+  // =============================================================================
+  
+  static PhosphorIconData get check => PhosphorIcons.check(PhosphorIconsStyle.regular);
+  static PhosphorIconData get checkCircle => PhosphorIcons.checkCircle(PhosphorIconsStyle.regular);
+  static PhosphorIconData get checkCircleFill => PhosphorIcons.checkCircle(PhosphorIconsStyle.regular);
+  static PhosphorIconData get warning => PhosphorIcons.warning(PhosphorIconsStyle.regular);
+  static PhosphorIconData get warningFill => PhosphorIcons.warning(PhosphorIconsStyle.regular);
+  static PhosphorIconData get info => PhosphorIcons.info(PhosphorIconsStyle.regular);
+  static PhosphorIconData get infoFill => PhosphorIcons.info(PhosphorIconsStyle.regular);
+  static PhosphorIconData get error => PhosphorIcons.xCircle(PhosphorIconsStyle.regular);
+  static PhosphorIconData get errorFill => PhosphorIcons.xCircle(PhosphorIconsStyle.regular);
+  static PhosphorIconData get success => PhosphorIcons.checkCircle(PhosphorIconsStyle.regular);
+  static PhosphorIconData get successFill => PhosphorIcons.checkCircle(PhosphorIconsStyle.regular);
 
-  // ===== STATUS & FEEDBACK =====
-  static PhosphorIconData get check => PhosphorIcons.check();
-  static PhosphorIconData get checkCircle => PhosphorIcons.checkCircle();
-  static PhosphorIconData get checkCircleFill => PhosphorIcons.checkCircle(PhosphorIconsStyle.fill);
-  static PhosphorIconData get warning => PhosphorIcons.warning();
-  static PhosphorIconData get warningFill => PhosphorIcons.warning(PhosphorIconsStyle.fill);
-  static PhosphorIconData get info => PhosphorIcons.info();
-  static PhosphorIconData get infoFill => PhosphorIcons.info(PhosphorIconsStyle.fill);
+  // =============================================================================
+  // 🏷️ PROMOÇÕES E COMÉRCIO
+  // =============================================================================
+  
+  static PhosphorIconData get tag => PhosphorIcons.tag(PhosphorIconsStyle.regular);
+  static PhosphorIconData get tagFill => PhosphorIcons.tag(PhosphorIconsStyle.regular);
+  static PhosphorIconData get gift => PhosphorIcons.gift(PhosphorIconsStyle.regular);
+  static PhosphorIconData get giftFill => PhosphorIcons.gift(PhosphorIconsStyle.regular);
+  static PhosphorIconData get percent => PhosphorIcons.percent(PhosphorIconsStyle.regular);
+  static PhosphorIconData get receipt => PhosphorIcons.receipt(PhosphorIconsStyle.regular);
+  static PhosphorIconData get creditCard => PhosphorIcons.creditCard(PhosphorIconsStyle.regular);
+  static PhosphorIconData get money => PhosphorIcons.currencyDollar(PhosphorIconsStyle.regular);
+  static PhosphorIconData get shoppingCart => PhosphorIcons.shoppingCart(PhosphorIconsStyle.regular);
 
-  // ===== PROMOÇÕES & OFERTAS =====
-  static PhosphorIconData get tag => PhosphorIcons.tag();
-  static PhosphorIconData get tagFill => PhosphorIcons.tag(PhosphorIconsStyle.fill);
-  static PhosphorIconData get gift => PhosphorIcons.gift();
-  static PhosphorIconData get giftFill => PhosphorIcons.gift(PhosphorIconsStyle.fill);
-  static PhosphorIconData get percent => PhosphorIcons.percent();
+  // =============================================================================
+  // 🎯 ESPECÍFICOS KAFEX
+  // =============================================================================
+  
+  static PhosphorIconData get listChecks => PhosphorIcons.listChecks(PhosphorIconsStyle.regular);
+  static PhosphorIconData get trendUp => PhosphorIcons.trendUp(PhosphorIconsStyle.regular);
+  static PhosphorIconData get trendDown => PhosphorIcons.trendDown(PhosphorIconsStyle.regular);
+  static PhosphorIconData get fire => PhosphorIcons.fire(PhosphorIconsStyle.regular);
+  static PhosphorIconData get fireFill => PhosphorIcons.fire(PhosphorIconsStyle.regular);
+  
+  // =============================================================================
+  // 📱 INTERFACE E DISPOSITIVOS
+  // =============================================================================
+  
+  static PhosphorIconData get desktop => PhosphorIcons.desktop(PhosphorIconsStyle.regular);
+  static PhosphorIconData get device => PhosphorIcons.deviceMobile(PhosphorIconsStyle.regular);
+  static PhosphorIconData get wifiHigh => PhosphorIcons.wifiHigh(PhosphorIconsStyle.regular);
+  static PhosphorIconData get wifiSlash => PhosphorIcons.wifiSlash(PhosphorIconsStyle.regular);
+  
+  // =============================================================================
+  // 🌐 CONECTIVIDADE E WEB
+  // =============================================================================
+  
+  static PhosphorIconData get globe => PhosphorIcons.globe(PhosphorIconsStyle.regular);
+  static PhosphorIconData get globeFill => PhosphorIcons.globe(PhosphorIconsStyle.regular);
+  static PhosphorIconData get link => PhosphorIcons.link(PhosphorIconsStyle.regular);
+  static PhosphorIconData get linkBreak => PhosphorIcons.linkBreak(PhosphorIconsStyle.regular);
+  static PhosphorIconData get qrCode => PhosphorIcons.qrCode(PhosphorIconsStyle.regular);
 
-  // ===== ESPECÍFICOS KAFEX =====
-  static PhosphorIconData get storefront => PhosphorIcons.storefront(); // Para cafeterias
-  static PhosphorIconData get storefrontFill => PhosphorIcons.storefront(PhosphorIconsStyle.fill);
-  static PhosphorIconData get bookmark => PhosphorIcons.bookmark(); // Para favoritos
-  static PhosphorIconData get bookmarkFill => PhosphorIcons.bookmark(PhosphorIconsStyle.fill);
-  static PhosphorIconData get listCheck => PhosphorIcons.listChecks(); // Para reviews
-  static PhosphorIconData get trendUp => PhosphorIcons.trendUp(); // Para cafés em alta
+  // =============================================================================
+  // 📊 DADOS E ANÁLISE
+  // =============================================================================
+  
+  static PhosphorIconData get chartLine => PhosphorIcons.chartLine(PhosphorIconsStyle.regular);
+  static PhosphorIconData get chartBar => PhosphorIcons.chartBar(PhosphorIconsStyle.regular);
+  static PhosphorIconData get chartPie => PhosphorIcons.chartPie(PhosphorIconsStyle.regular);
+
+  // =============================================================================
+  // 🎨 PERSONALIZAÇÃO
+  // =============================================================================
+  
+  static PhosphorIconData get palette => PhosphorIcons.palette(PhosphorIconsStyle.regular);
+  static PhosphorIconData get paintBrush => PhosphorIcons.paintBrush(PhosphorIconsStyle.regular);
+  static PhosphorIconData get eyedropper => PhosphorIcons.eyedropper(PhosphorIconsStyle.regular);
+  static PhosphorIconData get textAa => PhosphorIcons.textAa(PhosphorIconsStyle.regular);
+
+  // =============================================================================
+  // 🚀 MÉTODOS DE CONVENIÊNCIA
+  // =============================================================================
+  
+  /// Retorna um ícone de status baseado em uma condição booleana
+  static PhosphorIconData getToggleIcon({
+    required bool isActive,
+    required PhosphorIconData activeIcon,
+    required PhosphorIconData inactiveIcon,
+  }) {
+    return isActive ? activeIcon : inactiveIcon;
+  }
+  
+  /// Retorna ícone de rating baseado no índice e valor
+  static PhosphorIconData getRatingIcon(int index, double rating) {
+    return index < rating.floor() ? starFill : star;
+  }
 }

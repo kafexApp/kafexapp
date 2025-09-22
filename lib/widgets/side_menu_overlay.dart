@@ -2,11 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_icons.dart';
 import '../services/auth_service.dart';
 import '../screens/home_feed_screen.dart';
 import '../screens/cafe_explorer_screen.dart';
+import '../screens/notifications_screen.dart';
 import '../screens/splash_screen.dart'; // Para navegar após logout
 
 class SideMenuOverlay extends StatelessWidget {
@@ -37,7 +38,10 @@ class SideMenuOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final User? currentUser = FirebaseAuth.instance.currentUser;
+    // Dados fixos para o usuário mock (já que não há Firebase)
+    final userName = 'Usuário Kafex';
+    final userEmail = 'usuario@kafex.app';
+    final hasPhoto = false; // Como não há autenticação real
     
     return Material(
       color: Colors.transparent,
@@ -104,19 +108,7 @@ class SideMenuOverlay extends StatelessWidget {
                               width: 2,
                             ),
                           ),
-                          child: currentUser?.photoURL != null
-                              ? ClipOval(
-                                  child: Image.network(
-                                    currentUser!.photoURL!,
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return _buildDefaultAvatar();
-                                    },
-                                  ),
-                                )
-                              : _buildDefaultAvatar(),
+                          child: _buildDefaultAvatar(),
                         ),
                         
                         SizedBox(width: 16),
@@ -127,7 +119,7 @@ class SideMenuOverlay extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                currentUser?.displayName ?? 'Usuário Kafex',
+                                userName,
                                 style: GoogleFonts.albertSans(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -138,7 +130,7 @@ class SideMenuOverlay extends StatelessWidget {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                currentUser?.email ?? 'email@kafex.app',
+                                userEmail,
                                 style: GoogleFonts.albertSans(
                                   fontSize: 14,
                                   color: AppColors.textSecondary,
@@ -161,7 +153,7 @@ class SideMenuOverlay extends StatelessWidget {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              Icons.close,
+                              AppIcons.close,
                               color: AppColors.textSecondary,
                               size: 20,
                             ),
@@ -185,21 +177,28 @@ class SideMenuOverlay extends StatelessWidget {
                       children: [
                         _buildMenuItem(
                           context: context,
-                          icon: Icons.home_rounded,
+                          icon: AppIcons.homeFill,
                           title: 'Início',
                           onTap: () => _navigateToScreen(context, HomeFeedScreen()),
                         ),
                         
                         _buildMenuItem(
                           context: context,
-                          icon: Icons.explore_rounded,
+                          icon: AppIcons.coffeeFill,
                           title: 'Cafeterias',
                           onTap: () => _navigateToScreen(context, CafeExplorerScreen()),
                         ),
                         
                         _buildMenuItem(
                           context: context,
-                          icon: Icons.add_circle_rounded,
+                          icon: AppIcons.notificationFill,
+                          title: 'Notificações',
+                          onTap: () => _navigateToScreen(context, NotificationsScreen()),
+                        ),
+                        
+                        _buildMenuItem(
+                          context: context,
+                          icon: AppIcons.plus,
                           title: 'Criar post',
                           onTap: () {
                             onClose();
@@ -210,12 +209,23 @@ class SideMenuOverlay extends StatelessWidget {
                         
                         _buildMenuItem(
                           context: context,
-                          icon: Icons.person_rounded,
+                          icon: AppIcons.userFill,
                           title: 'Perfil',
                           onTap: () {
                             onClose();
                             // TODO: Implementar tela de perfil
                             print('Navegar para perfil');
+                          },
+                        ),
+                        
+                        _buildMenuItem(
+                          context: context,
+                          icon: AppIcons.settings,
+                          title: 'Configurações',
+                          onTap: () {
+                            onClose();
+                            // TODO: Implementar tela de configurações
+                            print('Navegar para configurações');
                           },
                         ),
                         
@@ -228,7 +238,7 @@ class SideMenuOverlay extends StatelessWidget {
                         
                         _buildMenuItem(
                           context: context,
-                          icon: Icons.logout_rounded,
+                          icon: AppIcons.signOut,
                           title: 'Sair',
                           isLogout: true,
                           onTap: () => _logout(context),
@@ -257,7 +267,7 @@ class SideMenuOverlay extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        Icons.person,
+        AppIcons.userFill,
         color: AppColors.papayaSensorial,
         size: 30,
       ),
@@ -316,7 +326,7 @@ class SideMenuOverlay extends StatelessWidget {
               
               if (!isLogout)
                 Icon(
-                  Icons.arrow_forward_ios,
+                  AppIcons.chevronRight,
                   color: AppColors.grayScale2,
                   size: 16,
                 ),

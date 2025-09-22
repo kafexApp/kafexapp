@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 // import 'package:share_plus/share_plus.dart'; // Comentado temporariamente
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_icons.dart';
 
 // Modelo para avaliação de usuário
 class UserReview {
@@ -213,7 +214,7 @@ class CustomBoxcafe extends StatelessWidget {
               ),
               SizedBox(height: 4),
               
-              // Rating com estrelas
+              // Rating com estrelas do Phosphor
               Row(
                 children: [
                   Text(
@@ -324,7 +325,7 @@ class CustomBoxcafe extends StatelessWidget {
         
         Spacer(),
         
-        // Facilidades
+        // Facilidades com ícones do Phosphor
         Row(
           children: cafe.facilities.map((facility) => _buildFacilityIcon(facility)).toList(),
         ),
@@ -427,7 +428,7 @@ class CustomBoxcafe extends StatelessWidget {
                   ],
                 ),
               ),
-              // Rating do usuário
+              // Rating do usuário com grain_note.svg
               Row(
                 children: List.generate(5, (starIndex) {
                   return Padding(
@@ -551,14 +552,10 @@ class CustomBoxcafe extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: SvgPicture.asset(
-                'assets/images/map-marker.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(
-                  AppColors.carbon,
-                  BlendMode.srcIn,
-                ),
+              child: Icon(
+                AppIcons.location,
+                size: 24,
+                color: AppColors.carbon,
               ),
             ),
           ),
@@ -581,14 +578,10 @@ class CustomBoxcafe extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: SvgPicture.asset(
-                'assets/images/share.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(
-                  AppColors.whiteWhite,
-                  BlendMode.srcIn,
-                ),
+              child: Icon(
+                AppIcons.share,
+                size: 24,
+                color: AppColors.whiteWhite,
               ),
             ),
           ),
@@ -616,7 +609,7 @@ class CustomBoxcafe extends StatelessWidget {
                 elevation: 0,
               ),
               child: Icon(
-                Icons.location_on,
+                AppIcons.location,
                 size: 24,
                 color: AppColors.carbon,
               ),
@@ -641,7 +634,7 @@ class CustomBoxcafe extends StatelessWidget {
                 elevation: 0,
               ),
               child: Icon(
-                Icons.share,
+                AppIcons.share,
                 size: 24,
                 color: AppColors.whiteWhite,
               ),

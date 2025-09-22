@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_icons.dart';
 import '../screens/cafe_explorer_screen.dart';
 import 'custom_boxcafe.dart';
 
@@ -120,9 +121,9 @@ class CustomBoxcafeMinicard extends StatelessWidget {
                 ),
               ),
               
-              // Seta
+              // Chevron para baixo
               Icon(
-                Icons.arrow_forward_ios,
+                AppIcons.chevronDown,
                 color: AppColors.grayScale2,
                 size: 16,
               ),

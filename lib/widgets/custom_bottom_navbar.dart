@@ -1,8 +1,8 @@
 // lib/widgets/custom_bottom_navbar.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_icons.dart';
 import '../screens/cafe_explorer_screen.dart';
 import '../screens/add_cafe_screen.dart';
 import 'side_menu_overlay.dart';
@@ -116,16 +116,12 @@ class CustomBottomNavbar extends StatelessWidget {
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Center(
-                            child: SvgPicture.asset(
+                            child: Icon(
                               isInCafeExplorer 
-                                  ? 'assets/images/plus.svg' 
-                                  : 'assets/images/search.svg',
-                              width: 20,
-                              height: 20,
-                              colorFilter: ColorFilter.mode(
-                                AppColors.velvetMerlot,
-                                BlendMode.srcIn,
-                              ),
+                                  ? AppIcons.plus
+                                  : AppIcons.search,
+                              size: 20,
+                              color: AppColors.velvetMerlot,
                             ),
                           ),
                         ),
@@ -174,14 +170,10 @@ class CustomBottomNavbar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
-                    child: SvgPicture.asset(
-                      'assets/images/menu.svg',
-                      width: 24,
-                      height: 24,
-                      colorFilter: ColorFilter.mode(
-                        AppColors.papayaSensorial,
-                        BlendMode.srcIn,
-                      ),
+                    child: Icon(
+                      AppIcons.menu,
+                      size: 24,
+                      color: AppColors.papayaSensorial,
                     ),
                   ),
                 ),
