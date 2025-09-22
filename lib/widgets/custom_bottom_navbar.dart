@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../screens/cafe_explorer_screen.dart';
+import '../screens/add_cafe_screen.dart';
 import 'side_menu_overlay.dart';
 
 class CustomBottomNavbar extends StatelessWidget {
@@ -36,6 +37,24 @@ class CustomBottomNavbar extends StatelessWidget {
     }
   }
 
+  void _navigateToAddCafe(BuildContext context) {
+    print('🚀 Navegando para AddCafeScreen...');
+    try {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddCafeScreen(),
+        ),
+      ).then((value) {
+        print('✅ Navegação para cadastro concluída com sucesso!');
+      }).catchError((error) {
+        print('❌ Erro na navegação: $error');
+      });
+    } catch (e) {
+      print('❌ Erro ao tentar navegar: $e');
+    }
+  }
+
   void _openSideMenu(BuildContext context) {
     print('📱 Abrindo sidemenu...');
     showSideMenu(context);
@@ -59,7 +78,7 @@ class CustomBottomNavbar extends StatelessWidget {
                     onPressed: () {
                       if (isInCafeExplorer) {
                         print('🔥 Botão "Cadastrar cafeteria" clicado!');
-                        // TODO: Implementar lógica de cadastro de cafeteria
+                        _navigateToAddCafe(context);
                       } else {
                         print('🔥 Botão "Encontrar cafeterias" clicado!');
                         print('🔍 onSearchPressed é null? ${onSearchPressed == null}');
