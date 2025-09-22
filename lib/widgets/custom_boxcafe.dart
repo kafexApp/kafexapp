@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:share_plus/share_plus.dart';
+// import 'package:share_plus/share_plus.dart'; // Comentado temporariamente
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/app_colors.dart';
 
@@ -154,12 +154,19 @@ class CustomBoxcafe extends StatelessWidget {
                     _buildLastReview(),
                     SizedBox(height: 20),
                     
-                    // Botão "Avaliar cafeteria"
-                    _buildRateButton(),
+                    // Título "O que você gostaria de fazer?"
+                    Text(
+                      'O que você gostaria de fazer?',
+                      style: GoogleFonts.albertSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.carbon,
+                      ),
+                    ),
                     SizedBox(height: 16),
                     
-                    // Botões de mapa e compartilhar
-                    _buildActionButtons(context),
+                    // Botão "Avaliar cafeteria"
+                    _buildRateButton(),
                     SizedBox(height: 16),
                     
                     // Botão "Avisar que mudou"
@@ -201,7 +208,7 @@ class CustomBoxcafe extends StatelessWidget {
                 style: GoogleFonts.albertSans(
                   fontSize: 24,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.carbon,
+                  color: AppColors.velvetMerlot,
                 ),
               ),
               SizedBox(height: 4),
@@ -247,14 +254,22 @@ class CustomBoxcafe extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.moonAsh,
+              color: AppColors.whiteWhite,
               shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.oatWhite,
+                width: 1,
+              ),
             ),
             child: Center(
-              child: Icon(
-                Icons.camera_alt, // Pode trocar por um ícone do Instagram se tiver
-                color: AppColors.grayScale1,
-                size: 24,
+              child: SvgPicture.asset(
+                'assets/images/instagram.svg',
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  AppColors.papayaSensorial,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
           ),
@@ -277,38 +292,37 @@ class CustomBoxcafe extends StatelessWidget {
   Widget _buildStatusAndFacilities() {
     return Row(
       children: [
-        // Status (Aberto/Fechado)
+        // Status (Aberto/Fechado) - apenas a palavra
         Container(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: cafe.isOpen ? AppColors.cyberLime : AppColors.spiced,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(1000),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                cafe.isOpen ? 'Fechado' : 'Fechado', // Baseado na referência
-                style: GoogleFonts.albertSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: cafe.isOpen ? AppColors.carbon : AppColors.whiteWhite,
-                ),
-              ),
-              SizedBox(width: 4),
-              Text(
-                cafe.openingHours,
-                style: GoogleFonts.albertSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: cafe.isOpen ? AppColors.carbon : AppColors.whiteWhite,
-                ),
-              ),
-            ],
+          child: Text(
+            cafe.isOpen ? 'Aberto' : 'Fechado',
+            style: GoogleFonts.albertSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: cafe.isOpen ? AppColors.carbon : AppColors.whiteWhite,
+            ),
           ),
         ),
         
-        SizedBox(width: 12),
+        // Horário de abertura (apenas quando fechado)
+        if (!cafe.isOpen) ...[
+          SizedBox(width: 8),
+          Text(
+            cafe.openingHours,
+            style: GoogleFonts.albertSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+              color: AppColors.grayScale1,
+            ),
+          ),
+        ],
+        
+        Spacer(),
         
         // Facilidades
         Row(
@@ -320,17 +334,17 @@ class CustomBoxcafe extends StatelessWidget {
 
   Widget _buildFacilityIcon(CafeFacility facility) {
     String iconPath;
-    Color iconColor = AppColors.cyberLime;
+    Color iconColor = AppColors.pear;
     
     switch (facility) {
       case CafeFacility.officeFriendly:
-        iconPath = 'assets/images/icon-office-friendly.svg'; // Assumindo que existe
+        iconPath = 'assets/images/icon-office-friendly.svg';
         break;
       case CafeFacility.petFriendly:
-        iconPath = 'assets/images/icon-pet-friendly.svg'; // Assumindo que existe
+        iconPath = 'assets/images/icon-pet-friendly.svg';
         break;
       case CafeFacility.vegFriendly:
-        iconPath = 'assets/images/icon-veg-friendly.svg'; // Assumindo que existe
+        iconPath = 'assets/images/icon-veg-friendly.svg';
         break;
     }
     
@@ -343,13 +357,14 @@ class CustomBoxcafe extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Center(
-        child: Icon(
-          // Fallback para ícones padrão se os SVGs não existirem
-          facility == CafeFacility.officeFriendly ? Icons.laptop_mac :
-          facility == CafeFacility.petFriendly ? Icons.pets :
-          Icons.eco,
-          color: AppColors.carbon,
-          size: 18,
+        child: SvgPicture.asset(
+          iconPath,
+          width: 18,
+          height: 18,
+          colorFilter: ColorFilter.mode(
+            AppColors.carbon,
+            BlendMode.srcIn,
+          ),
         ),
       ),
     );
@@ -362,132 +377,223 @@ class CustomBoxcafe extends StatelessWidget {
     
     final UserReview lastReview = cafe.reviews.first;
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Avatar e info do usuário
-        Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.moonAsh,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: SvgPicture.asset(
-                  lastReview.userAvatar,
-                  width: 24,
-                  height: 24,
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.moonAsh,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar e info do usuário
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.moonAsh,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/images/default-avatar.svg',
+                    width: 24,
+                    height: 24,
+                  ),
                 ),
               ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      lastReview.userName,
+                      style: GoogleFonts.albertSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.carbon,
+                      ),
+                    ),
+                    Text(
+                      lastReview.date,
+                      style: GoogleFonts.albertSans(
+                        fontSize: 12,
+                        color: AppColors.grayScale2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Rating do usuário
+              Row(
+                children: List.generate(5, (starIndex) {
+                  return Padding(
+                    padding: EdgeInsets.only(right: 1),
+                    child: SvgPicture.asset(
+                      'assets/images/grain_note.svg',
+                      width: 12,
+                      height: 12,
+                      colorFilter: ColorFilter.mode(
+                        starIndex < lastReview.rating.floor() 
+                            ? AppColors.sunsetBlaze 
+                            : AppColors.grayScale2.withOpacity(0.3),
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+          
+          SizedBox(height: 12),
+          
+          // Comentário da avaliação
+          Text(
+            lastReview.comment,
+            style: GoogleFonts.albertSans(
+              fontSize: 14,
+              color: AppColors.grayScale1,
+              height: 1.4,
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          
+          SizedBox(width: 12),
+          
+          // Botão "Ver todas as avaliações"
+          GestureDetector(
+            onTap: () => _showAllReviews(),
+            child: Container(
+              margin: EdgeInsets.only(top: 12),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.oatWhite,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    lastReview.userName,
-                    style: GoogleFonts.albertSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.carbon,
+                  SvgPicture.asset(
+                    'assets/images/grain_note.svg',
+                    width: 16,
+                    height: 16,
+                    colorFilter: ColorFilter.mode(
+                      AppColors.papayaSensorial,
+                      BlendMode.srcIn,
                     ),
                   ),
+                  SizedBox(width: 8),
                   Text(
-                    lastReview.date,
+                    'ver todas as avaliações',
                     style: GoogleFonts.albertSans(
-                      fontSize: 12,
-                      color: AppColors.grayScale2,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.carbon,
                     ),
                   ),
                 ],
               ),
             ),
-            // Rating do usuário
-            Row(
-              children: List.generate(5, (starIndex) {
-                return Padding(
-                  padding: EdgeInsets.only(right: 1),
-                  child: SvgPicture.asset(
-                    'assets/images/grain_note.svg',
-                    width: 12,
-                    height: 12,
-                    colorFilter: ColorFilter.mode(
-                      starIndex < lastReview.rating.floor() 
-                          ? AppColors.sunsetBlaze 
-                          : AppColors.grayScale2.withOpacity(0.3),
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ],
-        ),
-        
-        SizedBox(height: 12),
-        
-        // Comentário da avaliação
-        Text(
-          lastReview.comment,
-          style: GoogleFonts.albertSans(
-            fontSize: 14,
-            color: AppColors.grayScale1,
-            height: 1.4,
           ),
-        ),
-        
-        SizedBox(height: 12),
-        
-        // "Ver todas as avaliações"
-        GestureDetector(
-          onTap: () => _showAllReviews(),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'ver todas as avaliações',
-                  style: GoogleFonts.albertSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.papayaSensorial,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildRateButton() {
-    return Container(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: () => _rateCafe(),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.velvetMerlot,
-          foregroundColor: AppColors.whiteWhite,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Row(
+      children: [
+        // Botão "Avaliar cafeteria" - ocupa 3/5 do espaço (60%)
+        Expanded(
+          flex: 3,
+          child: Container(
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () => _rateCafe(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.velvetMerlot,
+                foregroundColor: AppColors.papayaSensorial,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                'Avaliar cafeteria',
+                style: GoogleFonts.albertSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.papayaSensorial,
+                ),
+              ),
+            ),
           ),
-          elevation: 0,
         ),
-        child: Text(
-          'Avaliar cafeteria',
-          style: GoogleFonts.albertSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+        
+        SizedBox(width: 12),
+        
+        // Botão do mapa - ocupa 1/5 do espaço (20%)
+        Expanded(
+          flex: 1,
+          child: Container(
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () => _openInMaps(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.whiteWhite,
+                foregroundColor: AppColors.carbon,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: AppColors.moonAsh, width: 1),
+                ),
+                elevation: 0,
+              ),
+              child: SvgPicture.asset(
+                'assets/images/map-marker.svg',
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  AppColors.carbon,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+        
+        SizedBox(width: 12),
+        
+        // Botão compartilhar - ocupa 1/5 do espaço (20%)
+        Expanded(
+          flex: 1,
+          child: Container(
+            height: 56,
+            child: ElevatedButton(
+              onPressed: () => _shareCafe(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.papayaSensorial,
+                foregroundColor: AppColors.whiteWhite,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: SvgPicture.asset(
+                'assets/images/share.svg',
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  AppColors.whiteWhite,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -501,30 +607,18 @@ class CustomBoxcafe extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => _openInMaps(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.moonAsh,
+                backgroundColor: AppColors.whiteWhite,
                 foregroundColor: AppColors.carbon,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(color: AppColors.moonAsh, width: 1),
                 ),
                 elevation: 0,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 20,
-                    color: AppColors.carbon,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Mapa',
-                    style: GoogleFonts.albertSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+              child: Icon(
+                Icons.location_on,
+                size: 24,
+                color: AppColors.carbon,
               ),
             ),
           ),
@@ -546,23 +640,10 @@ class CustomBoxcafe extends StatelessWidget {
                 ),
                 elevation: 0,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.share,
-                    size: 20,
-                    color: AppColors.whiteWhite,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Compartilhar',
-                    style: GoogleFonts.albertSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+              child: Icon(
+                Icons.share,
+                size: 24,
+                color: AppColors.whiteWhite,
               ),
             ),
           ),
@@ -584,10 +665,14 @@ class CustomBoxcafe extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.warning_outlined,
-              color: AppColors.spiced,
-              size: 20,
+            SvgPicture.asset(
+              'assets/images/alert.svg',
+              width: 20,
+              height: 20,
+              colorFilter: ColorFilter.mode(
+                AppColors.carbon,
+                BlendMode.srcIn,
+              ),
             ),
             SizedBox(width: 8),
             Text(
@@ -595,7 +680,7 @@ class CustomBoxcafe extends StatelessWidget {
               style: GoogleFonts.albertSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.spiced,
+                color: AppColors.carbon,
               ),
             ),
           ],
@@ -635,7 +720,9 @@ class CustomBoxcafe extends StatelessWidget {
     final String shareText = 
         'Olá, segue o endereço da cafeteria ${cafe.name}, ${cafe.address}. Quer conhecer mais cafeterias? Baixe o Kafex em kafex.com.br.';
     
-    Share.share(shareText);
+    // Por enquanto apenas imprime no console
+    // TODO: Implementar compartilhamento quando share_plus estiver funcionando
+    print('Compartilhar: $shareText');
   }
 
   void _reportCafeChange(BuildContext context) {
@@ -664,12 +751,40 @@ void showCafeModal(BuildContext context, dynamic cafeModel) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) => CustomBoxcafe(
-        cafe: CafeDetailModel.fromCafeModel(cafeModel),
+    isDismissible: true, // Permite fechar tocando fora
+    enableDrag: true, // Permite arrastar para fechar
+    builder: (context) => GestureDetector(
+      // Detecta toques fora do modal para fechá-lo
+      onTap: () => Navigator.of(context).pop(),
+      child: Container(
+        color: Colors.transparent,
+        child: GestureDetector(
+          // Impede que toques no modal se propaguem para o GestureDetector pai
+          onTap: () {},
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.85,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) => Container(
+              // Container que absorve todos os gestos para não interferir no mapa
+              child: AbsorbPointer(
+                absorbing: false,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.whiteWhite,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: CustomBoxcafe(
+                    cafe: CafeDetailModel.fromCafeModel(cafeModel),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     ),
   );
