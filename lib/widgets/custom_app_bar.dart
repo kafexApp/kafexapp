@@ -1,21 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
+import '../utils/app_icons.dart'; // Nossa classe de ícones
+import '../screens/notifications_screen.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationPressed;
   final bool showBackButton;
   final VoidCallback? onBackPressed;
+  final int notificationCount;
 
   const CustomAppBar({
     Key? key,
     this.onNotificationPressed,
     this.showBackButton = false,
     this.onBackPressed,
+    this.notificationCount = 0,
   }) : super(key: key);
 
   @override
   Size get preferredSize => Size.fromHeight(80);
+
+  void _navigateToNotifications(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NotificationsScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +60,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           ],
                         ),
                         child: Icon(
-                          Icons.arrow_back,
+                          AppIcons.back, // ← Usando Phosphor Icons!
                           color: AppColors.textPrimary,
                           size: 20,
                         ),
@@ -59,17 +72,54 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       height: 40,
                     ),
 
-              // Ícone de notificação
+              // Ícone de notificação com badge (usando Phosphor Icons)
               GestureDetector(
-                onTap: onNotificationPressed ?? () {
-                  print('Abrir notificações');
-                },
+                onTap: onNotificationPressed ?? () => _navigateToNotifications(context),
                 child: Container(
                   padding: EdgeInsets.all(8),
-                  child: SvgPicture.asset(
-                    'assets/images/notification.svg',
-                    width: 24,
-                    height: 24,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Ícone de notificação Phosphor (mais bonito!)
+                      Icon(
+                        notificationCount > 0 
+                          ? AppIcons.notificationFill 
+                          : AppIcons.notification,
+                        size: 24,
+                        color: AppColors.textPrimary,
+                      ),
+                      
+                      // Badge de notificações
+                      if (notificationCount > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            constraints: BoxConstraints(minWidth: 18),
+                            height: 18,
+                            padding: EdgeInsets.symmetric(horizontal: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.papayaSensorial,
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: AppColors.oatWhite,
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                notificationCount > 99 ? '99+' : notificationCount.toString(),
+                                style: TextStyle(
+                                  color: AppColors.whiteWhite,
+                                  fontSize: notificationCount > 99 ? 8 : 10,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Albert Sans',
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

@@ -241,22 +241,43 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                         ),
 
-                        // Área do texto da versão
+                        // Área do texto da versão e frase
                         SlideTransition(
                           position: _textSlide,
                           child: FadeTransition(
                             opacity: _textOpacity,
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 60.0),
-                              child: Text(
-                                'versão 3.0.0',
-                                style: TextStyle(
-                                  fontFamily: 'Albert Sans',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w200,
-                                  color: AppColors.whiteWhite.withOpacity(0.7),
-                                  letterSpacing: 1.5,
-                                ),
+                              child: Column(
+                                children: [
+                                  // Texto da versão
+                                  Text(
+                                    'versão 3.0.0',
+                                    style: TextStyle(
+                                      fontFamily: 'Albert Sans',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.normal,
+                                      color: AppColors.whiteWhite.withOpacity(0.7),
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  
+                                  // Espaçamento entre versão e frase
+                                  SizedBox(height: 12),
+                                  
+                                  // Frase adicional
+                                  Text(
+                                    'Feito com muito ☕️ e IA para amantes de café.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontFamily: 'Albert Sans',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w300,
+                                      color: AppColors.whiteWhite.withOpacity(0.6),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),

@@ -55,6 +55,9 @@ dependencies:
   image_picker: ^1.0.4           # Para seleção de imagens da galeria e câmera
   permission_handler: ^11.0.1    # Para gerenciar permissões de câmera e galeria
 
+  # PHOSPHOR ICONS - ÍCONES MODERNOS E ELEGANTES
+  phosphor_flutter: ^2.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
