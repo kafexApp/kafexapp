@@ -6,6 +6,7 @@ import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
 import '../comments_bottom_sheet.dart' as CommentsModal; // ALIAS ADICIONADO
+import '../../screens/user_profile_screen.dart'; // CAMINHO CORRIGIDO
 
 class FeedPostCard extends StatefulWidget {
   final PostData post;
@@ -46,6 +47,20 @@ class _FeedPostCardState extends State<FeedPostCard> {
       _likesCount += _isLiked ? 1 : -1;
     });
     widget.onLike?.call();
+  }
+
+  // MÉTODO ADICIONADO - Navega para o perfil do usuário
+  void _navigateToUserProfile(String userName, String? avatarUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserProfileScreen(
+          userId: widget.post.id ?? 'unknown', // Em um app real, seria o userId real
+          userName: userName,
+          userAvatar: avatarUrl,
+        ),
+      ),
+    );
   }
 
   // MÉTODO ADICIONADO - Abre o modal de comentários
@@ -217,47 +232,63 @@ class _FeedPostCardState extends State<FeedPostCard> {
       padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Row(
         children: [
-          // Avatar do usuário
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.moonAsh,
-              shape: BoxShape.circle,
+          // Avatar do usuário - AGORA CLICÁVEL
+          GestureDetector(
+            onTap: () => _navigateToUserProfile(
+              widget.post.authorName,
+              widget.post.authorAvatar.startsWith('http') 
+                ? widget.post.authorAvatar 
+                : null, // Se for SVG local, passa null
             ),
-            child: Center(
-              child: SvgPicture.asset(
-                widget.post.authorAvatar,
-                width: 20,
-                height: 20,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.moonAsh,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: SvgPicture.asset(
+                  widget.post.authorAvatar,
+                  width: 20,
+                  height: 20,
+                ),
               ),
             ),
           ),
           
           SizedBox(width: 12),
           
-          // Nome e data
+          // Nome e data - NOME TAMBÉM CLICÁVEL
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.post.authorName,
-                  style: GoogleFonts.albertSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+            child: GestureDetector(
+              onTap: () => _navigateToUserProfile(
+                widget.post.authorName,
+                widget.post.authorAvatar.startsWith('http') 
+                  ? widget.post.authorAvatar 
+                  : null,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.post.authorName,
+                    style: GoogleFonts.albertSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  widget.post.date,
-                  style: GoogleFonts.albertSans(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
+                  SizedBox(height: 2),
+                  Text(
+                    widget.post.date,
+                    style: GoogleFonts.albertSans(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           
@@ -500,19 +531,27 @@ class _FeedPostCardState extends State<FeedPostCard> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar do comentário
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.moonAsh,
-                  shape: BoxShape.circle,
+              // Avatar do comentário - AGORA CLICÁVEL
+              GestureDetector(
+                onTap: () => _navigateToUserProfile(
+                  lastComment.authorName,
+                  lastComment.authorAvatar?.startsWith('http') == true 
+                    ? lastComment.authorAvatar 
+                    : null, // Se for SVG local, passa null
                 ),
-                child: Center(
-                  child: SvgPicture.asset(
-                    lastComment.authorAvatar,
-                    width: 16,
-                    height: 16,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.moonAsh,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      lastComment.authorAvatar,
+                      width: 16,
+                      height: 16,
+                    ),
                   ),
                 ),
               ),
@@ -524,15 +563,23 @@ class _FeedPostCardState extends State<FeedPostCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Nome e data
+                    // Nome e data - NOME TAMBÉM CLICÁVEL
                     Row(
                       children: [
-                        Text(
-                          lastComment.authorName,
-                          style: GoogleFonts.albertSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.papayaSensorial,
+                        GestureDetector(
+                          onTap: () => _navigateToUserProfile(
+                            lastComment.authorName,
+                            lastComment.authorAvatar?.startsWith('http') == true 
+                              ? lastComment.authorAvatar 
+                              : null,
+                          ),
+                          child: Text(
+                            lastComment.authorName,
+                            style: GoogleFonts.albertSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.papayaSensorial,
+                            ),
                           ),
                         ),
                         SizedBox(width: 8),
