@@ -190,7 +190,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
           // Card branco de fundo
           Container(
             margin: EdgeInsets.only(top: 25),
-            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20),
+            padding: EdgeInsets.only(left: 12, right: 20, top: 20, bottom: 20),
             decoration: BoxDecoration(
               color: AppColors.whiteWhite,
               borderRadius: BorderRadius.circular(20),
