@@ -293,7 +293,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.videocam,
+                                  AppIcons.video,
                                   size: 48,
                                   color: AppColors.whiteWhite,
                                 ),
@@ -355,7 +355,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
           children: [
             Expanded(
               child: _buildMediaButton(
-                icon: Icons.photo_library,
+                icon: AppIcons.images,
                 label: 'Galeria',
                 onTap: () => _pickMedia(ImageSource.gallery),
               ),
@@ -365,7 +365,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
             
             Expanded(
               child: _buildMediaButton(
-                icon: Icons.camera_alt,
+                icon: AppIcons.camera,
                 label: 'Câmera',
                 onTap: () => _pickMedia(ImageSource.camera),
               ),
@@ -377,7 +377,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
   }
 
   Widget _buildMediaButton({
-    required IconData icon,
+    required dynamic icon,
     required String label,
     required VoidCallback onTap,
   }) {
@@ -458,7 +458,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
               suffixIcon: _linkController.text.isNotEmpty
                   ? IconButton(
                       icon: Icon(
-                        Icons.open_in_new,
+                        AppIcons.link,
                         color: AppColors.papayaSensorial,
                         size: 20,
                       ),
@@ -516,12 +516,12 @@ class _CreatePostModalState extends State<CreatePostModal> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ListTile(
-                  leading: Icon(Icons.photo, color: AppColors.papayaSensorial),
+                  leading: Icon(AppIcons.image, color: AppColors.papayaSensorial),
                   title: Text('Foto'),
                   onTap: () => Navigator.of(context).pop('photo'),
                 ),
                 ListTile(
-                  leading: Icon(Icons.videocam, color: AppColors.papayaSensorial),
+                  leading: Icon(AppIcons.video, color: AppColors.papayaSensorial),
                   title: Text('Vídeo'),
                   onTap: () => Navigator.of(context).pop('video'),
                 ),
@@ -581,7 +581,7 @@ class _CreatePostModalState extends State<CreatePostModal> {
         content: Row(
           children: [
             Icon(
-              isError ? Icons.warning_rounded : Icons.check_circle_rounded,
+              isError ? AppIcons.warning : AppIcons.checkCircle,
               color: AppColors.whiteWhite,
               size: 20,
             ),

@@ -649,7 +649,7 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                       child: Row(
                         children: [
                           Icon(
-                            comment.isLiked ? AppIcons.heartFill : AppIcons.heart,
+                            AppIcons.heart,
                             size: 16,
                             color: comment.isLiked 
                                 ? AppColors.spiced 
