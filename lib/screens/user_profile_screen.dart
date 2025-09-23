@@ -5,7 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../widgets/feed/feed_post_card.dart';
-import '../screens/cafe_explorer_screen.dart';
+import '../screens/cafe_explorer_screen.dart' show CafeModel;
 import '../models/post_models.dart';
 import '../widgets/custom_boxcafe_minicard.dart';
 
@@ -298,7 +298,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                     
                     // Bio or location (mock)
                     Text(
-                      'Amante de cafés especiais ☕️',
+                      'Coffeelover ☕️',
                       style: GoogleFonts.albertSans(
                         fontSize: 14,
                         color: AppColors.textSecondary,
