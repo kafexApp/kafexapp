@@ -4,7 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
-import '../../models/post_models.dart'; // IMPORT ADICIONADO
+import '../../models/post_models.dart';
+import '../comments_bottom_sheet.dart' as CommentsModal; // ALIAS ADICIONADO
 
 class FeedPostCard extends StatefulWidget {
   final PostData post;
@@ -45,6 +46,38 @@ class _FeedPostCardState extends State<FeedPostCard> {
       _likesCount += _isLiked ? 1 : -1;
     });
     widget.onLike?.call();
+  }
+
+  // MÉTODO ADICIONADO - Abre o modal de comentários
+  void _openCommentsModal() {
+    // Converter CommentData do post para CommentData do modal
+    final modalComments = widget.post.recentComments.map((comment) {
+      return CommentsModal.CommentData( // USANDO ALIAS
+        id: comment.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        userName: comment.authorName,
+        userAvatar: comment.authorAvatar != null 
+            ? 'https://images.unsplash.com/photo-1494790108755-2616b612b829?w=150' // URL real para teste
+            : null,
+        content: comment.content,
+        timestamp: DateTime.now().subtract(Duration(hours: 2)), // Mock timestamp
+        likes: 0, // Mock likes
+        isLiked: false,
+      );
+    }).toList();
+
+    CommentsModal.showCommentsModal( // USANDO ALIAS
+      context,
+      postId: widget.post.id ?? 'unknown',
+      comments: modalComments,
+      onCommentAdded: (newComment) {
+        // Callback quando um novo comentário é adicionado
+        widget.onComment?.call();
+        print('Novo comentário adicionado: $newComment');
+        
+        // Aqui você pode atualizar o estado do post se necessário
+        // Por exemplo, incrementar o contador de comentários
+      },
+    );
   }
 
   void _showPostOptionsModal() {
@@ -344,9 +377,9 @@ class _FeedPostCardState extends State<FeedPostCard> {
             ),
           ),
           
-          // Botão Comentário com contador
+          // Botão Comentário com contador - ATUALIZADO para abrir modal
           GestureDetector(
-            onTap: () => widget.onComment?.call(),
+            onTap: _openCommentsModal, // MUDANÇA: agora abre o modal
             child: Container(
               padding: EdgeInsets.all(8),
               child: Row(
@@ -439,7 +472,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: GestureDetector(
-        onTap: () => widget.onViewAllComments?.call(),
+        onTap: _openCommentsModal, // MUDANÇA: agora abre o modal
         child: Text(
           'Ver todos os ${widget.post.comments} comentários',
           style: GoogleFonts.albertSans(
@@ -457,7 +490,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: GestureDetector(
-        onTap: () => widget.onViewAllComments?.call(),
+        onTap: _openCommentsModal, // MUDANÇA: agora abre o modal
         child: Container(
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -534,5 +567,3 @@ class _FeedPostCardState extends State<FeedPostCard> {
     );
   }
 }
-
-// REMOVIDAS AS CLASSES PostData e CommentData - ELAS AGORA ESTÃO EM models/post_models.dart
