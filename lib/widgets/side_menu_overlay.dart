@@ -63,13 +63,23 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
       color: Colors.transparent,
       child: Stack(
         children: [
-          GestureDetector(
-            onTap: widget.onClose,
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Colors.black.withOpacity(0.5),
-            ),
+          // Background overlay com fade separado
+          AnimatedBuilder(
+            animation: ModalRoute.of(context)?.animation ?? const AlwaysStoppedAnimation(1.0),
+            builder: (context, child) {
+              final animation = ModalRoute.of(context)?.animation ?? const AlwaysStoppedAnimation(1.0);
+              return FadeTransition(
+                opacity: animation,
+                child: GestureDetector(
+                  onTap: widget.onClose,
+                  child: Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.black.withOpacity(0.5),
+                  ),
+                ),
+              );
+            },
           ),
           
           Positioned(
@@ -121,28 +131,28 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                       children: [
                         _buildMenuItem(
                           context: context,
-                          icon: AppIcons.homeFill,
+                          icon: AppIcons.home, // Agora usando Phosphor Regular
                           title: 'Início',
                           onTap: () => _navigateToScreen(context, HomeFeedScreen()),
                         ),
                         
                         _buildMenuItem(
                           context: context,
-                          icon: AppIcons.coffeeFill,
+                          icon: AppIcons.coffee, // Agora usando Phosphor Regular
                           title: 'Cafeterias',
                           onTap: () => _navigateToScreen(context, CafeExplorerScreen()),
                         ),
                         
                         _buildMenuItem(
                           context: context,
-                          icon: AppIcons.notificationFill,
+                          icon: AppIcons.notification, // Agora usando Phosphor Regular
                           title: 'Notificações',
                           onTap: () => _navigateToScreen(context, NotificationsScreen()),
                         ),
                         
                         _buildMenuItem(
                           context: context,
-                          icon: AppIcons.userFill,
+                          icon: AppIcons.user, // Agora usando Phosphor Regular
                           title: 'Perfil',
                           onTap: () {
                             widget.onClose();
@@ -152,7 +162,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                         
                         _buildMenuItem(
                           context: context,
-                          icon: AppIcons.settings,
+                          icon: AppIcons.settings, // Agora usando Phosphor Regular
                           title: 'Configurações',
                           onTap: () {
                             widget.onClose();
@@ -257,7 +267,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  AppIcons.close,
+                  AppIcons.close, // Agora usando Phosphor Regular
                   color: AppColors.textSecondary,
                   size: 20,
                 ),
@@ -288,7 +298,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        AppIcons.signOut,
+                        AppIcons.signOut, // Agora usando Phosphor Regular
                         color: AppColors.spiced,
                         size: 16,
                       ),
@@ -350,7 +360,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  AppIcons.plus,
+                  AppIcons.plus, // Agora usando Phosphor Regular
                   color: AppColors.whiteWhite,
                   size: 24,
                 ),
@@ -383,7 +393,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
               ),
               
               Icon(
-                AppIcons.chevronRight,
+                AppIcons.chevronRight, // Agora usando Phosphor Regular
                 color: AppColors.whiteWhite,
                 size: 20,
               ),
@@ -428,7 +438,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
 
   Widget _buildMenuItem({
     required BuildContext context,
-    required IconData icon,
+    required dynamic icon, // Agora aceita PhosphorIconData
     required String title,
     required VoidCallback onTap,
   }) {
@@ -470,7 +480,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
               Spacer(),
               
               Icon(
-                AppIcons.chevronRight,
+                AppIcons.chevronRight, // Agora usando Phosphor Regular
                 color: AppColors.grayScale2,
                 size: 16,
               ),
@@ -488,6 +498,7 @@ void showSideMenu(BuildContext context) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    barrierColor: Colors.transparent, // Remove o background padrão
     builder: (context) => SideMenuOverlay(
       onClose: () => Navigator.of(context).pop(),
     ),

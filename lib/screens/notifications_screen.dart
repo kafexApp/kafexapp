@@ -103,7 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(
-            AppIcons.back, // Phosphor: arrowLeft
+            AppIcons.back, // Phosphor Regular: arrowLeft
             color: AppColors.carbon,
           ),
           onPressed: () => Navigator.pop(context),
@@ -185,7 +185,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              AppIcons.notification, // Phosphor: bell
+              AppIcons.notification, // Phosphor Regular: bell
               size: 60,
               color: AppColors.grayScale2,
             ),
@@ -227,7 +227,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(
-          AppIcons.delete, // Phosphor: trash
+          AppIcons.delete, // Phosphor Regular: trash
           color: AppColors.whiteWhite,
           size: 24,
         ),
@@ -347,20 +347,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
-  IconData _getNotificationIcon(NotificationType type) {
+  dynamic _getNotificationIcon(NotificationType type) {
     switch (type) {
       case NotificationType.newPlace:
-        return AppIcons.locationFill; // Phosphor: mapPin filled
+        return AppIcons.location; // Phosphor Regular: mapPin
       case NotificationType.promotion:
-        return AppIcons.tagFill; // Phosphor: tag filled
+        return AppIcons.tag; // Phosphor Regular: tag
       case NotificationType.review:
-        return AppIcons.starFill; // Phosphor: star filled
+        return AppIcons.star; // Phosphor Regular: star
       case NotificationType.appUpdate:
-        return AppIcons.download; // Phosphor: download
+        return AppIcons.download; // Phosphor Regular: download
       case NotificationType.community:
-        return AppIcons.usersFill; // Phosphor: users filled
+        return AppIcons.users; // Phosphor Regular: users
       default:
-        return AppIcons.notificationFill; // Phosphor: bell filled
+        return AppIcons.notification; // Phosphor Regular: bell
     }
   }
 
