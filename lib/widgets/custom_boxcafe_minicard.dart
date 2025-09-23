@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
-import '../screens/cafe_explorer_screen.dart';
+import '../screens/cafe_explorer_screen.dart'; // IMPORT CORRETO - usa CafeModel deste arquivo
 import 'custom_boxcafe.dart';
 
 class CustomBoxcafeMinicard extends StatelessWidget {

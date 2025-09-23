@@ -5,8 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
-import '../comments_bottom_sheet.dart' as CommentsModal; // ALIAS ADICIONADO
-import '../../screens/user_profile_screen.dart'; // CAMINHO CORRIGIDO
+import '../../screens/user_profile_screen.dart';
 
 class FeedPostCard extends StatefulWidget {
   final PostData post;
@@ -49,13 +48,15 @@ class _FeedPostCardState extends State<FeedPostCard> {
     widget.onLike?.call();
   }
 
-  // MÉTODO ADICIONADO - Navega para o perfil do usuário
+  // Navega para o perfil do usuário
   void _navigateToUserProfile(String userName, String? avatarUrl) {
+    print('🔍 Navegando para perfil de: $userName');
+    
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => UserProfileScreen(
-          userId: widget.post.id ?? 'unknown', // Em um app real, seria o userId real
+          userId: 'user_${userName.toLowerCase().replaceAll(' ', '_')}', // ID mock baseado no nome
           userName: userName,
           userAvatar: avatarUrl,
         ),
@@ -63,35 +64,17 @@ class _FeedPostCardState extends State<FeedPostCard> {
     );
   }
 
-  // MÉTODO ADICIONADO - Abre o modal de comentários
   void _openCommentsModal() {
-    // Converter CommentData do post para CommentData do modal
-    final modalComments = widget.post.recentComments.map((comment) {
-      return CommentsModal.CommentData( // USANDO ALIAS
-        id: comment.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        userName: comment.authorName,
-        userAvatar: comment.authorAvatar != null 
-            ? 'https://images.unsplash.com/photo-1494790108755-2616b612b829?w=150' // URL real para teste
-            : null,
-        content: comment.content,
-        timestamp: DateTime.now().subtract(Duration(hours: 2)), // Mock timestamp
-        likes: 0, // Mock likes
-        isLiked: false,
-      );
-    }).toList();
-
-    CommentsModal.showCommentsModal( // USANDO ALIAS
-      context,
-      postId: widget.post.id ?? 'unknown',
-      comments: modalComments,
-      onCommentAdded: (newComment) {
-        // Callback quando um novo comentário é adicionado
-        widget.onComment?.call();
-        print('Novo comentário adicionado: $newComment');
-        
-        // Aqui você pode atualizar o estado do post se necessário
-        // Por exemplo, incrementar o contador de comentários
-      },
+    print('💬 Abrir comentários para post: ${widget.post.id}');
+    widget.onComment?.call();
+    
+    // Temporariamente mostra um SnackBar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Comentários (em desenvolvimento)'),
+        backgroundColor: AppColors.papayaSensorial,
+        duration: Duration(seconds: 2),
+      ),
     );
   }
 
@@ -232,13 +215,13 @@ class _FeedPostCardState extends State<FeedPostCard> {
       padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Row(
         children: [
-          // Avatar do usuário - AGORA CLICÁVEL
+          // Avatar do usuário - CLICÁVEL
           GestureDetector(
             onTap: () => _navigateToUserProfile(
               widget.post.authorName,
               widget.post.authorAvatar.startsWith('http') 
                 ? widget.post.authorAvatar 
-                : null, // Se for SVG local, passa null
+                : null,
             ),
             child: Container(
               width: 40,
@@ -248,11 +231,20 @@ class _FeedPostCardState extends State<FeedPostCard> {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: SvgPicture.asset(
-                  widget.post.authorAvatar,
-                  width: 20,
-                  height: 20,
-                ),
+                child: widget.post.authorAvatar.startsWith('http')
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.network(
+                        widget.post.authorAvatar,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildAvatarFallback();
+                        },
+                      ),
+                    )
+                  : _buildAvatarFallback(),
               ),
             ),
           ),
@@ -298,13 +290,50 @@ class _FeedPostCardState extends State<FeedPostCard> {
             child: Container(
               padding: EdgeInsets.all(8),
               child: Icon(
-                AppIcons.dotsThree, // Usando ícone dots-three do Phosphor
+                AppIcons.dotsThree,
                 color: AppColors.grayScale2,
                 size: 20,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAvatarFallback() {
+    final initial = widget.post.authorName.isNotEmpty 
+        ? widget.post.authorName[0].toUpperCase() 
+        : 'U';
+    final colorIndex = widget.post.authorName.isNotEmpty 
+        ? widget.post.authorName.codeUnitAt(0) % 5 
+        : 0;
+    final avatarColors = [
+      AppColors.papayaSensorial,
+      AppColors.velvetMerlot,
+      AppColors.spiced,
+      AppColors.forestInk,
+      AppColors.pear,
+    ];
+    
+    final avatarColor = avatarColors[colorIndex];
+    
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: avatarColor.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.albertSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: avatarColor,
+          ),
+        ),
       ),
     );
   }
@@ -336,7 +365,6 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   Widget _buildVideoPlayer() {
-    // Placeholder para vídeo - você pode implementar com video_player package
     return Container(
       color: AppColors.carbon,
       child: Center(
@@ -395,22 +423,22 @@ class _FeedPostCardState extends State<FeedPostCard> {
       padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(
         children: [
-          // Botão Like com ícones Phosphor
+          // Botão Like
           GestureDetector(
             onTap: _toggleLike,
             child: Container(
               padding: EdgeInsets.all(8),
               child: Icon(
-                _isLiked ? AppIcons.heartFill : AppIcons.heart, // Regular quando não curtido, Fill quando curtido
+                _isLiked ? AppIcons.heartFill : AppIcons.heart,
                 color: _isLiked ? AppColors.spiced : AppColors.grayScale2,
                 size: 24,
               ),
             ),
           ),
           
-          // Botão Comentário com contador - ATUALIZADO para abrir modal
+          // Botão Comentário
           GestureDetector(
-            onTap: _openCommentsModal, // MUDANÇA: agora abre o modal
+            onTap: _openCommentsModal,
             child: Container(
               padding: EdgeInsets.all(8),
               child: Row(
@@ -503,7 +531,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: GestureDetector(
-        onTap: _openCommentsModal, // MUDANÇA: agora abre o modal
+        onTap: _openCommentsModal,
         child: Text(
           'Ver todos os ${widget.post.comments} comentários',
           style: GoogleFonts.albertSans(
@@ -521,7 +549,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: GestureDetector(
-        onTap: _openCommentsModal, // MUDANÇA: agora abre o modal
+        onTap: _openCommentsModal,
         child: Container(
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -531,13 +559,13 @@ class _FeedPostCardState extends State<FeedPostCard> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar do comentário - AGORA CLICÁVEL
+              // Avatar do comentário
               GestureDetector(
                 onTap: () => _navigateToUserProfile(
                   lastComment.authorName,
                   lastComment.authorAvatar?.startsWith('http') == true 
                     ? lastComment.authorAvatar 
-                    : null, // Se for SVG local, passa null
+                    : null,
                 ),
                 child: Container(
                   width: 32,
@@ -547,11 +575,20 @@ class _FeedPostCardState extends State<FeedPostCard> {
                     shape: BoxShape.circle,
                   ),
                   child: Center(
-                    child: SvgPicture.asset(
-                      lastComment.authorAvatar,
-                      width: 16,
-                      height: 16,
-                    ),
+                    child: lastComment.authorAvatar?.startsWith('http') == true
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.network(
+                            lastComment.authorAvatar!,
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildCommentAvatarFallback(lastComment.authorName);
+                            },
+                          ),
+                        )
+                      : _buildCommentAvatarFallback(lastComment.authorName),
                   ),
                 ),
               ),
@@ -563,7 +600,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Nome e data - NOME TAMBÉM CLICÁVEL
+                    // Nome e data
                     Row(
                       children: [
                         GestureDetector(
@@ -608,6 +645,39 @@ class _FeedPostCardState extends State<FeedPostCard> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCommentAvatarFallback(String authorName) {
+    final initial = authorName.isNotEmpty ? authorName[0].toUpperCase() : 'U';
+    final colorIndex = authorName.isNotEmpty ? authorName.codeUnitAt(0) % 5 : 0;
+    final avatarColors = [
+      AppColors.papayaSensorial,
+      AppColors.velvetMerlot,
+      AppColors.spiced,
+      AppColors.forestInk,
+      AppColors.pear,
+    ];
+    
+    final avatarColor = avatarColors[colorIndex];
+    
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: avatarColor.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.albertSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: avatarColor,
           ),
         ),
       ),

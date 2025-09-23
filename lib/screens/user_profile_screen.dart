@@ -1,11 +1,13 @@
 // lib/screens/user_profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../widgets/feed/feed_post_card.dart';
-import '../widgets/custom_boxcafe_minicard.dart'; // IMPORT ADICIONADO
+import '../screens/cafe_explorer_screen.dart';
 import '../models/post_models.dart';
+import '../widgets/custom_boxcafe_minicard.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -29,8 +31,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   
   // Mock data - em um app real viria de uma API
   List<PostData> userPosts = [];
-  List<CafeData> favoriteCafes = [];
-  List<CafeData> wantToVisitCafes = [];
+  List<CafeModel> favoriteCafes = [];
+  List<CafeModel> wantToVisitCafes = [];
   
   // Estatísticas do usuário
   int postsCount = 0;
@@ -67,7 +69,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           isLiked: false,
           recentComments: [
             CommentData(
-              id: '1', // ID ADICIONADO
+              id: '1',
               authorName: 'Ana Silva',
               authorAvatar: 'assets/images/user.svg',
               content: 'Que lugar lindo! Preciso conhecer.',
@@ -91,33 +93,45 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
       // Cafés favoritos
       favoriteCafes = [
-        CafeData(
+        CafeModel(
           id: '1',
           name: 'Coffee Lab',
-          address: 'Vila Madalena, São Paulo',
+          address: 'Vila Madalena, São Paulo - SP, 05416-001',
           rating: 4.8,
-          imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300',
           distance: '0.8 km',
+          imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300',
+          isOpen: true,
+          position: LatLng(-23.5505, -46.6333),
+          price: 'R\$ 15-25',
+          specialties: ['Espresso', 'V60', 'Chemex', 'Cold Brew'],
         ),
-        CafeData(
+        CafeModel(
           id: '2',
           name: 'Café Girondino',
-          address: 'Centro, São Paulo',
+          address: 'Centro, São Paulo - SP, 01310-100',
           rating: 4.5,
-          imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300',
           distance: '1.2 km',
+          imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300',
+          isOpen: true,
+          position: LatLng(-23.5611, -46.6564),
+          price: 'R\$ 8-25',
+          specialties: ['Café Tradicional', 'Doces Caseiros', 'Pão de Açúcar'],
         ),
       ];
 
       // Cafés que quer visitar
       wantToVisitCafes = [
-        CafeData(
+        CafeModel(
           id: '3',
           name: 'Bourbon Coffee',
-          address: 'Jardins, São Paulo',
+          address: 'Jardins, São Paulo - SP, 01401-001',
           rating: 4.6,
-          imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
           distance: '2.1 km',
+          imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+          isOpen: true,
+          position: LatLng(-23.5729, -46.6520),
+          price: 'R\$ 20-45',
+          specialties: ['Bourbon Santos', 'Cappuccino Artesanal', 'French Press'],
         ),
       ];
 
@@ -188,6 +202,23 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 image: DecorationImage(
                   image: AssetImage('assets/images/user-banner-top.png'),
                   fit: BoxFit.cover,
+                  onError: (exception, stackTrace) {
+                    // Se a imagem não carregar, usa um gradiente como fallback
+                    print('Erro ao carregar banner: $exception');
+                  },
+                ),
+              ),
+              // Fallback caso a imagem não carregue
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.papayaSensorial.withOpacity(0.8),
+                      AppColors.velvetMerlot.withOpacity(0.6),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -468,14 +499,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         final cafe = favoriteCafes[index];
         return Container(
           margin: EdgeInsets.only(bottom: 16),
-          child: _buildCafeCard(
-            name: cafe.name,
-            address: cafe.address,
-            rating: cafe.rating,
-            distance: cafe.distance,
-            imageUrl: cafe.imageUrl,
+          child: CustomBoxcafeMinicard(
+            cafe: cafe,
             onTap: () {
-              print('Abrir detalhes da cafeteria ${cafe.id}');
+              print('Cafeteria favorita ${cafe.name} clicada');
             },
           ),
         );
@@ -499,14 +526,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         final cafe = wantToVisitCafes[index];
         return Container(
           margin: EdgeInsets.only(bottom: 16),
-          child: _buildCafeCard(
-            name: cafe.name,
-            address: cafe.address,
-            rating: cafe.rating,
-            distance: cafe.distance,
-            imageUrl: cafe.imageUrl,
+          child: CustomBoxcafeMinicard(
+            cafe: cafe,
             onTap: () {
-              print('Abrir detalhes da cafeteria ${cafe.id}');
+              print('Cafeteria "quero visitar" ${cafe.name} clicada');
             },
           ),
         );
@@ -558,132 +581,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       ),
     );
   }
-
-  Widget _buildCafeCard({
-    required String name,
-    required String address,
-    required double rating,
-    required String distance,
-    required String imageUrl,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.whiteWhite,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Imagem da cafeteria
-            Container(
-              height: 120,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                color: AppColors.moonAsh,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppColors.moonAsh,
-                      child: Center(
-                        child: Icon(
-                          AppIcons.coffee,
-                          color: AppColors.grayScale2,
-                          size: 32,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-            
-            // Informações da cafeteria
-            Padding(
-              padding: EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: GoogleFonts.albertSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.carbon,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  
-                  SizedBox(height: 4),
-                  
-                  Text(
-                    address,
-                    style: GoogleFonts.albertSans(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  
-                  SizedBox(height: 8),
-                  
-                  Row(
-                    children: [
-                      Icon(
-                        AppIcons.star,
-                        color: AppColors.pear,
-                        size: 14,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        rating.toString(),
-                        style: GoogleFonts.albertSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.carbon,
-                        ),
-                      ),
-                      Spacer(),
-                      Text(
-                        distance,
-                        style: GoogleFonts.albertSans(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // Delegate para TabBar persistente
@@ -710,23 +607,4 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
     return tabBar != oldDelegate.tabBar;
   }
-}
-
-// Modelos de dados para cafeterias
-class CafeData {
-  final String id;
-  final String name;
-  final String address;
-  final double rating;
-  final String imageUrl;
-  final String distance;
-
-  CafeData({
-    required this.id,
-    required this.name,
-    required this.address,
-    required this.rating,
-    required this.imageUrl,
-    required this.distance,
-  });
 }
