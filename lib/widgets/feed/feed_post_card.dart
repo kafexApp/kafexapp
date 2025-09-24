@@ -5,7 +5,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
+import '../../models/comment_models.dart';
 import '../../screens/user_profile_screen.dart';
+import '../comments_bottom_sheet.dart';
 
 class FeedPostCard extends StatefulWidget {
   final PostData post;
@@ -68,13 +70,30 @@ class _FeedPostCardState extends State<FeedPostCard> {
     print('💬 Abrir comentários para post: ${widget.post.id}');
     widget.onComment?.call();
     
-    // Temporariamente mostra um SnackBar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Comentários (em desenvolvimento)'),
-        backgroundColor: AppColors.papayaSensorial,
-        duration: Duration(seconds: 2),
-      ),
+    // Converter os comentários do post para o formato do modal
+    List<CommentData> commentsForModal = widget.post.recentComments.map((comment) {
+      return CommentData(
+        id: comment.id,
+        userName: comment.authorName,
+        userAvatar: comment.authorAvatar?.startsWith('http') == true 
+            ? comment.authorAvatar 
+            : null,
+        content: comment.content,
+        timestamp: DateTime.now().subtract(Duration(hours: 2)), // Mock timestamp
+        likes: 0, // Mock likes
+        isLiked: false,
+      );
+    }).toList();
+
+    // Abre o modal de comentários
+    showCommentsModal(
+      context,
+      postId: widget.post.id,
+      comments: commentsForModal,
+      onCommentAdded: (newComment) {
+        print('📝 Novo comentário adicionado: $newComment');
+        // Aqui você pode atualizar o estado do post se necessário
+      },
     );
   }
 
@@ -621,7 +640,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
                         ),
                         SizedBox(width: 8),
                         Text(
-                          lastComment.date,
+                          lastComment.date ?? '', // CORREÇÃO AQUI
                           style: GoogleFonts.albertSans(
                             fontSize: 12,
                             color: AppColors.grayScale2,

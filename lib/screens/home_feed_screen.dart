@@ -8,8 +8,10 @@ import '../utils/app_icons.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/side_menu_overlay.dart';
-import '../widgets/feed/feed_post_card.dart'; 
-import '../models/post_models.dart'; // IMPORT ADICIONADO PARA OS MODELOS
+import '../widgets/feed/feed_post_card.dart';
+import '../widgets/common/user_avatar.dart'; // NOVA IMPORTAÇÃO
+import '../models/post_models.dart';
+import '../models/comment_models.dart';
 
 class HomeFeedScreen extends StatefulWidget {
   @override
@@ -38,9 +40,13 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       recentComments: [
         CommentData(
           id: '1',
-          authorName: 'Amanda Klein',
-          authorAvatar: 'assets/images/default-avatar.svg',
+          userName: 'Amanda Klein',
+          userAvatar: null,
           content: 'A crema realmente faz toda a diferença. É incrível como ela intensifica o sabor e a experiência.',
+          timestamp: DateTime.now().subtract(Duration(hours: 2)),
+          likes: 5,
+          isLiked: false,
+          authorAvatar: 'assets/images/default-avatar.svg',
           date: '03/05/2024',
         ),
       ],
@@ -58,9 +64,13 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       recentComments: [
         CommentData(
           id: '2',
-          authorName: 'João Silva',
-          authorAvatar: 'assets/images/default-avatar.svg',
+          userName: 'João Silva',
+          userAvatar: null,
           content: 'Concordo totalmente! O ambiente é fundamental para a experiência do café.',
+          timestamp: DateTime.now().subtract(Duration(hours: 4)),
+          likes: 2,
+          isLiked: false,
+          authorAvatar: 'assets/images/default-avatar.svg',
           date: '02/02/2024',
         ),
       ],
@@ -77,9 +87,13 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       recentComments: [
         CommentData(
           id: '3',
-          authorName: 'Maria Santos',
-          authorAvatar: 'assets/images/default-avatar.svg',
+          userName: 'Maria Santos',
+          userAvatar: null,
           content: 'Qual é o nome da cafeteria? Estou sempre procurando novos lugares para experimentar!',
+          timestamp: DateTime.now().subtract(Duration(days: 1)),
+          likes: 1,
+          isLiked: false,
+          authorAvatar: 'assets/images/default-avatar.svg',
           date: '01/02/2024',
         ),
       ],
@@ -90,18 +104,6 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
   String _getFirstName(String? fullName) {
     if (fullName == null || fullName.isEmpty) return 'Usuário';
     return fullName.split(' ').first;
-  }
-
-  // Função para obter as iniciais do usuário
-  String _getUserInitials(String? fullName) {
-    if (fullName == null || fullName.isEmpty) return 'U';
-    
-    List<String> nameParts = fullName.trim().split(' ');
-    if (nameParts.length == 1) {
-      return nameParts[0].substring(0, 1).toUpperCase();
-    } else {
-      return '${nameParts[0].substring(0, 1)}${nameParts[nameParts.length - 1].substring(0, 1)}'.toUpperCase();
-    }
   }
 
   // Callbacks para ações dos posts
@@ -204,9 +206,13 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
             child: Row(
               children: [
-                // Avatar do usuário com verificação robusta
-                _buildUserAvatar(currentUser),
-                SizedBox(width: 2),
+                // Avatar do usuário usando o novo widget
+                UserAvatar(
+                  user: currentUser,
+                  size: 84,
+                ),
+                
+                SizedBox(width: 12),
                 
                 // Texto de boas-vindas
                 Expanded(
@@ -265,85 +271,6 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // Widget corrigido para avatar do usuário - CIRCULAR GARANTIDO
-  Widget _buildUserAvatar(User? currentUser) {
-    String? photoURL = currentUser?.photoURL;
-    
-    if (photoURL != null && photoURL.isNotEmpty) {
-      return Container(
-        width: 84,
-        height: 84,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-            image: NetworkImage(photoURL),
-            fit: BoxFit.cover,
-            onError: (exception, stackTrace) {
-              print('Erro ao carregar foto: $exception');
-            },
-          ),
-        ),
-        child: photoURL.isEmpty ? _buildInitialsAvatar(currentUser) : null,
-      );
-    }
-    
-    return _buildInitialsAvatar(currentUser);
-  }
-
-  // Widget para avatar com iniciais
-  Widget _buildInitialsAvatar(User? currentUser) {
-    String initials = _getUserInitials(currentUser?.displayName);
-    
-    return Container(
-      width: 84,
-      height: 84,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.papayaSensorial,
-            AppColors.papayaSensorial.withOpacity(0.8),
-          ],
-        ),
-      ),
-      child: Center(
-        child: Text(
-          initials,
-          style: GoogleFonts.albertSans(
-            fontSize: 20,
-            fontWeight: FontWeight.w400,
-            color: AppColors.whiteWhite,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Widget para avatar padrão quando não há foto do usuário (não usado mais)
-  Widget _buildDefaultAvatar() {
-    return Container(
-      width: 84,
-      height: 84,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.moonAsh,
-      ),
-      child: Center(
-        child: SvgPicture.asset(
-          'assets/images/default-avatar.svg',
-          width: 50,
-          height: 50,
-          colorFilter: ColorFilter.mode(
-            AppColors.grayScale2,
-            BlendMode.srcIn,
-          ),
-        ),
       ),
     );
   }

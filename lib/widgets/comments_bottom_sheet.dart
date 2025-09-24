@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
+import '../models/comment_models.dart';
 
 class PostCommentsModal extends StatefulWidget {
   final String postId;
@@ -118,12 +119,7 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       final commentIndex = comments.indexWhere((c) => c.id == commentId);
       if (commentIndex != -1) {
         final comment = comments[commentIndex];
-        comments[commentIndex] = CommentData(
-          id: comment.id,
-          userName: comment.userName,
-          userAvatar: comment.userAvatar,
-          content: comment.content,
-          timestamp: comment.timestamp,
+        comments[commentIndex] = comment.copyWith(
           likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
           isLiked: !comment.isLiked,
         );
@@ -151,15 +147,7 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       final commentIndex = comments.indexWhere((c) => c.id == commentId);
       if (commentIndex != -1) {
         final comment = comments[commentIndex];
-        comments[commentIndex] = CommentData(
-          id: comment.id,
-          userName: comment.userName,
-          userAvatar: comment.userAvatar,
-          content: newContent,
-          timestamp: comment.timestamp,
-          likes: comment.likes,
-          isLiked: comment.isLiked,
-        );
+        comments[commentIndex] = comment.copyWith(content: newContent);
       }
     });
   }
@@ -826,27 +814,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       ),
     );
   }
-}
-
-// Modelo de dados para comentários
-class CommentData {
-  final String id;
-  final String userName;
-  final String? userAvatar;
-  final String content;
-  final DateTime timestamp;
-  final int likes;
-  final bool isLiked;
-
-  CommentData({
-    required this.id,
-    required this.userName,
-    this.userAvatar,
-    required this.content,
-    required this.timestamp,
-    required this.likes,
-    required this.isLiked,
-  });
 }
 
 // Função helper para mostrar o modal

@@ -7,6 +7,7 @@ import '../utils/app_icons.dart';
 import '../widgets/feed/feed_post_card.dart';
 import '../screens/cafe_explorer_screen.dart' show CafeModel;
 import '../models/post_models.dart';
+import '../models/comment_models.dart'; // NOVA IMPORTAÇÃO
 import '../widgets/custom_boxcafe_minicard.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -70,9 +71,13 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           recentComments: [
             CommentData(
               id: '1',
-              authorName: 'Ana Silva',
-              authorAvatar: 'assets/images/user.svg',
+              userName: 'Ana Silva',
+              userAvatar: null,
               content: 'Que lugar lindo! Preciso conhecer.',
+              timestamp: DateTime.now().subtract(Duration(hours: 1)),
+              likes: 3,
+              isLiked: false,
+              authorAvatar: 'assets/images/user.svg',
               date: '1h',
             ),
           ],
