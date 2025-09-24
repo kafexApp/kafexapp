@@ -5,7 +5,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../backend/supabase/tables/feed_com_usuario.dart';
+import '../../models/comment_models.dart';
 import '../../screens/user_profile_screen.dart';
+import '../comments_bottom_sheet.dart';
 
 class FeedPostCard extends StatefulWidget {
   final FeedComUsuarioRow post;
@@ -67,12 +69,34 @@ class _FeedPostCardState extends State<FeedPostCard> {
     print('💬 Abrir comentários para post: ${widget.post.id}');
     widget.onComment?.call();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Comentários (em desenvolvimento)'),
-        backgroundColor: AppColors.papayaSensorial,
-        duration: Duration(seconds: 2),
-      ),
+    // Converter os comentários do post para o formato do modal
+    List<CommentData> commentsForModal = widget.post.recentComments.map((
+      comment,
+    ) {
+      return CommentData(
+        id: comment.id,
+        userName: comment.authorName,
+        userAvatar: comment.authorAvatar?.startsWith('http') == true
+            ? comment.authorAvatar
+            : null,
+        content: comment.content,
+        timestamp: DateTime.now().subtract(
+          Duration(hours: 2),
+        ), // Mock timestamp
+        likes: 0, // Mock likes
+        isLiked: false,
+      );
+    }).toList();
+
+    // Abre o modal de comentários
+    showCommentsModal(
+      context,
+      postId: widget.post.id,
+      comments: commentsForModal,
+      onCommentAdded: (newComment) {
+        print('📝 Novo comentário adicionado: $newComment');
+        // Aqui você pode atualizar o estado do post se necessário
+      },
     );
   }
 
@@ -669,6 +693,149 @@ class _FeedPostCardState extends State<FeedPostCard> {
           style: GoogleFonts.albertSans(
             fontSize: 14,
             color: AppColors.grayScale2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLastComment() {
+    final lastComment = widget.post.recentComments.first;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: GestureDetector(
+        onTap: _openCommentsModal,
+        child: Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.oatWhite,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar do comentário
+              GestureDetector(
+                onTap: () => _navigateToUserProfile(
+                  lastComment.authorName,
+                  lastComment.authorAvatar?.startsWith('http') == true
+                      ? lastComment.authorAvatar
+                      : null,
+                ),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.moonAsh,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: lastComment.authorAvatar?.startsWith('http') == true
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.network(
+                              lastComment.authorAvatar!,
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return _buildCommentAvatarFallback(
+                                  lastComment.authorName,
+                                );
+                              },
+                            ),
+                          )
+                        : _buildCommentAvatarFallback(lastComment.authorName),
+                  ),
+                ),
+              ),
+
+              SizedBox(width: 8),
+
+              // Conteúdo do comentário
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nome e data
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => _navigateToUserProfile(
+                            lastComment.authorName,
+                            lastComment.authorAvatar?.startsWith('http') == true
+                                ? lastComment.authorAvatar
+                                : null,
+                          ),
+                          child: Text(
+                            lastComment.authorName,
+                            style: GoogleFonts.albertSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.papayaSensorial,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          lastComment.date ?? '', // CORREÇÃO AQUI
+                          style: GoogleFonts.albertSans(
+                            fontSize: 12,
+                            color: AppColors.grayScale2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    // Texto do comentário
+                    Text(
+                      lastComment.content,
+                      style: GoogleFonts.albertSans(
+                        fontSize: 13,
+                        color: AppColors.textPrimary,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCommentAvatarFallback(String authorName) {
+    final initial = authorName.isNotEmpty ? authorName[0].toUpperCase() : 'U';
+    final colorIndex = authorName.isNotEmpty ? authorName.codeUnitAt(0) % 5 : 0;
+    final avatarColors = [
+      AppColors.papayaSensorial,
+      AppColors.velvetMerlot,
+      AppColors.spiced,
+      AppColors.forestInk,
+      AppColors.pear,
+    ];
+
+    final avatarColor = avatarColors[colorIndex];
+
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: avatarColor.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.albertSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: avatarColor,
           ),
         ),
       ),

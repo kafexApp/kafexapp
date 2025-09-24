@@ -1,4 +1,5 @@
-// Modelos de dados para posts e comentários
+// lib/models/post_models.dart
+import 'comment_models.dart';
 
 class PostData {
   final String id;
@@ -27,7 +28,7 @@ class PostData {
     this.recentComments = const [],
   });
 
-  // Método para converter para JSON (útil para APIs)
+  // Método para converter para JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -89,61 +90,6 @@ class PostData {
       comments: comments ?? this.comments,
       isLiked: isLiked ?? this.isLiked,
       recentComments: recentComments ?? this.recentComments,
-    );
-  }
-}
-
-class CommentData {
-  final String id;
-  final String authorName;
-  final String authorAvatar;
-  final String content;
-  final String date;
-
-  CommentData({
-    required this.id,
-    required this.authorName,
-    required this.authorAvatar,
-    required this.content,
-    required this.date,
-  });
-
-  // Método para converter para JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'authorName': authorName,
-      'authorAvatar': authorAvatar,
-      'content': content,
-      'date': date,
-    };
-  }
-
-  // Método para criar instância a partir de JSON
-  factory CommentData.fromJson(Map<String, dynamic> json) {
-    return CommentData(
-      id: json['id'],
-      authorName: json['authorName'],
-      authorAvatar: json['authorAvatar'],
-      content: json['content'],
-      date: json['date'],
-    );
-  }
-
-  // Método para criar uma cópia com alterações
-  CommentData copyWith({
-    String? id,
-    String? authorName,
-    String? authorAvatar,
-    String? content,
-    String? date,
-  }) {
-    return CommentData(
-      id: id ?? this.id,
-      authorName: authorName ?? this.authorName,
-      authorAvatar: authorAvatar ?? this.authorAvatar,
-      content: content ?? this.content,
-      date: date ?? this.date,
     );
   }
 }

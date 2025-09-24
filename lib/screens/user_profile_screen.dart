@@ -7,6 +7,7 @@ import '../utils/app_icons.dart';
 import '../widgets/feed/feed_post_card.dart';
 import '../screens/cafe_explorer_screen.dart' show CafeModel;
 import '../backend/supabase/tables/feed_com_usuario.dart';
+import '../models/comment_models.dart'; // NOVA IMPORTAÇÃO
 import '../widgets/custom_boxcafe_minicard.dart';
 
 class UserProfileScreen extends StatefulWidget {

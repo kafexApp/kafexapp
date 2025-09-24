@@ -10,6 +10,10 @@ import '../widgets/custom_app_bar.dart';
 import '../widgets/side_menu_overlay.dart';
 import '../widgets/feed/feed_post_card.dart';
 import 'package:kafex/services/feed_service.dart';
+import '../widgets/feed/feed_post_card.dart';
+import '../widgets/common/user_avatar.dart'; // NOVA IMPORTAÇÃO
+import '../models/post_models.dart';
+import '../models/comment_models.dart';
 
 class HomeFeedScreen extends StatefulWidget {
   @override
@@ -137,8 +141,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       child: Stack(
         children: [
           Container(
-            margin: const EdgeInsets.only(top: 25),
-            padding: const EdgeInsets.all(20),
+            margin: EdgeInsets.only(top: 25),
+            padding: EdgeInsets.only(left: 12, right: 20, top: 20, bottom: 20),
             decoration: BoxDecoration(
               color: AppColors.whiteWhite,
               borderRadius: BorderRadius.circular(20),
@@ -152,8 +156,12 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
             child: Row(
               children: [
-                _buildUserAvatar(currentUser),
-                const SizedBox(width: 2),
+                // Avatar do usuário usando o novo widget
+                UserAvatar(user: currentUser, size: 84),
+
+                SizedBox(width: 12),
+
+                // Texto de boas-vindas
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,62 +214,6 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildUserAvatar(User? currentUser) {
-    String? photoURL = currentUser?.photoURL;
-
-    if (photoURL != null && photoURL.isNotEmpty) {
-      String correctedURL = _fixGooglePhotoURL(photoURL);
-
-      return Container(
-        width: 84,
-        height: 84,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.moonAsh,
-          image: DecorationImage(
-            image: CachedNetworkImageProvider(correctedURL),
-            fit: BoxFit.cover,
-            onError: (exception, stackTrace) {
-              print('Erro ao carregar imagem: $exception');
-            },
-          ),
-        ),
-      );
-    }
-
-    return _buildDefaultAvatar();
-  }
-
-  String _fixGooglePhotoURL(String url) {
-    if (url.contains('googleusercontent.com')) {
-      String baseURL = url.split('=')[0];
-      return '$baseURL=s200-c';
-    }
-    return url;
-  }
-
-  Widget _buildDefaultAvatar() {
-    return Container(
-      width: 84,
-      height: 84,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.moonAsh,
-      ),
-      child: Center(
-        child: SvgPicture.asset(
-          'assets/images/default-avatar.svg',
-          width: 50,
-          height: 50,
-          colorFilter: const ColorFilter.mode(
-            AppColors.grayScale2,
-            BlendMode.srcIn,
-          ),
-        ),
       ),
     );
   }
