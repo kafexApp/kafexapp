@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
-import '../utils/app_icons.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/side_menu_overlay.dart';
-import '../widgets/feed/feed_post_card.dart';
-import 'package:kafex/services/feed_service.dart';
-import '../widgets/feed/feed_post_card.dart';
-import '../widgets/common/user_avatar.dart'; // NOVA IMPORTAÇÃO
+import '../widgets/feed/post_card_factory.dart';
 import '../models/post_models.dart';
-import '../models/comment_models.dart';
+import '../widgets/common/user_avatar.dart';
+import 'package:kafex/services/feed_service.dart';
 
 class HomeFeedScreen extends StatefulWidget {
   @override
@@ -22,23 +18,175 @@ class HomeFeedScreen extends StatefulWidget {
 
 class _HomeFeedScreenState extends State<HomeFeedScreen> {
   final ScrollController _scrollController = ScrollController();
-
-  /// Estado do feed vindo do Supabase
   bool _loading = true;
-  List<dynamic> _posts = [];
+  List<PostData> _posts = [];
 
   @override
   void initState() {
     super.initState();
-    _loadFeed();
+    _loadFeedFromDatabase();
   }
 
-  Future<void> _loadFeed() async {
-    final posts = await FeedService.getFeed(); // ✅ chamada corrigida
+  Future<void> _loadFeedFromDatabase() async {
     setState(() {
-      _posts = posts;
-      _loading = false;
+      _loading = true;
     });
+
+    try {
+      // Buscar dados do Supabase
+      final rawPosts = await FeedService.getFeed();
+      
+      // Converter para PostData
+      final List<PostData> convertedPosts = [];
+      
+      for (var post in rawPosts) {
+        // Determinar tipo do post baseado nos campos
+        PostType postType = PostType.traditional;
+        
+        // Verificar tipo baseado nos campos disponíveis
+        if (post.pontuacao != null && post.nomeCafeteria != null) {
+          postType = PostType.coffeeReview;
+        } else if (post.nomeCafeteria != null && post.endereco != null) {
+          postType = PostType.newCoffee;
+        }
+        
+        // Criar PostData baseado no tipo
+        PostData newPost;
+        
+        switch (postType) {
+          case PostType.coffeeReview:
+            newPost = PostData.review(
+              id: post.id?.toString() ?? '0',
+              authorName: post.nomeExibicao ?? post.usuario ?? 'Usuário',
+              authorAvatar: post.fotoUrl ?? post.urlFoto ?? '',
+              date: _formatDate(post.criadoEm),
+              content: post.descricao ?? '',
+              coffeeName: post.nomeCafeteria ?? '',
+              rating: post.pontuacao ?? 0.0,
+              coffeeId: 'coffee_${post.id}',
+              imageUrl: post.imagemUrl,
+              videoUrl: post.urlVideo,
+              likes: _parseIntFromString(post.comentarios) ?? 0,
+              comments: 0,
+              isLiked: false,
+              isFavorited: false,
+              wantToVisit: false,
+              recentComments: [],
+            );
+            break;
+            
+          case PostType.newCoffee:
+            newPost = PostData.newCoffee(
+              id: post.id?.toString() ?? '0',
+              authorName: post.nomeExibicao ?? post.usuario ?? 'Usuário',
+              authorAvatar: post.fotoUrl ?? post.urlFoto ?? '',
+              date: _formatDate(post.criadoEm),
+              coffeeName: post.nomeCafeteria ?? 'Nova Cafeteria',
+              coffeeAddress: post.endereco ?? 'Endereço não informado',
+              coffeeId: 'coffee_${post.id}',
+              imageUrl: post.imagemUrl,
+              likes: _parseIntFromString(post.comentarios) ?? 0,
+              comments: 0,
+              isLiked: false,
+              recentComments: [],
+            );
+            break;
+            
+          default:
+            newPost = PostData.traditional(
+              id: post.id?.toString() ?? '0',
+              authorName: post.nomeExibicao ?? post.usuario ?? 'Usuário',
+              authorAvatar: post.fotoUrl ?? post.urlFoto ?? '',
+              date: _formatDate(post.criadoEm),
+              content: post.descricao ?? '',
+              imageUrl: post.imagemUrl,
+              videoUrl: post.urlVideo,
+              likes: _parseIntFromString(post.comentarios) ?? 0,
+              comments: 0,
+              isLiked: false,
+              recentComments: [],
+            );
+        }
+        
+        convertedPosts.add(newPost);
+      }
+      
+      // Se não houver posts, adicionar alguns de exemplo
+      if (convertedPosts.isEmpty) {
+        convertedPosts.addAll(_getExamplePosts());
+      }
+      
+      setState(() {
+        _posts = convertedPosts;
+        _loading = false;
+      });
+      
+    } catch (e) {
+      print('Erro ao carregar feed: $e');
+      
+      // Em caso de erro, usar posts de exemplo
+      setState(() {
+        _posts = _getExamplePosts();
+        _loading = false;
+      });
+    }
+  }
+
+  // Posts de exemplo para quando não há dados
+  List<PostData> _getExamplePosts() {
+    return [
+      PostData.traditional(
+        id: 'example_1',
+        authorName: 'Equipe Kafex',
+        authorAvatar: '',
+        date: 'agora',
+        content: 'Bem-vindo ao Kafex! Explore cafeterias incríveis e compartilhe suas experiências ☕',
+        imageUrl: null,
+        videoUrl: null,
+        likes: 1,
+        comments: 0,
+        isLiked: false,
+        recentComments: [],
+      ),
+      PostData.newCoffee(
+        id: 'example_2',
+        authorName: 'Sistema',
+        authorAvatar: '',
+        date: 'há 1 hora',
+        coffeeName: 'Café Exemplo',
+        coffeeAddress: 'Rua das Flores, 123 - Centro',
+        coffeeId: 'coffee_example',
+        imageUrl: null,
+        likes: 0,
+        comments: 0,
+        isLiked: false,
+        recentComments: [],
+      ),
+    ];
+  }
+
+  int? _parseIntFromString(String? value) {
+    if (value == null) return null;
+    return int.tryParse(value);
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'agora';
+    
+    final Duration difference = DateTime.now().difference(date);
+    
+    if (difference.inMinutes < 1) {
+      return 'agora';
+    } else if (difference.inMinutes < 60) {
+      return 'há ${difference.inMinutes} min';
+    } else if (difference.inHours < 24) {
+      return 'há ${difference.inHours} hora${difference.inHours > 1 ? 's' : ''}';
+    } else if (difference.inDays < 7) {
+      return 'há ${difference.inDays} dia${difference.inDays > 1 ? 's' : ''}';
+    } else {
+      final weeks = (difference.inDays / 7).floor();
+      return 'há $weeks semana${weeks > 1 ? 's' : ''}';
+    }
   }
 
   @override
@@ -47,36 +195,57 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     super.dispose();
   }
 
-  // Função para obter o primeiro nome do usuário
   String _getFirstName(String? fullName) {
     if (fullName == null || fullName.isEmpty) return 'Usuário';
     return fullName.split(' ').first;
   }
 
-  // Callbacks para ações dos posts
   void _handleLike(String postId) {
-    print('Like no post: $postId');
-    // TODO: Implementar lógica de like no Supabase
+    setState(() {
+      final index = _posts.indexWhere((post) => post.id == postId);
+      if (index != -1) {
+        final post = _posts[index];
+        _posts[index] = post.copyWith(
+          isLiked: !post.isLiked,
+          likes: post.isLiked ? post.likes - 1 : post.likes + 1,
+        );
+      }
+    });
+    // TODO: Salvar like no Supabase
   }
 
   void _handleComment(String postId) {
     print('Comentário no post: $postId');
-    // TODO: Navegar para tela de comentários
+    // TODO: Abrir modal de comentários
   }
 
   void _handleEdit(String postId) {
     print('Editar post: $postId');
-    // TODO: Implementar edição do post
+    // TODO: Implementar edição
   }
 
   void _handleDelete(String postId) {
     print('Excluir post: $postId');
-    // TODO: Implementar confirmação e exclusão no Supabase
+    // TODO: Implementar exclusão
   }
 
   void _handleViewAllComments(String postId) {
     print('Ver todos os comentários do post: $postId');
-    // TODO: Navegar para tela de comentários completa
+  }
+
+  void _handleFavorite(String coffeeId) {
+    print('Favoritar cafeteria: $coffeeId');
+    // TODO: Salvar favorito no Supabase
+  }
+
+  void _handleWantToVisit(String coffeeId) {
+    print('Quero visitar cafeteria: $coffeeId');
+    // TODO: Salvar na lista de quero visitar
+  }
+
+  void _handleEvaluateNow(String coffeeId, String coffeeName) {
+    print('Avaliar cafeteria: $coffeeName ($coffeeId)');
+    // TODO: Abrir modal de avaliação
   }
 
   @override
@@ -86,33 +255,87 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       appBar: CustomAppBar(),
       body: Stack(
         children: [
-          if (_loading)
-            const Center(child: CircularProgressIndicator())
-          else
-            ListView(
+          RefreshIndicator(
+            onRefresh: _loadFeedFromDatabase,
+            color: AppColors.papayaSensorial,
+            child: ListView(
               controller: _scrollController,
               padding: const EdgeInsets.only(bottom: 110),
               children: [
                 _buildWelcomeSection(),
 
-                // Lista de posts reais do Supabase
-                ..._posts.map(
-                  (post) => FeedPostCard(
-                    key: ValueKey(post.id),
-                    post:
-                        post, // ⚠️ ainda espera PostData → vamos adaptar o card
-                    onLike: () => _handleLike(post.id.toString()),
-                    onComment: () => _handleComment(post.id.toString()),
-                    onEdit: () => _handleEdit(post.id.toString()),
-                    onDelete: () => _handleDelete(post.id.toString()),
-                    onViewAllComments: () =>
-                        _handleViewAllComments(post.id.toString()),
-                  ),
-                ),
+                if (_loading)
+                  Container(
+                    padding: EdgeInsets.all(40),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.papayaSensorial,
+                        ),
+                      ),
+                    ),
+                  )
+                else if (_posts.isEmpty)
+                  Container(
+                    padding: EdgeInsets.all(32),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.coffee,
+                          size: 64,
+                          color: AppColors.grayScale2,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Nenhum post ainda',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Seja o primeiro a compartilhar!',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ..._posts.map((post) {
+                    return PostCardFactory.create(
+                      post: post,
+                      type: post.type,
+                      onLike: () => _handleLike(post.id),
+                      onComment: () => _handleComment(post.id),
+                      onEdit: () => _handleEdit(post.id),
+                      onDelete: () => _handleDelete(post.id),
+                      coffeeName: post.coffeeName,
+                      rating: post.rating,
+                      coffeeId: post.coffeeId,
+                      isFavorited: post.isFavorited,
+                      wantToVisit: post.wantToVisit,
+                      onFavorite: post.coffeeId != null 
+                        ? () => _handleFavorite(post.coffeeId!) 
+                        : null,
+                      onWantToVisit: post.coffeeId != null 
+                        ? () => _handleWantToVisit(post.coffeeId!) 
+                        : null,
+                      coffeeAddress: post.coffeeAddress,
+                      onEvaluateNow: post.coffeeId != null && post.coffeeName != null
+                        ? () => _handleEvaluateNow(post.coffeeId!, post.coffeeName!)
+                        : null,
+                      onViewAllComments: () => _handleViewAllComments(post.id),
+                    );
+                  }).toList(),
               ],
             ),
+          ),
 
-          // Navbar sobreposta
           Positioned(
             left: 0,
             right: 0,
@@ -120,7 +343,6 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             child: CustomBottomNavbar(
               onMenuPressed: () {
                 if (mounted) {
-                  print('Abrir menu sidebar');
                   showSideMenu(context);
                 }
               },
@@ -156,12 +378,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
             child: Row(
               children: [
-                // Avatar do usuário usando o novo widget
                 UserAvatar(user: currentUser, size: 84),
-
                 SizedBox(width: 12),
-
-                // Texto de boas-vindas
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

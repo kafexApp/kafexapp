@@ -1,95 +1,276 @@
-// lib/models/post_models.dart
 import 'comment_models.dart';
+
+enum PostType {
+  traditional,
+  coffeeReview,
+  newCoffee,
+}
 
 class PostData {
   final String id;
   final String authorName;
   final String authorAvatar;
   final String date;
+  final String content;
   final String? imageUrl;
   final String? videoUrl;
-  final String content;
   final int likes;
   final int comments;
   final bool isLiked;
-  final List<CommentData> recentComments;
+  final List<PostComment> recentComments;
+  
+  // Novo campo para tipo de post
+  final PostType type;
+  
+  // Campos específicos para posts de review
+  final String? coffeeName;
+  final double? rating;
+  final String? coffeeId;
+  final bool? isFavorited;
+  final bool? wantToVisit;
+  
+  // Campos específicos para posts de nova cafeteria
+  final String? coffeeAddress;
 
   PostData({
     required this.id,
     required this.authorName,
     required this.authorAvatar,
     required this.date,
+    required this.content,
     this.imageUrl,
     this.videoUrl,
-    required this.content,
-    this.likes = 0,
-    this.comments = 0,
-    this.isLiked = false,
-    this.recentComments = const [],
+    required this.likes,
+    required this.comments,
+    required this.isLiked,
+    required this.recentComments,
+    this.type = PostType.traditional,
+    this.coffeeName,
+    this.rating,
+    this.coffeeId,
+    this.isFavorited,
+    this.wantToVisit,
+    this.coffeeAddress,
   });
 
-  // Método para converter para JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'authorName': authorName,
-      'authorAvatar': authorAvatar,
-      'date': date,
-      'imageUrl': imageUrl,
-      'videoUrl': videoUrl,
-      'content': content,
-      'likes': likes,
-      'comments': comments,
-      'isLiked': isLiked,
-      'recentComments': recentComments.map((c) => c.toJson()).toList(),
-    };
-  }
-
-  // Método para criar instância a partir de JSON
-  factory PostData.fromJson(Map<String, dynamic> json) {
+  // Factory para criar post tradicional
+  factory PostData.traditional({
+    required String id,
+    required String authorName,
+    required String authorAvatar,
+    required String date,
+    required String content,
+    String? imageUrl,
+    String? videoUrl,
+    required int likes,
+    required int comments,
+    required bool isLiked,
+    required List<PostComment> recentComments,
+  }) {
     return PostData(
-      id: json['id'],
-      authorName: json['authorName'],
-      authorAvatar: json['authorAvatar'],
-      date: json['date'],
-      imageUrl: json['imageUrl'],
-      videoUrl: json['videoUrl'],
-      content: json['content'],
-      likes: json['likes'] ?? 0,
-      comments: json['comments'] ?? 0,
-      isLiked: json['isLiked'] ?? false,
-      recentComments: (json['recentComments'] as List<dynamic>?)
-          ?.map((c) => CommentData.fromJson(c))
-          .toList() ?? [],
+      id: id,
+      authorName: authorName,
+      authorAvatar: authorAvatar,
+      date: date,
+      content: content,
+      imageUrl: imageUrl,
+      videoUrl: videoUrl,
+      likes: likes,
+      comments: comments,
+      isLiked: isLiked,
+      recentComments: recentComments,
+      type: PostType.traditional,
     );
   }
 
-  // Método para criar uma cópia com alterações
+  // Factory para criar post de review
+  factory PostData.review({
+    required String id,
+    required String authorName,
+    required String authorAvatar,
+    required String date,
+    required String content,
+    required String coffeeName,
+    required double rating,
+    required String coffeeId,
+    String? imageUrl,
+    String? videoUrl,
+    required int likes,
+    required int comments,
+    required bool isLiked,
+    bool isFavorited = false,
+    bool wantToVisit = false,
+    required List<PostComment> recentComments,
+  }) {
+    return PostData(
+      id: id,
+      authorName: authorName,
+      authorAvatar: authorAvatar,
+      date: date,
+      content: content,
+      imageUrl: imageUrl,
+      videoUrl: videoUrl,
+      likes: likes,
+      comments: comments,
+      isLiked: isLiked,
+      recentComments: recentComments,
+      type: PostType.coffeeReview,
+      coffeeName: coffeeName,
+      rating: rating,
+      coffeeId: coffeeId,
+      isFavorited: isFavorited,
+      wantToVisit: wantToVisit,
+    );
+  }
+
+  // Factory para criar post de nova cafeteria
+  factory PostData.newCoffee({
+    required String id,
+    required String authorName,
+    required String authorAvatar,
+    required String date,
+    required String coffeeName,
+    required String coffeeAddress,
+    required String coffeeId,
+    String? imageUrl,
+    required int likes,
+    required int comments,
+    required bool isLiked,
+    required List<PostComment> recentComments,
+  }) {
+    return PostData(
+      id: id,
+      authorName: authorName,
+      authorAvatar: authorAvatar,
+      date: date,
+      content: 'Descobri uma nova cafeteria incrível: $coffeeName! 🎉',
+      imageUrl: imageUrl,
+      likes: likes,
+      comments: comments,
+      isLiked: isLiked,
+      recentComments: recentComments,
+      type: PostType.newCoffee,
+      coffeeName: coffeeName,
+      coffeeAddress: coffeeAddress,
+      coffeeId: coffeeId,
+    );
+  }
+
+  // Método copyWith para facilitar atualizações
   PostData copyWith({
     String? id,
     String? authorName,
     String? authorAvatar,
     String? date,
+    String? content,
     String? imageUrl,
     String? videoUrl,
-    String? content,
     int? likes,
     int? comments,
     bool? isLiked,
-    List<CommentData>? recentComments,
+    List<PostComment>? recentComments,
+    PostType? type,
+    String? coffeeName,
+    double? rating,
+    String? coffeeId,
+    bool? isFavorited,
+    bool? wantToVisit,
+    String? coffeeAddress,
   }) {
     return PostData(
       id: id ?? this.id,
       authorName: authorName ?? this.authorName,
       authorAvatar: authorAvatar ?? this.authorAvatar,
       date: date ?? this.date,
+      content: content ?? this.content,
       imageUrl: imageUrl ?? this.imageUrl,
       videoUrl: videoUrl ?? this.videoUrl,
-      content: content ?? this.content,
       likes: likes ?? this.likes,
       comments: comments ?? this.comments,
       isLiked: isLiked ?? this.isLiked,
       recentComments: recentComments ?? this.recentComments,
+      type: type ?? this.type,
+      coffeeName: coffeeName ?? this.coffeeName,
+      rating: rating ?? this.rating,
+      coffeeId: coffeeId ?? this.coffeeId,
+      isFavorited: isFavorited ?? this.isFavorited,
+      wantToVisit: wantToVisit ?? this.wantToVisit,
+      coffeeAddress: coffeeAddress ?? this.coffeeAddress,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'authorName': authorName,
+      'authorAvatar': authorAvatar,
+      'date': date,
+      'content': content,
+      'imageUrl': imageUrl,
+      'videoUrl': videoUrl,
+      'likes': likes,
+      'comments': comments,
+      'isLiked': isLiked,
+      'type': type.toString().split('.').last,
+      'coffeeName': coffeeName,
+      'rating': rating,
+      'coffeeId': coffeeId,
+      'isFavorited': isFavorited,
+      'wantToVisit': wantToVisit,
+      'coffeeAddress': coffeeAddress,
+    };
+  }
+
+  factory PostData.fromMap(Map<String, dynamic> map) {
+    PostType type = PostType.traditional;
+    if (map['type'] != null) {
+      switch (map['type']) {
+        case 'coffeeReview':
+          type = PostType.coffeeReview;
+          break;
+        case 'newCoffee':
+          type = PostType.newCoffee;
+          break;
+        default:
+          type = PostType.traditional;
+      }
+    }
+
+    return PostData(
+      id: map['id'] ?? '',
+      authorName: map['authorName'] ?? '',
+      authorAvatar: map['authorAvatar'] ?? '',
+      date: map['date'] ?? '',
+      content: map['content'] ?? '',
+      imageUrl: map['imageUrl'],
+      videoUrl: map['videoUrl'],
+      likes: map['likes'] ?? 0,
+      comments: map['comments'] ?? 0,
+      isLiked: map['isLiked'] ?? false,
+      recentComments: [],
+      type: type,
+      coffeeName: map['coffeeName'],
+      rating: map['rating']?.toDouble(),
+      coffeeId: map['coffeeId'],
+      isFavorited: map['isFavorited'],
+      wantToVisit: map['wantToVisit'],
+      coffeeAddress: map['coffeeAddress'],
+    );
+  }
+}
+
+class PostComment {
+  final String id;
+  final String authorName;
+  final String? authorAvatar;
+  final String content;
+  final String? date;
+
+  PostComment({
+    required this.id,
+    required this.authorName,
+    this.authorAvatar,
+    required this.content,
+    this.date,
+  });
 }
