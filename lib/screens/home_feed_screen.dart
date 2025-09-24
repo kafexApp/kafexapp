@@ -8,8 +8,8 @@ import '../utils/app_icons.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/side_menu_overlay.dart';
-import '../widgets/feed/feed_post_card.dart'; 
-import '../models/post_models.dart'; // IMPORT ADICIONADO PARA OS MODELOS
+import '../widgets/feed/feed_post_card.dart';
+import 'package:kafex/services/feed_service.dart';
 
 class HomeFeedScreen extends StatefulWidget {
   @override
@@ -18,73 +18,30 @@ class HomeFeedScreen extends StatefulWidget {
 
 class _HomeFeedScreenState extends State<HomeFeedScreen> {
   final ScrollController _scrollController = ScrollController();
-  
+
+  /// Estado do feed vindo do Supabase
+  bool _loading = true;
+  List<dynamic> _posts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFeed();
+  }
+
+  Future<void> _loadFeed() async {
+    final posts = await FeedService.getFeed(); // ✅ chamada corrigida
+    setState(() {
+      _posts = posts;
+      _loading = false;
+    });
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
   }
-  
-  final List<PostData> posts = [
-    PostData(
-      id: '1',
-      authorName: 'Paulo Cristiano',
-      authorAvatar: 'assets/images/default-avatar.svg',
-      date: '03/01/2024',
-      imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-      content: 'Acabei de experimentar um cappuccino com uma crema perfeita! A textura estava cremosa e suave, com uma cor dourada que indicava a extração ideal do espresso. A crema adicionou um toque de doçura...',
-      likes: 42,
-      comments: 8,
-      recentComments: [
-        CommentData(
-          id: '1',
-          authorName: 'Amanda Klein',
-          authorAvatar: 'assets/images/default-avatar.svg',
-          content: 'A crema realmente faz toda a diferença. É incrível como ela intensifica o sabor e a experiência.',
-          date: '03/05/2024',
-        ),
-      ],
-    ),
-    PostData(
-      id: '2',
-      authorName: 'Amanda Klein',
-      authorAvatar: 'assets/images/default-avatar.svg',
-      date: '02/01/2024',
-      imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-      content: 'A cena realmente faz toda a diferença. É incrível como a atmosfera e o sabor da experiência.',
-      likes: 28,
-      comments: 5,
-      isLiked: true,
-      recentComments: [
-        CommentData(
-          id: '2',
-          authorName: 'João Silva',
-          authorAvatar: 'assets/images/default-avatar.svg',
-          content: 'Concordo totalmente! O ambiente é fundamental para a experiência do café.',
-          date: '02/02/2024',
-        ),
-      ],
-    ),
-    PostData(
-      id: '3',
-      authorName: 'Paulo Cristiano',
-      authorAvatar: 'assets/images/default-avatar.svg',
-      date: '01/01/2024',
-      imageUrl: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80',
-      content: 'Descobri uma nova cafeteria no centro da cidade. O lugar tem uma atmosfera incrível e o café é excepcional!',
-      likes: 67,
-      comments: 12,
-      recentComments: [
-        CommentData(
-          id: '3',
-          authorName: 'Maria Santos',
-          authorAvatar: 'assets/images/default-avatar.svg',
-          content: 'Qual é o nome da cafeteria? Estou sempre procurando novos lugares para experimentar!',
-          date: '01/02/2024',
-        ),
-      ],
-    ),
-  ];
 
   // Função para obter o primeiro nome do usuário
   String _getFirstName(String? fullName) {
@@ -95,7 +52,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
   // Callbacks para ações dos posts
   void _handleLike(String postId) {
     print('Like no post: $postId');
-    // TODO: Implementar lógica de like
+    // TODO: Implementar lógica de like no Supabase
   }
 
   void _handleComment(String postId) {
@@ -110,7 +67,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
 
   void _handleDelete(String postId) {
     print('Excluir post: $postId');
-    // TODO: Implementar confirmação e exclusão do post
+    // TODO: Implementar confirmação e exclusão no Supabase
   }
 
   void _handleViewAllComments(String postId) {
@@ -125,27 +82,32 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       appBar: CustomAppBar(),
       body: Stack(
         children: [
-          // Conteúdo principal usando ListView
-          ListView(
-            controller: _scrollController,
-            padding: EdgeInsets.only(bottom: 110),
-            children: [
-              // Seção de boas-vindas
-              _buildWelcomeSection(),
-              
-              // Posts individuais
-              ...posts.map((post) => FeedPostCard(
-                key: ValueKey(post.id),
-                post: post,
-                onLike: () => _handleLike(post.id),
-                onComment: () => _handleComment(post.id),
-                onEdit: () => _handleEdit(post.id),
-                onDelete: () => _handleDelete(post.id),
-                onViewAllComments: () => _handleViewAllComments(post.id),
-              )).toList(),
-            ],
-          ),
-          
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else
+            ListView(
+              controller: _scrollController,
+              padding: const EdgeInsets.only(bottom: 110),
+              children: [
+                _buildWelcomeSection(),
+
+                // Lista de posts reais do Supabase
+                ..._posts.map(
+                  (post) => FeedPostCard(
+                    key: ValueKey(post.id),
+                    post:
+                        post, // ⚠️ ainda espera PostData → vamos adaptar o card
+                    onLike: () => _handleLike(post.id.toString()),
+                    onComment: () => _handleComment(post.id.toString()),
+                    onEdit: () => _handleEdit(post.id.toString()),
+                    onDelete: () => _handleDelete(post.id.toString()),
+                    onViewAllComments: () =>
+                        _handleViewAllComments(post.id.toString()),
+                  ),
+                ),
+              ],
+            ),
+
           // Navbar sobreposta
           Positioned(
             left: 0,
@@ -166,19 +128,17 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
   }
 
   Widget _buildWelcomeSection() {
-    // Obter usuário atual do Firebase
     final User? currentUser = FirebaseAuth.instance.currentUser;
     final String firstName = _getFirstName(currentUser?.displayName);
-    
+
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       height: 130,
       child: Stack(
         children: [
-          // Card branco de fundo
           Container(
-            margin: EdgeInsets.only(top: 25),
-            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20),
+            margin: const EdgeInsets.only(top: 25),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: AppColors.whiteWhite,
               borderRadius: BorderRadius.circular(20),
@@ -186,17 +146,14 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                 BoxShadow(
                   color: Colors.black.withOpacity(0.08),
                   blurRadius: 20,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Row(
               children: [
-                // Avatar do usuário com verificação robusta
                 _buildUserAvatar(currentUser),
-                SizedBox(width: 2),
-                
-                // Texto de boas-vindas
+                const SizedBox(width: 2),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,7 +181,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                           ],
                         ),
                       ),
-                      SizedBox(height: 1),
+                      const SizedBox(height: 1),
                       Text(
                         'Que tal um cafezinho?',
                         style: GoogleFonts.albertSans(
@@ -235,14 +192,10 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                     ],
                   ),
                 ),
-                
-                // Espaço para a mão que vai sobrepor
-                SizedBox(width: 95),
+                const SizedBox(width: 95),
               ],
             ),
           ),
-          
-          // Ilustração da mão com café (colada na base do card)
           Positioned(
             right: 15,
             bottom: 0,
@@ -257,15 +210,12 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     );
   }
 
-  // Widget melhorado para avatar do usuário
   Widget _buildUserAvatar(User? currentUser) {
     String? photoURL = currentUser?.photoURL;
-    
+
     if (photoURL != null && photoURL.isNotEmpty) {
       String correctedURL = _fixGooglePhotoURL(photoURL);
-      print('Photo URL: $photoURL');
-      print('Corrected URL: $correctedURL');
-      
+
       return Container(
         width: 84,
         height: 84,
@@ -282,8 +232,19 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
         ),
       );
     }
-    
-    // Avatar padrão quando não há foto
+
+    return _buildDefaultAvatar();
+  }
+
+  String _fixGooglePhotoURL(String url) {
+    if (url.contains('googleusercontent.com')) {
+      String baseURL = url.split('=')[0];
+      return '$baseURL=s200-c';
+    }
+    return url;
+  }
+
+  Widget _buildDefaultAvatar() {
     return Container(
       width: 84,
       height: 84,
@@ -296,79 +257,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
           'assets/images/default-avatar.svg',
           width: 50,
           height: 50,
-          colorFilter: ColorFilter.mode(
-            AppColors.grayScale2,
-            BlendMode.srcIn,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatarContent(User? currentUser) {
-    // Verifica se existe uma URL de foto válida
-    String? photoURL = currentUser?.photoURL;
-    
-    // Debug: imprimir a URL da foto
-    print('Photo URL: $photoURL');
-    
-    if (photoURL != null && photoURL.isNotEmpty) {
-      // Corrige URL do Google para melhor compatibilidade
-      String correctedURL = _fixGooglePhotoURL(photoURL);
-      print('Corrected URL: $correctedURL');
-      
-      return CachedNetworkImage(
-        imageUrl: correctedURL,
-        width: 84,
-        height: 84,
-        fit: BoxFit.cover,
-        placeholder: (context, url) => Container(
-          width: 84,
-          height: 84,
-          color: AppColors.moonAsh,
-          child: Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                AppColors.papayaSensorial,
-              ),
-            ),
-          ),
-        ),
-        errorWidget: (context, url, error) {
-          print('Erro ao carregar imagem: $error');
-          return _buildDefaultAvatar();
-        },
-      );
-    }
-    
-    // Se não há foto, usar avatar padrão
-    return _buildDefaultAvatar();
-  }
-
-  // Função para corrigir URLs do Google Photos
-  String _fixGooglePhotoURL(String url) {
-    // Se for URL do Google, modifica os parâmetros para melhor compatibilidade
-    if (url.contains('googleusercontent.com')) {
-      // Remove parâmetros problemáticos e adiciona tamanho adequado
-      String baseURL = url.split('=')[0];
-      return '$baseURL=s200-c'; // s200 para qualidade melhor, c para crop circular
-    }
-    return url;
-  }
-
-  // Widget para avatar padrão quando não há foto do usuário
-  Widget _buildDefaultAvatar() {
-    return Container(
-      width: 84,
-      height: 84,
-      color: AppColors.moonAsh,
-      child: Center(
-        child: SvgPicture.asset(
-          'assets/images/default-avatar.svg',
-          width: 50,
-          height: 50,
-          colorFilter: ColorFilter.mode(
+          colorFilter: const ColorFilter.mode(
             AppColors.grayScale2,
             BlendMode.srcIn,
           ),

@@ -6,7 +6,7 @@ import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../widgets/feed/feed_post_card.dart';
 import '../screens/cafe_explorer_screen.dart' show CafeModel;
-import '../models/post_models.dart';
+import '../backend/supabase/tables/feed_com_usuario.dart';
 import '../widgets/custom_boxcafe_minicard.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -28,12 +28,12 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   // Mock data - em um app real viria de uma API
-  List<PostData> userPosts = [];
+  List<FeedComUsuarioRow> userPosts = [];
   List<CafeModel> favoriteCafes = [];
   List<CafeModel> wantToVisitCafes = [];
-  
+
   // Estatísticas do usuário
   int postsCount = 0;
   int favoritesCount = 0;
@@ -53,42 +53,30 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   void _loadUserData() {
-    // Mock data para demonstração
+    // Mock data para demonstração - convertendo para FeedComUsuarioRow
     setState(() {
-      // Posts do usuário
+      // Posts do usuário - criando dados mock compatíveis com FeedComUsuarioRow
       userPosts = [
-        PostData(
-          id: '1',
-          authorName: widget.userName,
-          authorAvatar: widget.userAvatar ?? 'assets/images/user.svg',
-          date: '2h',
-          content: 'Descobri um café incrível hoje! O ambiente é aconchegante e o espresso é excepcional.',
-          imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400',
-          likes: 24,
-          comments: 8,
-          isLiked: false,
-          recentComments: [
-            CommentData(
-              id: '1',
-              authorName: 'Ana Silva',
-              authorAvatar: 'assets/images/user.svg',
-              content: 'Que lugar lindo! Preciso conhecer.',
-              date: '1h',
-            ),
-          ],
-        ),
-        PostData(
-          id: '2',
-          authorName: widget.userName,
-          authorAvatar: widget.userAvatar ?? 'assets/images/user.svg',
-          date: '1d',
-          content: 'Domingo perfeito experimentando diferentes métodos de preparo de café.',
-          imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400',
-          likes: 15,
-          comments: 3,
-          isLiked: true,
-          recentComments: [],
-        ),
+        FeedComUsuarioRow({
+          'id': 1,
+          'criado_em': DateTime.now().subtract(Duration(hours: 2)),
+          'descricao':
+              'Descobri um café incrível hoje! O ambiente é aconchegante e o espresso é excepcional.',
+          'imagem_url':
+              'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400',
+          'usuario': widget.userName,
+          'comentarios': '8',
+        }),
+        FeedComUsuarioRow({
+          'id': 2,
+          'criado_em': DateTime.now().subtract(Duration(days: 1)),
+          'descricao':
+              'Domingo perfeito experimentando diferentes métodos de preparo de café.',
+          'imagem_url':
+              'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400',
+          'usuario': widget.userName,
+          'comentarios': '3',
+        }),
       ];
 
       // Cafés favoritos
@@ -99,7 +87,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           address: 'Vila Madalena, São Paulo - SP, 05416-001',
           rating: 4.8,
           distance: '0.8 km',
-          imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300',
+          imageUrl:
+              'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300',
           isOpen: true,
           position: LatLng(-23.5505, -46.6333),
           price: 'R\$ 15-25',
@@ -111,7 +100,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           address: 'Centro, São Paulo - SP, 01310-100',
           rating: 4.5,
           distance: '1.2 km',
-          imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300',
+          imageUrl:
+              'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300',
           isOpen: true,
           position: LatLng(-23.5611, -46.6564),
           price: 'R\$ 8-25',
@@ -127,11 +117,16 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           address: 'Jardins, São Paulo - SP, 01401-001',
           rating: 4.6,
           distance: '2.1 km',
-          imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
+          imageUrl:
+              'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300',
           isOpen: true,
           position: LatLng(-23.5729, -46.6520),
           price: 'R\$ 20-45',
-          specialties: ['Bourbon Santos', 'Cappuccino Artesanal', 'French Press'],
+          specialties: [
+            'Bourbon Santos',
+            'Cappuccino Artesanal',
+            'French Press',
+          ],
         ),
       ];
 
@@ -150,13 +145,13 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         slivers: [
           // Header com banner e perfil
           _buildProfileHeader(),
-          
+
           // Estatísticas
           _buildStatsSection(),
-          
+
           // Tab Bar
           _buildTabBar(),
-          
+
           // Conteúdo das tabs
           _buildTabContent(),
         ],
@@ -183,11 +178,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           ],
         ),
         child: IconButton(
-          icon: Icon(
-            AppIcons.back,
-            color: AppColors.carbon,
-            size: 20,
-          ),
+          icon: Icon(AppIcons.back, color: AppColors.carbon, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -222,7 +213,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 ),
               ),
             ),
-            
+
             // Gradient overlay
             Container(
               width: double.infinity,
@@ -231,14 +222,11 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.3),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.3)],
                 ),
               ),
             ),
-            
+
             // Profile avatar and info
             Positioned(
               bottom: 0,
@@ -281,9 +269,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                             : _buildDefaultAvatar(),
                       ),
                     ),
-                    
+
                     SizedBox(height: 12),
-                    
+
                     // User name
                     Text(
                       widget.userName,
@@ -293,9 +281,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         color: AppColors.carbon,
                       ),
                     ),
-                    
+
                     SizedBox(height: 4),
-                    
+
                     // Bio or location (mock)
                     Text(
                       'Coffeelover ☕️',
@@ -315,8 +303,12 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   Widget _buildDefaultAvatar() {
-    final initial = widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'U';
-    final colorIndex = widget.userName.isNotEmpty ? widget.userName.codeUnitAt(0) % 5 : 0;
+    final initial = widget.userName.isNotEmpty
+        ? widget.userName[0].toUpperCase()
+        : 'U';
+    final colorIndex = widget.userName.isNotEmpty
+        ? widget.userName.codeUnitAt(0) % 5
+        : 0;
     final avatarColors = [
       AppColors.papayaSensorial,
       AppColors.velvetMerlot,
@@ -324,9 +316,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       AppColors.forestInk,
       AppColors.pear,
     ];
-    
+
     final avatarColor = avatarColors[colorIndex];
-    
+
     return Container(
       width: 100,
       height: 100,
@@ -367,18 +359,18 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildStatItem('Posts', postsCount.toString(), AppIcons.heart),
-            Container(
-              height: 40,
-              width: 1,
-              color: AppColors.moonAsh,
+            Container(height: 40, width: 1, color: AppColors.moonAsh),
+            _buildStatItem(
+              'Favoritos',
+              favoritesCount.toString(),
+              AppIcons.bookmark,
             ),
-            _buildStatItem('Favoritos', favoritesCount.toString(), AppIcons.bookmark),
-            Container(
-              height: 40,
-              width: 1,
-              color: AppColors.moonAsh,
+            Container(height: 40, width: 1, color: AppColors.moonAsh),
+            _buildStatItem(
+              'Quero visitar',
+              wantToVisitCount.toString(),
+              AppIcons.location,
             ),
-            _buildStatItem('Quero visitar', wantToVisitCount.toString(), AppIcons.location),
           ],
         ),
       ),
@@ -388,11 +380,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   Widget _buildStatItem(String label, String count, dynamic icon) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: AppColors.papayaSensorial,
-          size: 24,
-        ),
+        Icon(icon, color: AppColors.papayaSensorial, size: 24),
         SizedBox(height: 8),
         Text(
           count,
@@ -551,11 +539,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 color: AppColors.moonAsh,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 40,
-                color: AppColors.grayScale2,
-              ),
+              child: Icon(icon, size: 40, color: AppColors.grayScale2),
             ),
             SizedBox(height: 24),
             Text(
@@ -596,11 +580,12 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppColors.oatWhite,
-      child: tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: AppColors.oatWhite, child: tabBar);
   }
 
   @override

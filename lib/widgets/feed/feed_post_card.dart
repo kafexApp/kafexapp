@@ -4,11 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
-import '../../models/post_models.dart';
+import '../../backend/supabase/tables/feed_com_usuario.dart';
 import '../../screens/user_profile_screen.dart';
 
 class FeedPostCard extends StatefulWidget {
-  final PostData post;
+  final FeedComUsuarioRow post;
   final VoidCallback? onLike;
   final VoidCallback? onComment;
   final VoidCallback? onEdit;
@@ -36,8 +36,8 @@ class _FeedPostCardState extends State<FeedPostCard> {
   @override
   void initState() {
     super.initState();
-    _isLiked = widget.post.isLiked;
-    _likesCount = widget.post.likes;
+    _isLiked = false;
+    _likesCount = 0;
   }
 
   void _toggleLike() {
@@ -48,15 +48,14 @@ class _FeedPostCardState extends State<FeedPostCard> {
     widget.onLike?.call();
   }
 
-  // Navega para o perfil do usuário
   void _navigateToUserProfile(String userName, String? avatarUrl) {
     print('🔍 Navegando para perfil de: $userName');
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => UserProfileScreen(
-          userId: 'user_${userName.toLowerCase().replaceAll(' ', '_')}', // ID mock baseado no nome
+          userId: 'user_${userName.toLowerCase().replaceAll(' ', '_')}',
           userName: userName,
           userAvatar: avatarUrl,
         ),
@@ -67,8 +66,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
   void _openCommentsModal() {
     print('💬 Abrir comentários para post: ${widget.post.id}');
     widget.onComment?.call();
-    
-    // Temporariamente mostra um SnackBar
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Comentários (em desenvolvimento)'),
@@ -94,7 +92,6 @@ class _FeedPostCardState extends State<FeedPostCard> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Indicador visual do modal
               Container(
                 margin: EdgeInsets.only(top: 12),
                 width: 40,
@@ -104,10 +101,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
               SizedBox(height: 20),
-              
-              // Botão Editar
               ListTile(
                 onTap: () {
                   Navigator.pop(context);
@@ -127,8 +121,6 @@ class _FeedPostCardState extends State<FeedPostCard> {
                   ),
                 ),
               ),
-              
-              // Divisor
               Divider(
                 height: 1,
                 thickness: 1,
@@ -136,8 +128,6 @@ class _FeedPostCardState extends State<FeedPostCard> {
                 indent: 16,
                 endIndent: 16,
               ),
-              
-              // Botão Excluir
               ListTile(
                 onTap: () {
                   Navigator.pop(context);
@@ -157,13 +147,29 @@ class _FeedPostCardState extends State<FeedPostCard> {
                   ),
                 ),
               ),
-              
               SizedBox(height: 20),
             ],
           ),
         );
       },
     );
+  }
+
+  String _formatDate(DateTime? dateTime) {
+    if (dateTime == null) return '';
+
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}min';
+    } else {
+      return 'agora';
+    }
   }
 
   @override
@@ -184,45 +190,30 @@ class _FeedPostCardState extends State<FeedPostCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header do post (Avatar + Nome + Data + Menu)
           _buildPostHeader(),
-          
-          // Mídia do post (Imagem/Vídeo)
-          if (widget.post.imageUrl != null || widget.post.videoUrl != null)
+          if (_getImageUrl().isNotEmpty || widget.post.urlVideo != null)
             _buildPostMedia(),
-          
-          // Ações do post (Like + Comentário)
           _buildPostActions(),
-          
-          // Contador de likes
           if (_likesCount > 0) _buildLikesCounter(),
-          
-          // Conteúdo do post (Descrição)
           _buildPostContent(),
-          
-          // Preview de comentários
-          if (widget.post.comments > 0) _buildCommentsPreview(),
-          
-          // Último comentário
-          if (widget.post.recentComments.isNotEmpty) _buildLastComment(),
+          if ((int.tryParse(widget.post.comentarios ?? '0') ?? 0) > 0)
+            _buildCommentsPreview(),
         ],
       ),
     );
   }
 
   Widget _buildPostHeader() {
+    final authorName = _getAuthorName();
+    final authorAvatar = _getImageUrl();
+    final formattedDate = _formatDate(widget.post.criadoEm);
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
       child: Row(
         children: [
-          // Avatar do usuário - CLICÁVEL
           GestureDetector(
-            onTap: () => _navigateToUserProfile(
-              widget.post.authorName,
-              widget.post.authorAvatar.startsWith('http') 
-                ? widget.post.authorAvatar 
-                : null,
-            ),
+            onTap: () => _navigateToUserProfile(authorName, null),
             child: Container(
               width: 40,
               height: 40,
@@ -230,41 +221,18 @@ class _FeedPostCardState extends State<FeedPostCard> {
                 color: AppColors.moonAsh,
                 shape: BoxShape.circle,
               ),
-              child: Center(
-                child: widget.post.authorAvatar.startsWith('http')
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.network(
-                        widget.post.authorAvatar,
-                        width: 40,
-                        height: 40,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildAvatarFallback();
-                        },
-                      ),
-                    )
-                  : _buildAvatarFallback(),
-              ),
+              child: Center(child: _buildAvatarFallback(authorName)),
             ),
           ),
-          
           SizedBox(width: 12),
-          
-          // Nome e data - NOME TAMBÉM CLICÁVEL
           Expanded(
             child: GestureDetector(
-              onTap: () => _navigateToUserProfile(
-                widget.post.authorName,
-                widget.post.authorAvatar.startsWith('http') 
-                  ? widget.post.authorAvatar 
-                  : null,
-              ),
+              onTap: () => _navigateToUserProfile(authorName, null),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.post.authorName,
+                    authorName,
                     style: GoogleFonts.albertSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -273,7 +241,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    widget.post.date,
+                    formattedDate,
                     style: GoogleFonts.albertSans(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -283,8 +251,6 @@ class _FeedPostCardState extends State<FeedPostCard> {
               ),
             ),
           ),
-          
-          // Botão de menu (3 pontos)
           GestureDetector(
             onTap: _showPostOptionsModal,
             child: Container(
@@ -301,13 +267,9 @@ class _FeedPostCardState extends State<FeedPostCard> {
     );
   }
 
-  Widget _buildAvatarFallback() {
-    final initial = widget.post.authorName.isNotEmpty 
-        ? widget.post.authorName[0].toUpperCase() 
-        : 'U';
-    final colorIndex = widget.post.authorName.isNotEmpty 
-        ? widget.post.authorName.codeUnitAt(0) % 5 
-        : 0;
+  Widget _buildAvatarFallback(String authorName) {
+    final initial = authorName.isNotEmpty ? authorName[0].toUpperCase() : 'U';
+    final colorIndex = authorName.isNotEmpty ? authorName.codeUnitAt(0) % 5 : 0;
     final avatarColors = [
       AppColors.papayaSensorial,
       AppColors.velvetMerlot,
@@ -315,9 +277,9 @@ class _FeedPostCardState extends State<FeedPostCard> {
       AppColors.forestInk,
       AppColors.pear,
     ];
-    
+
     final avatarColor = avatarColors[colorIndex];
-    
+
     return Container(
       width: 40,
       height: 40,
@@ -339,9 +301,11 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   Widget _buildPostMedia() {
+    final imageUrl = _getImageUrl();
+    final videoUrl = widget.post.urlVideo;
+
     return GestureDetector(
       onDoubleTap: () {
-        // Double tap para dar like
         if (!_isLiked) {
           _toggleLike();
         }
@@ -356,9 +320,44 @@ class _FeedPostCardState extends State<FeedPostCard> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: widget.post.videoUrl != null
+          child: videoUrl != null && videoUrl.isNotEmpty
               ? _buildVideoPlayer()
-              : _buildImageMedia(),
+              : imageUrl.isNotEmpty
+              ? CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: AppColors.moonAsh,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.papayaSensorial,
+                        ),
+                      ),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: AppColors.moonAsh,
+                    child: Center(
+                      child: Icon(
+                        AppIcons.image,
+                        color: AppColors.textSecondary,
+                        size: 48,
+                      ),
+                    ),
+                  ),
+                )
+              : Container(
+                  color: AppColors.moonAsh,
+                  child: Center(
+                    child: Icon(
+                      AppIcons.image,
+                      color: AppColors.textSecondary,
+                      size: 48,
+                    ),
+                  ),
+                ),
         ),
       ),
     );
@@ -371,11 +370,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              AppIcons.play,
-              color: AppColors.whiteWhite,
-              size: 48,
-            ),
+            Icon(AppIcons.play, color: AppColors.whiteWhite, size: 48),
             SizedBox(height: 8),
             Text(
               'Vídeo',
@@ -390,40 +385,13 @@ class _FeedPostCardState extends State<FeedPostCard> {
     );
   }
 
-  Widget _buildImageMedia() {
-    return CachedNetworkImage(
-      imageUrl: widget.post.imageUrl!,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: AppColors.moonAsh,
-        child: Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              AppColors.papayaSensorial,
-            ),
-          ),
-        ),
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: AppColors.moonAsh,
-        child: Center(
-          child: Icon(
-            AppIcons.image,
-            color: AppColors.textSecondary,
-            size: 48,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildPostActions() {
+    final commentsCount = int.tryParse(widget.post.comentarios ?? '0') ?? 0;
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
       child: Row(
         children: [
-          // Botão Like
           GestureDetector(
             onTap: _toggleLike,
             child: Container(
@@ -435,23 +403,17 @@ class _FeedPostCardState extends State<FeedPostCard> {
               ),
             ),
           ),
-          
-          // Botão Comentário
           GestureDetector(
             onTap: _openCommentsModal,
             child: Container(
               padding: EdgeInsets.all(8),
               child: Row(
                 children: [
-                  Icon(
-                    AppIcons.comment,
-                    color: AppColors.grayScale2,
-                    size: 24,
-                  ),
-                  if (widget.post.comments > 0) ...[
+                  Icon(AppIcons.comment, color: AppColors.grayScale2, size: 24),
+                  if (commentsCount > 0) ...[
                     SizedBox(width: 4),
                     Text(
-                      '${widget.post.comments}',
+                      '$commentsCount',
                       style: GoogleFonts.albertSans(
                         fontSize: 14,
                         color: AppColors.grayScale2,
@@ -463,10 +425,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
               ),
             ),
           ),
-          
           Spacer(),
-          
-          // Botão Favorito
           GestureDetector(
             onTap: () {
               print('Toggle favorito');
@@ -500,13 +459,184 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   Widget _buildPostContent() {
+    final authorName = _getAuthorName();
+    final content = widget.post.descricao ?? '';
+    final tipoCalculado = widget.post.tipoCalculado ?? '';
+
+    // Layout específico baseado no tipo_calculado
+    switch (tipoCalculado) {
+      case 'nova cafeteria':
+        return _buildNewCafeContent(authorName, content);
+      case 'avaliacao':
+        return _buildReviewContent(authorName, content);
+      case 'post imagem':
+      default:
+        return _buildRegularContent(authorName, content);
+    }
+  }
+
+  String _getAuthorName() {
+    // Prioriza nome_exibicao, depois usuario
+    return widget.post.nomeExibicao ?? widget.post.usuario ?? 'Usuário';
+  }
+
+  String _getImageUrl() {
+    // Prioriza url_foto, depois imagem_url
+    return widget.post.urlFoto ?? widget.post.imagemUrl ?? '';
+  }
+
+  Widget _buildNewCafeContent(String authorName, String content) {
+    final cafeName = widget.post.nomeCafeteria ?? widget.post.nome ?? '';
+
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: '$authorName ',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                TextSpan(
+                  text: content,
+                  style: GoogleFonts.albertSans(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (cafeName.isNotEmpty) ...[
+            SizedBox(height: 8),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.papayaSensorial.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.papayaSensorial.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                '📍 $cafeName',
+                style: GoogleFonts.albertSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.papayaSensorial,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewContent(String authorName, String content) {
+    final cafeName = widget.post.nomeCafeteria ?? widget.post.nome ?? '';
+    final rating = widget.post.pontuacao ?? 0.0;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: '$authorName ',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                TextSpan(
+                  text: content,
+                  style: GoogleFonts.albertSans(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (cafeName.isNotEmpty) ...[
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.velvetMerlot.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.velvetMerlot.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    '☕ $cafeName',
+                    style: GoogleFonts.albertSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.velvetMerlot,
+                    ),
+                  ),
+                ),
+                if (rating > 0) ...[
+                  SizedBox(width: 8),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.spiced.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(AppIcons.heart, size: 12, color: AppColors.spiced),
+                        SizedBox(width: 2),
+                        Text(
+                          rating.toStringAsFixed(1),
+                          style: GoogleFonts.albertSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.spiced,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegularContent(String authorName, String content) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: RichText(
         text: TextSpan(
           children: [
             TextSpan(
-              text: '${widget.post.authorName} ',
+              text: '$authorName ',
               style: GoogleFonts.albertSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -514,7 +644,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
               ),
             ),
             TextSpan(
-              text: widget.post.content,
+              text: content,
               style: GoogleFonts.albertSans(
                 fontSize: 14,
                 color: AppColors.textPrimary,
@@ -528,156 +658,17 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   Widget _buildCommentsPreview() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: GestureDetector(
-        onTap: _openCommentsModal,
-        child: Text(
-          'Ver todos os ${widget.post.comments} comentários',
-          style: GoogleFonts.albertSans(
-            fontSize: 14,
-            color: AppColors.grayScale2,
-          ),
-        ),
-      ),
-    );
-  }
+    final commentsCount = int.tryParse(widget.post.comentarios ?? '0') ?? 0;
 
-  Widget _buildLastComment() {
-    final lastComment = widget.post.recentComments.first;
-    
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: GestureDetector(
         onTap: _openCommentsModal,
-        child: Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.oatWhite,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar do comentário
-              GestureDetector(
-                onTap: () => _navigateToUserProfile(
-                  lastComment.authorName,
-                  lastComment.authorAvatar?.startsWith('http') == true 
-                    ? lastComment.authorAvatar 
-                    : null,
-                ),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.moonAsh,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: lastComment.authorAvatar?.startsWith('http') == true
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.network(
-                            lastComment.authorAvatar!,
-                            width: 32,
-                            height: 32,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return _buildCommentAvatarFallback(lastComment.authorName);
-                            },
-                          ),
-                        )
-                      : _buildCommentAvatarFallback(lastComment.authorName),
-                  ),
-                ),
-              ),
-              
-              SizedBox(width: 8),
-              
-              // Conteúdo do comentário
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nome e data
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => _navigateToUserProfile(
-                            lastComment.authorName,
-                            lastComment.authorAvatar?.startsWith('http') == true 
-                              ? lastComment.authorAvatar 
-                              : null,
-                          ),
-                          child: Text(
-                            lastComment.authorName,
-                            style: GoogleFonts.albertSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.papayaSensorial,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          lastComment.date,
-                          style: GoogleFonts.albertSans(
-                            fontSize: 12,
-                            color: AppColors.grayScale2,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    // Texto do comentário
-                    Text(
-                      lastComment.content,
-                      style: GoogleFonts.albertSans(
-                        fontSize: 13,
-                        color: AppColors.textPrimary,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCommentAvatarFallback(String authorName) {
-    final initial = authorName.isNotEmpty ? authorName[0].toUpperCase() : 'U';
-    final colorIndex = authorName.isNotEmpty ? authorName.codeUnitAt(0) % 5 : 0;
-    final avatarColors = [
-      AppColors.papayaSensorial,
-      AppColors.velvetMerlot,
-      AppColors.spiced,
-      AppColors.forestInk,
-      AppColors.pear,
-    ];
-    
-    final avatarColor = avatarColors[colorIndex];
-    
-    return Container(
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        color: avatarColor.withOpacity(0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
         child: Text(
-          initial,
+          'Ver todos os $commentsCount comentários',
           style: GoogleFonts.albertSans(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: avatarColor,
+            color: AppColors.grayScale2,
           ),
         ),
       ),

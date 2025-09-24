@@ -1,0 +1,87 @@
+import '../../database/database.dart';
+
+class FeedComUsuarioTable extends SupabaseTable<FeedComUsuarioRow> {
+  @override
+  String get tableName => 'feed_com_usuario';
+
+  @override
+  FeedComUsuarioRow createRow(Map<String, dynamic> data) =>
+      FeedComUsuarioRow(data);
+}
+
+class FeedComUsuarioRow extends SupabaseDataRow {
+  FeedComUsuarioRow(Map<String, dynamic> data) : super(data);
+
+  int? get id => getField<int>('id');
+  set id(int? value) => setField<int>('id', value);
+
+  DateTime? get criadoEm {
+    final value = getField<dynamic>('criado_em');
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  set criadoEm(DateTime? value) => setField<DateTime>('criado_em', value);
+
+  String? get descricao => getField<String>('descricao');
+  set descricao(String? value) => setField<String>('descricao', value);
+
+  String? get imagemUrl => getField<String>('imagem_url');
+  set imagemUrl(String? value) => setField<String>('imagem_url', value);
+
+  String? get usuario => getField<String>('usuario');
+  set usuario(String? value) => setField<String>('usuario', value);
+
+  String? get comentarios {
+    final value = getField<dynamic>('comentarios');
+    if (value == null) return null;
+    if (value is String) return value;
+    if (value is int) return value.toString();
+    return null;
+  }
+
+  set comentarios(String? value) => setField<String>('comentarios', value);
+
+  // Campos para tipos de post
+  String? get tipo => getField<String>('tipo');
+  set tipo(String? value) => setField<String>('tipo', value);
+
+  String? get tipoCalculado => getField<String>('tipo_calculado');
+  set tipoCalculado(String? value) => setField<String>('tipo_calculado', value);
+
+  // Campos específicos para cafeterias
+  String? get nomeCafeteria => getField<String>('nome_cafeteria');
+  set nomeCafeteria(String? value) => setField<String>('nome_cafeteria', value);
+
+  String? get nome => getField<String>('nome');
+  set nome(String? value) => setField<String>('nome', value);
+
+  String? get endereco => getField<String>('endereco');
+  set endereco(String? value) => setField<String>('endereco', value);
+
+  double? get pontuacao {
+    final value = getField<dynamic>('pontuacao');
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  set pontuacao(double? value) => setField<double>('pontuacao', value);
+
+  // Campos adicionais do usuário
+  String? get nomeExibicao => getField<String>('nome_exibicao');
+  set nomeExibicao(String? value) => setField<String>('nome_exibicao', value);
+
+  String? get fotoUrl => getField<String>('foto_url');
+  set fotoUrl(String? value) => setField<String>('foto_url', value);
+
+  String? get urlFoto => getField<String>('url_foto');
+  set urlFoto(String? value) => setField<String>('url_foto', value);
+
+  String? get urlVideo => getField<String>('url_video');
+  set urlVideo(String? value) => setField<String>('url_video', value);
+}
