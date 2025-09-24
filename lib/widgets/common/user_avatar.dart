@@ -35,51 +35,34 @@ class UserAvatar extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: showBorder
-          ? BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: showBorder
+            ? Border.all(
                 color: borderColor ?? AppColors.whiteWhite,
                 width: borderWidth,
-              ),
-              boxShadow: [
+              )
+            : null,
+        boxShadow: showBorder
+            ? [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
-              ],
-            )
-          : null,
-      child: ClipOval(
-        child: optimizedUrl != null
-            ? CachedNetworkImage(
-                imageUrl: optimizedUrl,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => _buildLoadingAvatar(),
-                errorWidget: (context, url, error) => _buildInitialsAvatar(displayName),
+              ]
+            : null,
+        image: optimizedUrl != null
+            ? DecorationImage(
+                image: CachedNetworkImageProvider(optimizedUrl),
+                fit: BoxFit.contain, // MUDANÇA AQUI: de cover para contain
+                onError: (exception, stackTrace) {
+                  print('Erro ao carregar avatar: $exception');
+                },
               )
-            : _buildInitialsAvatar(displayName),
+            : null,
       ),
-    );
-  }
-
-  Widget _buildLoadingAvatar() {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.moonAsh,
-      ),
-      child: Center(
-        child: CircularProgressIndicator(
-          strokeWidth: size > 50 ? 2 : 1.5,
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.papayaSensorial),
-        ),
-      ),
+      child: optimizedUrl == null ? _buildInitialsAvatar(displayName) : null,
     );
   }
 
@@ -105,7 +88,7 @@ class UserAvatar extends StatelessWidget {
         child: Text(
           initials,
           style: GoogleFonts.albertSans(
-            fontSize: size * 0.4, // 40% do tamanho do avatar
+            fontSize: size * 0.4,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),

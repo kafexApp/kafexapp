@@ -1,4 +1,6 @@
 // lib/services/avatar_service.dart
+import 'package:flutter/material.dart'; // IMPORTAÇÃO FALTANTE
+
 class AvatarService {
   /// Otimiza URLs de avatar baseado no provider
   static String? optimizePhotoUrl(String? url, {int size = 200}) {
@@ -42,15 +44,15 @@ class AvatarService {
   static Color generateAvatarColor(String? name) {
     if (name == null || name.isEmpty) return const Color(0xFFE57373);
     
-    final colors = [
-      const Color(0xFFE57373), // Red
-      const Color(0xFF81C784), // Green  
-      const Color(0xFF64B5F6), // Blue
-      const Color(0xFFBA68C8), // Purple
-      const Color(0xFFFFB74D), // Orange
-      const Color(0xFF4DD0E1), // Cyan
-      const Color(0xFFF06292), // Pink
-      const Color(0xFFAED581), // Light Green
+    const colors = [
+      Color(0xFFE57373), // Red
+      Color(0xFF81C784), // Green  
+      Color(0xFF64B5F6), // Blue
+      Color(0xFFBA68C8), // Purple
+      Color(0xFFFFB74D), // Orange
+      Color(0xFF4DD0E1), // Cyan
+      Color(0xFFF06292), // Pink
+      Color(0xFFAED581), // Light Green
     ];
     
     final index = name.codeUnitAt(0) % colors.length;
