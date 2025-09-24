@@ -148,15 +148,14 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
         isLiked: false,
         recentComments: [],
       ),
-      PostData.newCoffee(
+      PostData.traditional(
         id: 'example_2',
         authorName: 'Sistema',
         authorAvatar: '',
         date: 'há 1 hora',
-        coffeeName: 'Café Exemplo',
-        coffeeAddress: 'Rua das Flores, 123 - Centro',
-        coffeeId: 'coffee_example',
+        content: 'Compartilhe suas experiências com café e descubra novos lugares incríveis!',
         imageUrl: null,
+        videoUrl: null,
         likes: 0,
         comments: 0,
         isLiked: false,

@@ -4,8 +4,6 @@ import 'traditional_post_card.dart';
 import 'review_post_card.dart';
 import 'new_coffee_post_card.dart';
 
-// REMOVEMOS o enum PostType daqui - já existe em post_models.dart
-
 class PostCardFactory {
   static Widget create({
     required PostData post,
@@ -31,8 +29,16 @@ class PostCardFactory {
     // Propriedades específicas para Traditional
     VoidCallback? onViewAllComments,
   }) {
+    // DEBUG: Log dos dados recebidos
+    print('🏭 [FACTORY] Criando post tipo: $type');
+    print('🏭 [FACTORY] Post ID: ${post.id}');
+    print('🏭 [FACTORY] Post imageUrl: ${post.imageUrl}');
+    print('🏭 [FACTORY] Post autor: ${post.authorName}');
+    print('🏭 [FACTORY] Post conteúdo: ${post.content}');
+    
     switch (type) {
       case PostType.traditional:
+        print('🏭 [FACTORY] Criando TraditionalPostCard');
         return TraditionalPostCard(
           post: post,
           onLike: onLike,
@@ -43,8 +49,17 @@ class PostCardFactory {
         );
         
       case PostType.coffeeReview:
+        print('🏭 [FACTORY] Criando ReviewPostCard');
         if (coffeeName == null || rating == null || coffeeId == null) {
-          throw ArgumentError('Review posts require coffeeName, rating, and coffeeId');
+          print('❌ [FACTORY] Erro: Review posts require coffeeName, rating, and coffeeId');
+          // Fallback para traditional se dados insuficientes
+          return TraditionalPostCard(
+            post: post,
+            onLike: onLike,
+            onComment: onComment,
+            onEdit: onEdit,
+            onDelete: onDelete,
+          );
         }
         return ReviewPostCard(
           post: post,
@@ -62,8 +77,17 @@ class PostCardFactory {
         );
         
       case PostType.newCoffee:
+        print('🏭 [FACTORY] Criando NewCoffeePostCard');
         if (coffeeName == null || coffeeAddress == null || coffeeId == null) {
-          throw ArgumentError('New coffee posts require coffeeName, coffeeAddress, and coffeeId');
+          print('❌ [FACTORY] Erro: New coffee posts require coffeeName, coffeeAddress, and coffeeId');
+          // Fallback para traditional se dados insuficientes
+          return TraditionalPostCard(
+            post: post,
+            onLike: onLike,
+            onComment: onComment,
+            onEdit: onEdit,
+            onDelete: onDelete,
+          );
         }
         return NewCoffeePostCard(
           post: post,
@@ -78,6 +102,7 @@ class PostCardFactory {
         );
         
       default:
+        print('🏭 [FACTORY] Tipo desconhecido, usando Traditional como fallback');
         // Fallback para post tradicional
         return TraditionalPostCard(
           post: post,

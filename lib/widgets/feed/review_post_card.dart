@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
@@ -45,6 +46,7 @@ class ReviewPostCard extends BasePostCard {
 class _ReviewPostCardState extends BasePostCardState<ReviewPostCard> {
   late bool _isFavorited;
   late bool _wantToVisit;
+  bool _isDescriptionExpanded = false;
 
   @override
   void initState() {
@@ -57,6 +59,15 @@ class _ReviewPostCardState extends BasePostCardState<ReviewPostCard> {
     setState(() {
       _isFavorited = !_isFavorited;
     });
+    
+    if (_isFavorited) {
+      print('Adicionou ${widget.coffeeName} aos favoritos');
+      // TODO: Implementar adição aos favoritos no backend
+    } else {
+      print('Removeu ${widget.coffeeName} dos favoritos');
+      // TODO: Implementar remoção dos favoritos no backend
+    }
+    
     widget.onFavorite?.call();
   }
 
@@ -64,6 +75,15 @@ class _ReviewPostCardState extends BasePostCardState<ReviewPostCard> {
     setState(() {
       _wantToVisit = !_wantToVisit;
     });
+    
+    if (_wantToVisit) {
+      print('Adicionou ${widget.coffeeName} à lista "Quero visitar"');
+      // TODO: Implementar adição à lista "Quero visitar" no backend
+    } else {
+      print('Removeu ${widget.coffeeName} da lista "Quero visitar"');
+      // TODO: Implementar remoção da lista "Quero visitar" no backend
+    }
+    
     widget.onWantToVisit?.call();
   }
 
@@ -82,159 +102,90 @@ class _ReviewPostCardState extends BasePostCardState<ReviewPostCard> {
 
   @override
   Widget buildCustomActions() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Row(
+        children: [
+          // Botão Like
+          GestureDetector(
+            onTap: toggleLike,
+            child: Icon(
+              isLiked ? AppIcons.heartFill : AppIcons.heart,
+              size: 24,
+              color: isLiked ? AppColors.spiced : AppColors.carbon,
+            ),
+          ),
+          
+          SizedBox(width: 16),
+          
+          // Botão Comentário
+          GestureDetector(
+            onTap: _openCommentsModal,
+            child: Icon(
+              AppIcons.comment,
+              size: 24,
+              color: AppColors.carbon,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget? buildAdditionalContent() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Card da cafeteria avaliada
+        // BOX COM INFORMAÇÕES DA CAFETERIA AVALIADA
         Container(
           margin: EdgeInsets.fromLTRB(16, 12, 16, 0),
-          padding: EdgeInsets.all(12),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.oatWhite,
+            color: AppColors.moonAsh,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.moonAsh,
-              width: 1,
-            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.coffee,
-                    color: AppColors.papayaSensorial,
-                    size: 20,
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.coffeeName,
-                      style: GoogleFonts.albertSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                ],
+              // Nome da cafeteria
+              Text(
+                widget.coffeeName,
+                style: GoogleFonts.albertSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.carbon,
+                ),
               ),
-              SizedBox(height: 8),
               
-              // Estrelas de avaliação
+              SizedBox(height: 12),
+              
+              // Avaliação com grãos de café
               Row(
                 children: [
                   ...List.generate(5, (index) {
-                    return Icon(
-                      index < widget.rating.floor() 
-                        ? Icons.star 
-                        : (index < widget.rating ? Icons.star_half : Icons.star_border),
-                      color: AppColors.papayaSensorial,
-                      size: 18,
+                    return Container(
+                      margin: EdgeInsets.only(right: 4),
+                      child: SvgPicture.asset(
+                        'assets/images/grain_note.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: ColorFilter.mode(
+                          index < widget.rating.floor() 
+                            ? AppColors.papayaSensorial 
+                            : AppColors.grayScale2,
+                          BlendMode.srcIn,
+                        ),
+                      ),
                     );
                   }),
                   SizedBox(width: 8),
                   Text(
                     widget.rating.toStringAsFixed(1),
                     style: GoogleFonts.albertSans(
-                      fontSize: 14,
+                      fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              
-              SizedBox(height: 12),
-              
-              // Botões de ação da cafeteria
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _toggleFavorite,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _isFavorited 
-                            ? AppColors.papayaSensorial 
-                            : AppColors.whiteWhite,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.papayaSensorial,
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _isFavorited ? AppIcons.heartFill : AppIcons.heart,
-                              color: _isFavorited 
-                                ? AppColors.whiteWhite 
-                                : AppColors.papayaSensorial,
-                              size: 18,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Favoritar',
-                              style: GoogleFonts.albertSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: _isFavorited 
-                                  ? AppColors.whiteWhite 
-                                  : AppColors.papayaSensorial,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  SizedBox(width: 8),
-                  
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _toggleWantToVisit,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _wantToVisit 
-                            ? AppColors.forestInk 
-                            : AppColors.whiteWhite,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: _wantToVisit 
-                              ? AppColors.forestInk 
-                              : AppColors.grayScale2,
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.place_outlined,
-                              color: _wantToVisit 
-                                ? AppColors.whiteWhite 
-                                : AppColors.grayScale2,
-                              size: 18,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Quero visitar',
-                              style: GoogleFonts.albertSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: _wantToVisit 
-                                  ? AppColors.whiteWhite 
-                                  : AppColors.textPrimary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      color: AppColors.carbon,
                     ),
                   ),
                 ],
@@ -243,94 +194,135 @@ class _ReviewPostCardState extends BasePostCardState<ReviewPostCard> {
           ),
         ),
         
-        // Ações padrão do post (like, comment, save)
+        // BOTÕES DE AÇÃO (FAVORITO E QUERO VISITAR)
         Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Row(
             children: [
-              GestureDetector(
-                onTap: toggleLike,
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(
-                    isLiked ? AppIcons.heartFill : AppIcons.heart,  // MUDANÇA: sem underscore
-                    color: isLiked ? AppColors.spiced : AppColors.grayScale2,  // MUDANÇA: sem underscore
-                    size: 24,
-                  ),
-                ),
-              ),
-              
-              GestureDetector(
-                onTap: _openCommentsModal,
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  child: Row(
-                    children: [
-                      Icon(
-                        AppIcons.comment,
-                        color: AppColors.grayScale2,
-                        size: 24,
-                      ),
-                      if (widget.post.comments > 0) ...[
-                        SizedBox(width: 4),
+              // Botão Favorito
+              Expanded(
+                child: GestureDetector(
+                  onTap: _toggleFavorite,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _isFavorited ? AppColors.papayaSensorial : AppColors.moonAsh,
+                      borderRadius: BorderRadius.circular(12),
+                      border: _isFavorited 
+                        ? Border.all(color: AppColors.papayaSensorial, width: 1)
+                        : null,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _isFavorited ? AppIcons.starFill : AppIcons.star,
+                          color: _isFavorited ? AppColors.whiteWhite : AppColors.carbon,
+                          size: 18,
+                        ),
+                        SizedBox(width: 6),
                         Text(
-                          '${widget.post.comments}',
+                          _isFavorited ? 'Favoritado' : 'Favoritar',
                           style: GoogleFonts.albertSans(
                             fontSize: 14,
-                            color: AppColors.grayScale2,
                             fontWeight: FontWeight.w500,
+                            color: _isFavorited ? AppColors.whiteWhite : AppColors.carbon,
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
               
-              Spacer(),
+              SizedBox(width: 12),
               
-              GestureDetector(
-                onTap: () {
-                  print('Toggle salvar post');
-                },
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(
-                    AppIcons.bookmark,
-                    color: AppColors.grayScale2,
-                    size: 22,
+              // Botão Quero Visitar
+              Expanded(
+                child: GestureDetector(
+                  onTap: _toggleWantToVisit,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: _wantToVisit ? AppColors.pear : AppColors.moonAsh,
+                      borderRadius: BorderRadius.circular(12),
+                      border: _wantToVisit 
+                        ? Border.all(color: AppColors.pear, width: 1)
+                        : null,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _wantToVisit ? AppIcons.tagFill : AppIcons.tag,
+                          color: _wantToVisit ? AppColors.velvetMerlot : AppColors.carbon,
+                          size: 18,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          _wantToVisit ? 'Na lista!' : 'Quero visitar',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _wantToVisit ? AppColors.velvetMerlot : AppColors.carbon,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
-      ],
-    );
-  }
-
-  @override
-  Widget? buildAdditionalContent() {
-    if (widget.post.comments > 0) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: GestureDetector(
-              onTap: _openCommentsModal,
-              child: Text(
-                'Ver todos os ${widget.post.comments} comentários',
-                style: GoogleFonts.albertSans(
-                  fontSize: 14,
-                  color: AppColors.grayScale2,
+        
+        // BOTÃO AVALIAR CAFETERIA
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: GestureDetector(
+            onTap: () {
+              print('Abrir modal de avaliação para: ${widget.coffeeName}');
+              // TODO: Implementar abertura do modal de avaliação
+            },
+            child: Container(
+              width: double.infinity,
+              height: 56,
+              decoration: BoxDecoration(
+                color: AppColors.velvetMerlot,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: Text(
+                  'Avaliar cafeteria',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.papayaSensorial,
+                  ),
                 ),
               ),
             ),
           ),
-        ],
-      );
-    }
-    return SizedBox(height: 16);
+        ),
+        
+        // CONTADOR DE COMENTÁRIOS
+        if (widget.post.comments > 0)
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: GestureDetector(
+              onTap: _openCommentsModal,
+              child: Text(
+                'Ver ${widget.post.comments == 1 ? '1 comentário' : 'todos os ${widget.post.comments} comentários'}',
+                style: GoogleFonts.albertSans(
+                  fontSize: 14,
+                  color: AppColors.grayScale1,
+                ),
+              ),
+            ),
+          )
+        else
+          SizedBox(height: 16),
+      ],
+    );
   }
 }

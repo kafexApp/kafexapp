@@ -24,7 +24,6 @@ abstract class BasePostCard extends StatefulWidget {
 }
 
 abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
-  // MUDANÇA: agora são protegidos (sem underscore) para os filhos acessarem
   bool isLiked = false;
   int likesCount = 0;
 
@@ -142,7 +141,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
           GestureDetector(
             onTap: () => navigateToUserProfile(
               widget.post.authorName,
-              widget.post.authorAvatar.startsWith('http') 
+              widget.post.authorAvatar != null && widget.post.authorAvatar!.startsWith('http') 
                 ? widget.post.authorAvatar 
                 : null,
             ),
@@ -154,11 +153,11 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
                 shape: BoxShape.circle,
               ),
               child: Center(
-                child: widget.post.authorAvatar.startsWith('http')
+                child: widget.post.authorAvatar != null && widget.post.authorAvatar!.startsWith('http')
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: CachedNetworkImage(
-                        imageUrl: widget.post.authorAvatar,
+                        imageUrl: widget.post.authorAvatar!,
                         width: 40,
                         height: 40,
                         fit: BoxFit.cover,
@@ -176,7 +175,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
             child: GestureDetector(
               onTap: () => navigateToUserProfile(
                 widget.post.authorName,
-                widget.post.authorAvatar.startsWith('http') 
+                widget.post.authorAvatar != null && widget.post.authorAvatar!.startsWith('http') 
                   ? widget.post.authorAvatar 
                   : null,
               ),
@@ -255,7 +254,12 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
   }
 
   Widget buildPostMedia() {
-    if (widget.post.imageUrl == null && widget.post.videoUrl == null) {
+    // CORREÇÃO: Só mostra se tiver imagem válida (URL que começa com http)
+    final hasValidImage = widget.post.imageUrl != null && 
+                         widget.post.imageUrl!.isNotEmpty && 
+                         widget.post.imageUrl!.startsWith('http');
+    
+    if (!hasValidImage) {
       return SizedBox.shrink();
     }
 
@@ -275,35 +279,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: widget.post.videoUrl != null
-              ? buildVideoPlayer()
-              : buildImageMedia(),
-        ),
-      ),
-    );
-  }
-
-  Widget buildVideoPlayer() {
-    return Container(
-      color: AppColors.carbon,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              AppIcons.play,
-              color: AppColors.whiteWhite,
-              size: 48,
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Vídeo',
-              style: GoogleFonts.albertSans(
-                fontSize: 14,
-                color: AppColors.whiteWhite,
-              ),
-            ),
-          ],
+          child: buildImageMedia(),
         ),
       ),
     );
@@ -313,27 +289,33 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
     return CachedNetworkImage(
       imageUrl: widget.post.imageUrl!,
       fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: AppColors.moonAsh,
-        child: Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              AppColors.papayaSensorial,
+      placeholder: (context, url) {
+        return Container(
+          color: AppColors.moonAsh,
+          child: Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                AppColors.papayaSensorial,
+              ),
             ),
           ),
-        ),
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: AppColors.moonAsh,
-        child: Center(
-          child: Icon(
-            AppIcons.image,
-            color: AppColors.textSecondary,
-            size: 48,
+        );
+      },
+      errorWidget: (context, url, error) {
+        // Se der erro, não mostra nada
+        return SizedBox.shrink();
+      },
+      imageBuilder: (context, imageProvider) {
+        return Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: imageProvider,
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -406,7 +388,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           buildPostHeader(),
-          buildPostMedia(),
+          buildPostMedia(), // Só aparece se tiver imagem válida
           buildCustomActions(),
           buildLikesCounter(),
           buildPostContent(),
