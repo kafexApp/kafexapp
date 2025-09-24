@@ -69,29 +69,13 @@ class _FeedPostCardState extends State<FeedPostCard> {
     print('💬 Abrir comentários para post: ${widget.post.id}');
     widget.onComment?.call();
 
-    // Converter os comentários do post para o formato do modal
-    List<CommentData> commentsForModal = widget.post.recentComments.map((
-      comment,
-    ) {
-      return CommentData(
-        id: comment.id,
-        userName: comment.authorName,
-        userAvatar: comment.authorAvatar?.startsWith('http') == true
-            ? comment.authorAvatar
-            : null,
-        content: comment.content,
-        timestamp: DateTime.now().subtract(
-          Duration(hours: 2),
-        ), // Mock timestamp
-        likes: 0, // Mock likes
-        isLiked: false,
-      );
-    }).toList();
+    // Criar uma lista vazia de comentários já que recentComments não existe
+    List<CommentData> commentsForModal = [];
 
     // Abre o modal de comentários
     showCommentsModal(
       context,
-      postId: widget.post.id,
+      postId: widget.post.id?.toString() ?? '', // Converte int? para String
       comments: commentsForModal,
       onCommentAdded: (newComment) {
         print('📝 Novo comentário adicionado: $newComment');
@@ -699,115 +683,8 @@ class _FeedPostCardState extends State<FeedPostCard> {
     );
   }
 
-  Widget _buildLastComment() {
-    final lastComment = widget.post.recentComments.first;
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: GestureDetector(
-        onTap: _openCommentsModal,
-        child: Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.oatWhite,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Avatar do comentário
-              GestureDetector(
-                onTap: () => _navigateToUserProfile(
-                  lastComment.authorName,
-                  lastComment.authorAvatar?.startsWith('http') == true
-                      ? lastComment.authorAvatar
-                      : null,
-                ),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: AppColors.moonAsh,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: lastComment.authorAvatar?.startsWith('http') == true
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.network(
-                              lastComment.authorAvatar!,
-                              width: 32,
-                              height: 32,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildCommentAvatarFallback(
-                                  lastComment.authorName,
-                                );
-                              },
-                            ),
-                          )
-                        : _buildCommentAvatarFallback(lastComment.authorName),
-                  ),
-                ),
-              ),
-
-              SizedBox(width: 8),
-
-              // Conteúdo do comentário
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Nome e data
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: () => _navigateToUserProfile(
-                            lastComment.authorName,
-                            lastComment.authorAvatar?.startsWith('http') == true
-                                ? lastComment.authorAvatar
-                                : null,
-                          ),
-                          child: Text(
-                            lastComment.authorName,
-                            style: GoogleFonts.albertSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.papayaSensorial,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          lastComment.date ?? '', // CORREÇÃO AQUI
-                          style: GoogleFonts.albertSans(
-                            fontSize: 12,
-                            color: AppColors.grayScale2,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    // Texto do comentário
-                    Text(
-                      lastComment.content,
-                      style: GoogleFonts.albertSans(
-                        fontSize: 13,
-                        color: AppColors.textPrimary,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // REMOVIDA: _buildLastComment() que usava recentComments
+  // Esta função foi removida pois recentComments não existe no FeedComUsuarioRow
 
   Widget _buildCommentAvatarFallback(String authorName) {
     final initial = authorName.isNotEmpty ? authorName[0].toUpperCase() : 'U';
