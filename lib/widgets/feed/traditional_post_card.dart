@@ -6,6 +6,7 @@ import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
 import '../comments_bottom_sheet.dart';
+import '../../screens/user_profile_screen.dart';
 import 'base_post_card.dart';
 
 class TraditionalPostCard extends BasePostCard {
@@ -54,6 +55,20 @@ class _TraditionalPostCardState extends BasePostCardState<TraditionalPostCard> {
     
     return currentUser.displayName == widget.post.authorName ||
            currentUser.email?.split('@')[0] == widget.post.authorName.toLowerCase().replaceAll(' ', '');
+  }
+
+  @override
+  void navigateToUserProfile(String userName, String? userAvatar) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserProfileScreen(
+          userId: widget.post.id,
+          userName: widget.post.authorName,
+          userAvatar: widget.post.authorAvatar,
+        ),
+      ),
+    );
   }
 
   @override

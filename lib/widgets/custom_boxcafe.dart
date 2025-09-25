@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
+import 'cafe_evaluation_modal.dart'; // NOVO: import do modal de avaliação
 
 // Modelo para avaliação de usuário
 class UserReview {
@@ -167,7 +168,7 @@ class CustomBoxcafe extends StatelessWidget {
                     SizedBox(height: 16),
                     
                     // Botão "Avaliar cafeteria"
-                    _buildRateButton(),
+                    _buildRateButton(context), // MODIFICADO: passa context
                     SizedBox(height: 16),
                     
                     // Botão "Avisar que mudou"
@@ -504,7 +505,7 @@ class CustomBoxcafe extends StatelessWidget {
     );
   }
 
-  Widget _buildRateButton() {
+  Widget _buildRateButton(BuildContext context) { // MODIFICADO: aceita context
     return Row(
       children: [
         // Botão "Avaliar cafeteria" - ocupa 3/5 do espaço (60%)
@@ -513,7 +514,7 @@ class CustomBoxcafe extends StatelessWidget {
           child: Container(
             height: 56,
             child: ElevatedButton(
-              onPressed: () => _rateCafe(),
+              onPressed: () => _rateCafe(context), // MODIFICADO: passa context
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.velvetMerlot,
                 foregroundColor: AppColors.papayaSensorial,
@@ -693,9 +694,13 @@ class CustomBoxcafe extends StatelessWidget {
     print('Mostrar todas as avaliações da cafeteria: ${cafe.name}');
   }
 
-  void _rateCafe() {
-    // TODO: Navegar para tela de avaliação
-    print('Avaliar cafeteria: ${cafe.name}');
+  void _rateCafe(BuildContext context) { // MODIFICADO: aceita e usa context
+    // Chama o modal de avaliação de cafeteria
+    showCafeEvaluationModal(
+      context,
+      cafeName: cafe.name,
+      cafeId: cafe.id,
+    );
   }
 
   void _openInMaps() async {

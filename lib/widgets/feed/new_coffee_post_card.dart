@@ -6,7 +6,39 @@ import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
 import '../comments_bottom_sheet.dart';
+import '../cafe_evaluation_modal.dart';
+import '../custom_toast.dart';
+import '../custom_boxcafe.dart';
+import '../../screens/user_profile_screen.dart';
 import 'base_post_card.dart';
+
+// Classes mock para compatibilidade com o CustomBoxcafe
+class MockLatLng {
+  final double latitude;
+  final double longitude;
+
+  MockLatLng(this.latitude, this.longitude);
+}
+
+class MockCafeModel {
+  final String id;
+  final String name;
+  final String address;
+  final double rating;
+  final String imageUrl;
+  final bool isOpen;
+  final MockLatLng position;
+
+  MockCafeModel({
+    required this.id,
+    required this.name,
+    required this.address,
+    required this.rating,
+    required this.imageUrl,
+    required this.isOpen,
+    required this.position,
+  });
+}
 
 class NewCoffeePostCard extends BasePostCard {
   final String coffeeName;
@@ -57,8 +89,11 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
   }
 
   void _openEvaluationModal() {
-    widget.onEvaluateNow?.call();
-    print('Abrir modal de avaliação para: ${widget.coffeeName}');
+    showCafeEvaluationModal(
+      context,
+      cafeName: widget.coffeeName,
+      cafeId: widget.coffeeId,
+    );
   }
 
   void _toggleFavorite() {
@@ -68,11 +103,36 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
     
     if (_isFavorite) {
       print('Adicionou ${widget.coffeeName} aos favoritos');
-      // TODO: Implementar adição aos favoritos no backend
+      CustomToast.show(
+        context,
+        message: 'Essa cafeteria foi adicionada em sua lista de cafeterias favoritas.',
+        type: ToastType.success,
+        customIcon: Icon(AppIcons.starFill, color: AppColors.cyberLime, size: 20),
+      );
     } else {
       print('Removeu ${widget.coffeeName} dos favoritos');
-      // TODO: Implementar remoção dos favoritos no backend
+      CustomToast.show(
+        context,
+        message: 'Essa cafeteria foi removida da sua lista de cafeterias favoritas.',
+        type: ToastType.info,
+        customIcon: Icon(AppIcons.star, color: AppColors.cyberLime, size: 20),
+      );
     }
+  }
+
+  void _openCafeModal() {
+    // Criar um mock do CafeModel para o modal
+    final mockCafeModel = MockCafeModel(
+      id: widget.coffeeId,
+      name: widget.coffeeName,
+      address: widget.coffeeAddress,
+      rating: 4.5, // Rating padrão para nova cafeteria
+      imageUrl: widget.post.imageUrl ?? 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb',
+      isOpen: true,
+      position: MockLatLng(-23.5505, -46.6333), // TODO: Usar coordenadas reais
+    );
+
+    showCafeModal(context, mockCafeModel);
   }
 
   void _toggleWantToVisit() {
@@ -82,10 +142,20 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
     
     if (_wantToVisit) {
       print('Adicionou ${widget.coffeeName} à lista "Quero visitar"');
-      // TODO: Implementar adição à lista "Quero visitar" no backend
+      CustomToast.show(
+        context,
+        message: 'Essa cafeteria foi adicionada em sua lista de cafeterias que gostaria de visitar.',
+        type: ToastType.success,
+        customIcon: Icon(AppIcons.tagFill, color: AppColors.cyberLime, size: 20),
+      );
     } else {
       print('Removeu ${widget.coffeeName} da lista "Quero visitar"');
-      // TODO: Implementar remoção da lista "Quero visitar" no backend
+      CustomToast.show(
+        context,
+        message: 'Essa cafeteria foi removida da sua lista de cafeterias que gostaria de visitar.',
+        type: ToastType.info,
+        customIcon: Icon(AppIcons.tag, color: AppColors.cyberLime, size: 20),
+      );
     }
   }
 
@@ -95,6 +165,20 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
     
     return currentUser.displayName == widget.post.authorName ||
            currentUser.email?.split('@')[0] == widget.post.authorName.toLowerCase().replaceAll(' ', '');
+  }
+
+  @override
+  void navigateToUserProfile(String userName, String? userAvatar) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserProfileScreen(
+          userId: widget.post.id,
+          userName: widget.post.authorName,
+          userAvatar: widget.post.authorAvatar,
+        ),
+      ),
+    );
   }
 
   @override
@@ -193,12 +277,15 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
                   ),
                   SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      widget.coffeeName,
-                      style: GoogleFonts.albertSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.carbon,
+                    child: GestureDetector(
+                      onTap: () => _openCafeModal(),
+                      child: Text(
+                        widget.coffeeName,
+                        style: GoogleFonts.albertSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.carbon,
+                        ),
                       ),
                     ),
                   ),

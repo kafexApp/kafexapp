@@ -22,6 +22,7 @@ class CustomToast {
     Duration duration = const Duration(seconds: 3),
     String? actionLabel,
     VoidCallback? onActionPressed,
+    Widget? customIcon, // NOVO: ícone customizado
   }) {
     showModalBottomSheet(
       context: context,
@@ -37,6 +38,7 @@ class CustomToast {
           duration: duration,
           actionLabel: actionLabel,
           onActionPressed: onActionPressed,
+          customIcon: customIcon, // NOVO: passa ícone customizado
         );
       },
     );
@@ -49,6 +51,7 @@ class CustomToast {
     Duration duration = const Duration(seconds: 3),
     String? actionLabel,
     VoidCallback? onActionPressed,
+    Widget? customIcon,
   }) {
     show(
       context,
@@ -57,6 +60,7 @@ class CustomToast {
       duration: duration,
       actionLabel: actionLabel,
       onActionPressed: onActionPressed,
+      customIcon: customIcon,
     );
   }
   
@@ -66,6 +70,7 @@ class CustomToast {
     Duration duration = const Duration(seconds: 4),
     String? actionLabel,
     VoidCallback? onActionPressed,
+    Widget? customIcon,
   }) {
     show(
       context,
@@ -74,6 +79,7 @@ class CustomToast {
       duration: duration,
       actionLabel: actionLabel,
       onActionPressed: onActionPressed,
+      customIcon: customIcon,
     );
   }
   
@@ -83,6 +89,7 @@ class CustomToast {
     Duration duration = const Duration(seconds: 3),
     String? actionLabel,
     VoidCallback? onActionPressed,
+    Widget? customIcon,
   }) {
     show(
       context,
@@ -91,6 +98,7 @@ class CustomToast {
       duration: duration,
       actionLabel: actionLabel,
       onActionPressed: onActionPressed,
+      customIcon: customIcon,
     );
   }
   
@@ -100,6 +108,7 @@ class CustomToast {
     Duration duration = const Duration(seconds: 3),
     String? actionLabel,
     VoidCallback? onActionPressed,
+    Widget? customIcon,
   }) {
     show(
       context,
@@ -108,6 +117,7 @@ class CustomToast {
       duration: duration,
       actionLabel: actionLabel,
       onActionPressed: onActionPressed,
+      customIcon: customIcon,
     );
   }
 }
@@ -119,6 +129,7 @@ class _ToastModal extends StatefulWidget {
   final Duration duration;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
+  final Widget? customIcon; // NOVO: ícone customizado
 
   const _ToastModal({
     required this.message,
@@ -126,6 +137,7 @@ class _ToastModal extends StatefulWidget {
     required this.duration,
     this.actionLabel,
     this.onActionPressed,
+    this.customIcon, // NOVO: ícone customizado
   });
 
   @override
@@ -211,6 +223,7 @@ class _ToastModalState extends State<_ToastModal>
                   type: widget.type,
                   actionLabel: widget.actionLabel,
                   onActionPressed: widget.onActionPressed,
+                  customIcon: widget.customIcon, // NOVO: passa ícone customizado
                 ),
               ),
             ),
@@ -238,12 +251,14 @@ class _ToastContent extends StatelessWidget {
   final ToastType type;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
+  final Widget? customIcon; // NOVO: ícone customizado
 
   const _ToastContent({
     required this.message,
     required this.type,
     this.actionLabel,
     this.onActionPressed,
+    this.customIcon, // NOVO: ícone customizado
   });
 
   @override
@@ -261,7 +276,7 @@ class _ToastContent extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: _getIcon(),
+              child: customIcon ?? _getDefaultIcon(), // MODIFICADO: usa ícone customizado ou padrão
             ),
           ),
           
@@ -341,7 +356,7 @@ class _ToastContent extends StatelessWidget {
     }
   }
 
-  Widget _getIcon() {
+  Widget _getDefaultIcon() { // RENOMEADO: método para ícone padrão
     IconData iconData;
     Color iconColor;
     
