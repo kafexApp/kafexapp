@@ -9,6 +9,7 @@ import '../screens/cafe_explorer_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/profile_settings_screen.dart';
+import '../widgets/create_post.dart';
 
 class SideMenuOverlay extends StatefulWidget {
   final VoidCallback onClose;
@@ -22,8 +23,52 @@ class SideMenuOverlay extends StatefulWidget {
   _SideMenuOverlayState createState() => _SideMenuOverlayState();
 }
 
-class _SideMenuOverlayState extends State<SideMenuOverlay> {
+class _SideMenuOverlayState extends State<SideMenuOverlay> 
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
   final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 300),
+    );
+    
+    _slideAnimation = Tween<Offset>(
+      begin: Offset(0.0, 1.0), // Começa fora da tela (embaixo)
+      end: Offset.zero,        // Termina na posição normal
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    ));
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    ));
+    
+    // Iniciar animação
+    _animationController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _closeMenu() async {
+    await _animationController.reverse();
+    widget.onClose();
+  }
 
   Future<void> _logout(BuildContext context) async {
     try {
@@ -44,7 +89,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
   }
 
   void _openSettings() {
-    widget.onClose();
+    _closeMenu();
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => ProfileSettingsScreen(),
@@ -56,125 +101,133 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: Stack(
+      child:       Stack(
         children: [
-          GestureDetector(
-            onTap: widget.onClose,
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Colors.black.withOpacity(0.5),
+          // Background com fade in/out
+          FadeTransition(
+            opacity: _fadeAnimation,
+            child: GestureDetector(
+              onTap: _closeMenu,
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: Colors.black.withOpacity(0.5),
+              ),
             ),
           ),
           
+          // Menu com animação de slide
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.whiteWhite,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.whiteWhite,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: Offset(0, -5),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    margin: EdgeInsets.only(top: 12, bottom: 8),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.grayScale2.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(2),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      margin: EdgeInsets.only(top: 12, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.grayScale2.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                  
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    child: _buildUserHeader(),
-                  ),
-                  
-                  Container(
-                    height: 1,
-                    color: AppColors.moonAsh,
-                    margin: EdgeInsets.symmetric(horizontal: 24),
-                  ),
-                  
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-                    child: Column(
-                      children: [
-                        _buildMenuItem(
-                          icon: PhosphorIcons.house(),
-                          title: 'Início',
-                          onTap: () {
-                            widget.onClose();
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (context) => HomeFeedScreen()),
-                            );
-                          },
-                        ),
-                        
-                        _buildMenuItem(
-                          icon: PhosphorIcons.coffee(),
-                          title: 'Cafeterias',
-                          onTap: () {
-                            widget.onClose();
-                            Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (context) => CafeExplorerScreen()),
-                            );
-                          },
-                        ),
-                        
-                        _buildMenuItem(
-                          icon: PhosphorIcons.bell(),
-                          title: 'Notificações',
-                          onTap: () {
-                            widget.onClose();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => NotificationsScreen()),
-                            );
-                          },
-                        ),
-                        
-                        _buildMenuItem(
-                          icon: PhosphorIcons.user(),
-                          title: 'Perfil',
-                          onTap: () {
-                            widget.onClose();
-                            print('Navegar para perfil - Em desenvolvimento');
-                          },
-                        ),
-                        
-                        _buildMenuItem(
-                          icon: PhosphorIcons.gear(),
-                          title: 'Configurações',
-                          onTap: _openSettings,
-                        ),
-                        
-                        Container(
-                          height: 1,
-                          color: AppColors.moonAsh,
-                          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                        
-                        _buildCreatePostButton(),
-                      ],
+                    
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      child: _buildUserHeader(),
                     ),
-                  ),
-                  
-                  SizedBox(height: MediaQuery.of(context).padding.bottom),
-                ],
+                    
+                    Container(
+                      height: 1,
+                      color: AppColors.moonAsh,
+                      margin: EdgeInsets.symmetric(horizontal: 24),
+                    ),
+                    
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                      child: Column(
+                        children: [
+                          _buildMenuItem(
+                            icon: PhosphorIcons.house(),
+                            title: 'Início',
+                            onTap: () {
+                              _closeMenu();
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+                              );
+                            },
+                          ),
+                          
+                          _buildMenuItem(
+                            icon: PhosphorIcons.coffee(),
+                            title: 'Cafeterias',
+                            onTap: () {
+                              _closeMenu();
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(builder: (context) => CafeExplorerScreen()),
+                              );
+                            },
+                          ),
+                          
+                          _buildMenuItem(
+                            icon: PhosphorIcons.bell(),
+                            title: 'Notificações',
+                            onTap: () {
+                              _closeMenu();
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (context) => NotificationsScreen()),
+                              );
+                            },
+                          ),
+                          
+                          _buildMenuItem(
+                            icon: PhosphorIcons.user(),
+                            title: 'Perfil',
+                            onTap: () {
+                              _closeMenu();
+                              print('Navegar para perfil - Em desenvolvimento');
+                            },
+                          ),
+                          
+                          _buildMenuItem(
+                            icon: PhosphorIcons.gear(),
+                            title: 'Configurações',
+                            onTap: _openSettings,
+                          ),
+                          
+                          Container(
+                            height: 1,
+                            color: AppColors.moonAsh,
+                            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          
+                          _buildCreatePostButton(),
+                        ],
+                      ),
+                    ),
+                    
+                    SizedBox(height: MediaQuery.of(context).padding.bottom),
+                  ],
+                ),
               ),
             ),
           ),
@@ -250,7 +303,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
             ),
             
             GestureDetector(
-              onTap: widget.onClose,
+              onTap: _closeMenu,
               child: Container(
                 width: 36,
                 height: 36,
@@ -404,9 +457,18 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          widget.onClose();
-          print('Abrir modal de criar post - Em desenvolvimento');
+        onTap: () async {
+          // Fechar menu e aguardar a animação completar
+          await _animationController.reverse();
+          Navigator.of(context).pop();
+          
+          // Aguardar um frame extra para garantir que a navegação foi concluída
+          await Future.delayed(Duration(milliseconds: 50));
+          
+          // Abrir modal de criar post
+          if (context.mounted) {
+            showCreatePostModal(context);
+          }
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -487,13 +549,20 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
 }
 
 void showSideMenu(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: Colors.transparent,
-    builder: (context) => SideMenuOverlay(
-      onClose: () => Navigator.of(context).pop(),
+  Navigator.of(context).push(
+    PageRouteBuilder(
+      opaque: false, // Permite transparência
+      barrierColor: Colors.transparent, // Remove qualquer barreira colorida padrão
+      barrierDismissible: true,
+      pageBuilder: (context, animation, secondaryAnimation) => SideMenuOverlay(
+        onClose: () => Navigator.of(context).pop(),
+      ),
+      transitionDuration: Duration(milliseconds: 300),
+      reverseTransitionDuration: Duration(milliseconds: 300),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // Retorna diretamente o child, sem nenhuma animação adicional
+        return child;
+      },
     ),
   );
 }
