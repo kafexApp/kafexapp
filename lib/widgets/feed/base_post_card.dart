@@ -23,23 +23,107 @@ abstract class BasePostCard extends StatefulWidget {
   }) : super(key: key);
 }
 
-abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
+abstract class BasePostCardState<T extends BasePostCard> extends State<T> 
+    with SingleTickerProviderStateMixin {
   bool isLiked = false;
   int likesCount = 0;
+
+  // Animação do coração
+  late AnimationController _heartAnimationController;
+  late Animation<double> _heartScaleAnimation;
+  late Animation<double> _heartOpacityAnimation;
+  bool _showHeartAnimation = false;
 
   @override
   void initState() {
     super.initState();
     isLiked = widget.post.isLiked;
     likesCount = widget.post.likes;
+    
+    print('BASE POST CARD INIT - Iniciado!');
+    
+    // Configurar animação do coração
+    _heartAnimationController = AnimationController(
+      duration: Duration(milliseconds: 400), // Mais rápido: era 600ms, agora 400ms
+      vsync: this,
+    );
+    
+    _heartScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.2)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.2, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 20,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 50,
+      ),
+    ]).animate(_heartAnimationController);
+    
+    _heartOpacityAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 20,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.0)
+            .chain(CurveTween(curve: Curves.linear)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.0)
+            .chain(CurveTween(curve: Curves.easeIn)),
+        weight: 50,
+      ),
+    ]).animate(_heartAnimationController);
+    
+    _heartAnimationController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        if (mounted) {
+          setState(() {
+            _showHeartAnimation = false;
+          });
+          _heartAnimationController.reset();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _heartAnimationController.dispose();
+    super.dispose();
   }
 
   void toggleLike() {
+    print('TOGGLE LIKE - Estado antes: isLiked=$isLiked, likesCount=$likesCount');
+    
     setState(() {
       isLiked = !isLiked;
       likesCount += isLiked ? 1 : -1;
     });
+    
+    print('TOGGLE LIKE - Estado depois: isLiked=$isLiked, likesCount=$likesCount');
     widget.onLike?.call();
+  }
+
+  void _triggerHeartAnimation() {
+    print('TRIGGER HEART ANIMATION - Iniciando...');
+    
+    if (mounted) {
+      setState(() {
+        _showHeartAnimation = true;
+      });
+      print('TRIGGER HEART ANIMATION - _showHeartAnimation: $_showHeartAnimation');
+      _heartAnimationController.forward(from: 0.0);
+    }
   }
 
   void navigateToUserProfile(String userName, String? avatarUrl) {
@@ -254,10 +338,13 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
   }
 
   Widget buildPostMedia() {
-    // CORREÇÃO: Só mostra se tiver imagem válida (URL que começa com http)
+    // Só mostra se tiver imagem válida (URL que começa com http)
     final hasValidImage = widget.post.imageUrl != null && 
                          widget.post.imageUrl!.isNotEmpty && 
                          widget.post.imageUrl!.startsWith('http');
+    
+    print('BUILD POST MEDIA - hasValidImage: $hasValidImage');
+    print('BUILD POST MEDIA - imageUrl: ${widget.post.imageUrl}');
     
     if (!hasValidImage) {
       return SizedBox.shrink();
@@ -265,9 +352,9 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
 
     return GestureDetector(
       onDoubleTap: () {
-        if (!isLiked) {
-          toggleLike();
-        }
+        print('DUPLO CLIQUE DETECTADO NA IMAGEM!');
+        toggleLike();
+        _triggerHeartAnimation();
       },
       child: Container(
         width: double.infinity,
@@ -277,9 +364,45 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
           borderRadius: BorderRadius.circular(12),
           color: AppColors.moonAsh,
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: buildImageMedia(),
+        child: Stack(
+          children: [
+            // Imagem
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: buildImageMedia(),
+            ),
+            
+            // Animação do coração
+            if (_showHeartAnimation)
+              Positioned.fill(
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _heartAnimationController,
+                    builder: (context, child) {
+                      print('ANIMANDO CORAÇÃO - scale: ${_heartScaleAnimation.value}, opacity: ${_heartOpacityAnimation.value}');
+                      return Transform.scale(
+                        scale: _heartScaleAnimation.value,
+                        child: Opacity(
+                          opacity: _heartOpacityAnimation.value,
+                          child: Icon(
+                            AppIcons.heartFill,
+                            size: 120, // Maior: era 80, agora 120
+                            color: AppColors.whiteWhite,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -388,7 +511,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           buildPostHeader(),
-          buildPostMedia(), // Só aparece se tiver imagem válida
+          buildPostMedia(), // Imagem sem duplo clique
           buildCustomActions(),
           buildLikesCounter(),
           buildPostContent(),

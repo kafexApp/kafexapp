@@ -71,7 +71,6 @@ class NewCoffeePostCard extends BasePostCard {
 }
 
 class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
-  bool _isExpanded = false;
   bool _isFavorite = false;
   bool _wantToVisit = false;
   
@@ -121,15 +120,14 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
   }
 
   void _openCafeModal() {
-    // Criar um mock do CafeModel para o modal
     final mockCafeModel = MockCafeModel(
       id: widget.coffeeId,
       name: widget.coffeeName,
       address: widget.coffeeAddress,
-      rating: 4.5, // Rating padrão para nova cafeteria
+      rating: 4.5,
       imageUrl: widget.post.imageUrl ?? 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb',
       isOpen: true,
-      position: MockLatLng(-23.5505, -46.6333), // TODO: Usar coordenadas reais
+      position: MockLatLng(-23.5505, -46.6333),
     );
 
     showCafeModal(context, mockCafeModel);
@@ -189,7 +187,11 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
         children: [
           // Botão Like
           GestureDetector(
-            onTap: toggleLike,
+            onTap: () {
+              print('Like clicado - Estado antes: isLiked=$isLiked, likesCount=$likesCount');
+              toggleLike();
+              print('Like clicado - Estado depois: isLiked=$isLiked, likesCount=$likesCount');
+            },
             child: Icon(
               isLiked ? AppIcons.heartFill : AppIcons.heart,
               size: 24,
@@ -213,25 +215,76 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
     );
   }
 
+  // Sobrescrever buildPostContent para não renderizar o conteúdo padrão
+  @override
+  Widget buildPostContent() {
+    return SizedBox.shrink(); // Não renderiza nada
+  }
+
+  // Sobrescrever buildPostMedia para adicionar a tag "NOVA CAFETERIA"
+  @override
+  Widget buildPostMedia() {
+    final hasValidImage = widget.post.imageUrl != null && 
+                         widget.post.imageUrl!.isNotEmpty && 
+                         widget.post.imageUrl!.startsWith('http');
+    
+    if (!hasValidImage) {
+      return SizedBox.shrink();
+    }
+
+    return Stack(
+      children: [
+        // Usar o buildPostMedia da classe base (que já tem duplo clique e animação)
+        super.buildPostMedia(),
+        
+        // Adicionar apenas a tag "NOVA CAFETERIA"
+        Positioned(
+          top: 16,
+          left: 32,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.pear,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  AppIcons.fire,
+                  color: AppColors.carbon,
+                  size: 14,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  'NOVA CAFETERIA',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.carbon,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget? buildAdditionalContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // CONTADOR DE LIKES
-        if (likesCount > 0)
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Text(
-              '$likesCount ${likesCount == 1 ? 'curtida' : 'curtidas'}',
-              style: GoogleFonts.albertSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.carbon,
-              ),
-            ),
-          ),
-        
         // DESCRIÇÃO
         Padding(
           padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -443,247 +496,6 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
           )
         else
           SizedBox(height: 16),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.whiteWhite,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // HEADER DO POST
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
-            child: Row(
-              children: [
-                // Avatar
-                GestureDetector(
-                  onTap: () => navigateToUserProfile(
-                    widget.post.authorName,
-                    widget.post.authorAvatar,
-                  ),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.papayaSensorial.withOpacity(0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: AppColors.moonAsh,
-                      backgroundImage: _getAvatarImage(),
-                      child: _getAvatarImage() == null
-                        ? Text(
-                            widget.post.authorName.isNotEmpty 
-                              ? widget.post.authorName[0].toUpperCase()
-                              : 'U',
-                            style: GoogleFonts.albertSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.papayaSensorial,
-                            ),
-                          )
-                        : null,
-                    ),
-                  ),
-                ),
-                
-                SizedBox(width: 12),
-                
-                // Nome e data
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => navigateToUserProfile(
-                      widget.post.authorName,
-                      widget.post.authorAvatar,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.post.authorName,
-                          style: GoogleFonts.albertSans(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.carbon,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          widget.post.date,
-                          style: GoogleFonts.albertSans(
-                            fontSize: 13,
-                            color: AppColors.grayScale1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                // Menu de opções (APENAS para o autor do post)
-                if (_isAuthor)
-                  GestureDetector(
-                    onTap: showPostOptionsModal,
-                    child: Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Icon(
-                        AppIcons.dotsThree,
-                        size: 24,
-                        color: AppColors.grayScale2,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          
-          // MÍDIA DO POST COM TAG "NOVA CAFETERIA"
-          _buildMediaSection(),
-          
-          // AÇÕES DO POST
-          buildCustomActions(),
-          
-          // CONTEÚDO ADICIONAL
-          if (buildAdditionalContent() != null) buildAdditionalContent()!,
-        ],
-      ),
-    );
-  }
-
-  ImageProvider? _getAvatarImage() {
-    final avatar = widget.post.authorAvatar;
-    if (avatar != null && avatar.isNotEmpty && avatar.startsWith('http')) {
-      return CachedNetworkImageProvider(avatar);
-    }
-    return null;
-  }
-
-  Widget _buildMediaSection() {
-    final hasValidImage = widget.post.imageUrl != null && 
-                         widget.post.imageUrl!.isNotEmpty && 
-                         widget.post.imageUrl!.startsWith('http');
-    
-    if (!hasValidImage) {
-      return SizedBox.shrink();
-    }
-
-    return Stack(
-      children: [
-        GestureDetector(
-          onDoubleTap: () {
-            if (!isLiked) {
-              toggleLike();
-            }
-          },
-          child: Container(
-            width: double.infinity,
-            height: 300,
-            margin: EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              color: AppColors.moonAsh,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: CachedNetworkImage(
-                imageUrl: widget.post.imageUrl!,
-                fit: BoxFit.cover,
-                placeholder: (context, url) {
-                  return Container(
-                    color: AppColors.moonAsh,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.papayaSensorial,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-                errorWidget: (context, url, error) {
-                  return SizedBox.shrink();
-                },
-                imageBuilder: (context, imageProvider) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: imageProvider,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
-        
-        // TAG "NOVA CAFETERIA"
-        Positioned(
-          top: 16,
-          left: 32,
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.papayaSensorial,
-                  AppColors.velvetMerlot,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  AppIcons.fire,
-                  color: AppColors.whiteWhite,
-                  size: 14,
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'NOVA CAFETERIA',
-                  style: GoogleFonts.albertSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.whiteWhite,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }
