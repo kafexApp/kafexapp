@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
+import '../services/update_service.dart';
 import 'welcome_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -22,6 +23,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<Offset> _textSlide;
   
   late Animation<double> _exitFade;
+
+  bool _hasCheckedForUpdates = false;
 
   @override
   void initState() {
@@ -112,8 +115,16 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(Duration(milliseconds: 800));
     _textController.forward();
     
+    // Verificar atualizações em paralelo com as animações
+    _checkForUpdatesInBackground();
+    
     // Aguardar mais 1.5 segundos e fazer transição
     await Future.delayed(Duration(milliseconds: 1500));
+    
+    // Aguardar verificação de atualização completar
+    while (!_hasCheckedForUpdates) {
+      await Future.delayed(Duration(milliseconds: 100));
+    }
     
     // Iniciar animação de saída
     _exitController.forward();
@@ -146,6 +157,42 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
+  void _checkForUpdatesInBackground() async {
+    try {
+      // Verificar se há atualizações disponíveis
+      final hasUpdate = await KafexUpdateService.checkForUpdates();
+      
+      if (hasUpdate && mounted) {
+        // Obter versões
+        final currentVersion = await KafexUpdateService.getCurrentVersion();
+        final newVersion = await KafexUpdateService.getAvailableVersion();
+        
+        if (newVersion != null) {
+          // Mostrar dialog de atualização
+          KafexUpdateService.showCustomUpdateDialog(
+            context: context,
+            currentVersion: currentVersion,
+            newVersion: newVersion,
+            isRequired: false, // Defina como true se quiser tornar obrigatório
+            onUpdate: () {
+              // Fechar dialog e abrir loja
+              Navigator.of(context).pop();
+              // O upgrader vai abrir a loja automaticamente
+            },
+            onLater: () {
+              // Fechar dialog e continuar
+              Navigator.of(context).pop();
+            },
+          );
+        }
+      }
+    } catch (e) {
+      print('Erro ao verificar atualizações: $e');
+    } finally {
+      _hasCheckedForUpdates = true;
+    }
+  }
+
   @override
   void dispose() {
     _logoController.dispose();
@@ -161,135 +208,137 @@ class _SplashScreenState extends State<SplashScreen>
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      body: AnimatedBuilder(
-        animation: Listenable.merge([
-          _logoController,
-          _backgroundController,
-          _textController,
-          _exitController,
-        ]),
-        builder: (context, child) {
-          return FadeTransition(
-            opacity: _exitFade,
-            child: Container(
-              width: screenWidth,
-              height: screenHeight,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color.lerp(
+      body: KafexUpdateService.wrapWithUpdateChecker(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([
+            _logoController,
+            _backgroundController,
+            _textController,
+            _exitController,
+          ]),
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _exitFade,
+              child: Container(
+                width: screenWidth,
+                height: screenHeight,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color.lerp(
+                        AppColors.velvetMerlot,
+                        AppColors.velvetBourbon,
+                        _backgroundGradient.value * 0.3,
+                      )!,
                       AppColors.velvetMerlot,
-                      AppColors.velvetBourbon,
-                      _backgroundGradient.value * 0.3,
-                    )!,
-                    AppColors.velvetMerlot,
-                    Color.lerp(
-                      AppColors.velvetMerlot,
-                      Colors.black,
-                      _backgroundGradient.value * 0.2,
-                    )!,
+                      Color.lerp(
+                        AppColors.velvetMerlot,
+                        Colors.black,
+                        _backgroundGradient.value * 0.2,
+                      )!,
+                    ],
+                    stops: [0.0, 0.5, 1.0],
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Efeito de partículas de fundo
+                    ...List.generate(20, (index) {
+                      final delay = index * 0.1;
+                      final opacity = (_backgroundGradient.value - delay).clamp(0.0, 1.0);
+                      return Positioned(
+                        left: (index % 4) * screenWidth / 4 + (screenWidth / 8),
+                        top: (index ~/ 4) * screenHeight / 5 + (screenHeight / 10),
+                        child: Opacity(
+                          opacity: opacity * 0.1,
+                          child: Container(
+                            width: 2,
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: AppColors.roseClay,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.roseClay.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+
+                    // Área principal com logo
+                    SafeArea(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: FadeTransition(
+                                opacity: _logoOpacity,
+                                child: SvgPicture.asset(
+                                  'assets/images/kafex_logo_negative.svg',
+                                  width: 168,
+                                  height: 70,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Área do texto da versão e frase
+                          SlideTransition(
+                            position: _textSlide,
+                            child: FadeTransition(
+                              opacity: _textOpacity,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 60.0),
+                                child: Column(
+                                  children: [
+                                    // Texto da versão
+                                    Text(
+                                      'versão 3.0.0',
+                                      style: TextStyle(
+                                        fontFamily: 'Albert Sans',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.normal,
+                                        color: AppColors.whiteWhite.withOpacity(0.7),
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                    
+                                    // Espaçamento entre versão e frase
+                                    SizedBox(height: 12),
+                                    
+                                    // Frase adicional
+                                    Text(
+                                      'Feito com muito ☕️ e IA para amantes de café.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Albert Sans',
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w300,
+                                        color: AppColors.whiteWhite.withOpacity(0.6),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
-                  stops: [0.0, 0.5, 1.0],
                 ),
               ),
-              child: Stack(
-                children: [
-                  // Efeito de partículas de fundo
-                  ...List.generate(20, (index) {
-                    final delay = index * 0.1;
-                    final opacity = (_backgroundGradient.value - delay).clamp(0.0, 1.0);
-                    return Positioned(
-                      left: (index % 4) * screenWidth / 4 + (screenWidth / 8),
-                      top: (index ~/ 4) * screenHeight / 5 + (screenHeight / 10),
-                      child: Opacity(
-                        opacity: opacity * 0.1,
-                        child: Container(
-                          width: 2,
-                          height: 2,
-                          decoration: BoxDecoration(
-                            color: AppColors.roseClay,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.roseClay.withOpacity(0.3),
-                                blurRadius: 4,
-                                spreadRadius: 1,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-
-                  // Área principal com logo
-                  SafeArea(
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: Center(
-                            child: FadeTransition(
-                              opacity: _logoOpacity,
-                              child: SvgPicture.asset(
-                                'assets/images/kafex_logo_negative.svg',
-                                width: 168,
-                                height: 70,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Área do texto da versão e frase
-                        SlideTransition(
-                          position: _textSlide,
-                          child: FadeTransition(
-                            opacity: _textOpacity,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 60.0),
-                              child: Column(
-                                children: [
-                                  // Texto da versão
-                                  Text(
-                                    'versão 3.0.0',
-                                    style: TextStyle(
-                                      fontFamily: 'Albert Sans',
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.normal,
-                                      color: AppColors.whiteWhite.withOpacity(0.7),
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  
-                                  // Espaçamento entre versão e frase
-                                  SizedBox(height: 12),
-                                  
-                                  // Frase adicional
-                                  Text(
-                                    'Feito com muito ☕️ e IA para amantes de café.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontFamily: 'Albert Sans',
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w300,
-                                      color: AppColors.whiteWhite.withOpacity(0.6),
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

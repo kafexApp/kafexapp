@@ -64,6 +64,8 @@ dependencies:
 
   # SHARED PREFERENCES - Para armazenamento local de dados do usuário
   shared_preferences: ^2.2.3
+  upgrader: ^12.1.0
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
