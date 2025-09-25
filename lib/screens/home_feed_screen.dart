@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/app_colors.dart';
 import '../utils/user_manager.dart';
 import '../widgets/custom_bottom_navbar.dart';
@@ -35,8 +36,12 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
   }
 
   Future<void> _requestLocationPermission() async {
-    // Verificar se já foi solicitada ou se já temos localização
-    if (_locationRequested || UserManager.instance.hasLocation) {
+    // Verificar se já foi solicitada anteriormente
+    final prefs = await SharedPreferences.getInstance();
+    final locationDialogShown = prefs.getBool('location_dialog_shown') ?? false;
+    
+    // Se já foi mostrado ou se já temos localização, não mostrar novamente
+    if (locationDialogShown || _locationRequested || UserManager.instance.hasLocation) {
       return;
     }
 
@@ -47,7 +52,10 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
         context: context,
         barrierDismissible: false,
         builder: (context) => LocationPermissionDialog(
-          onLocationResult: (location) {
+          onLocationResult: (location) async {
+            // Marcar como exibido para não aparecer mais
+            await prefs.setBool('location_dialog_shown', true);
+            
             if (location != null) {
               print('📍 Localização obtida: ${location.displayLocation}');
               // A localização já é salva automaticamente pelo dialog
