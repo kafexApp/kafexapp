@@ -339,7 +339,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login realizado com sucesso!');
         
-        // Navegar para tela principal
+        // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeFeedScreen()),
@@ -378,7 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login com Google realizado com sucesso!');
         
-        // Navegar para tela principal
+        // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeFeedScreen()),
@@ -417,7 +417,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login com Apple realizado com sucesso!');
         
-        // Navegar para tela principal
+        // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeFeedScreen()),

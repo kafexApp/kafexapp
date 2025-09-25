@@ -1,7 +1,12 @@
 // lib/utils/user_manager.dart
 // Classe simples para gerenciar dados do usuário logado
 
-class UserManager {
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/user_location.dart';
+import 'dart:convert';
+
+class UserManager extends ChangeNotifier {
   static UserManager? _instance;
   UserManager._internal();
   
@@ -14,11 +19,13 @@ class UserManager {
   String? _userName;
   String? _userEmail;
   String? _userPhotoUrl;
+  UserLocation? _userLocation;
 
   // Getters
   String get userName => _userName ?? 'Usuário Kafex';
   String get userEmail => _userEmail ?? 'usuario@kafex.com';
   String? get userPhotoUrl => _userPhotoUrl;
+  UserLocation? get userLocation => _userLocation;
 
   // Setter para salvar dados do usuário
   void setUserData({
@@ -30,7 +37,75 @@ class UserManager {
     _userEmail = email;
     _userPhotoUrl = photoUrl;
     
+    _saveUserToPrefs();
+    notifyListeners();
+    
     print('✅ Dados do usuário salvos: $name - $email');
+  }
+
+  // Setter para salvar localização do usuário
+  void setUserLocation(UserLocation location) {
+    _userLocation = location;
+    _saveLocationToPrefs(location);
+    notifyListeners();
+    
+    print('📍 Localização salva: ${location.displayLocation}');
+  }
+
+  // Carregar dados do usuário
+  Future<void> loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userName = prefs.getString('user_name');
+    _userEmail = prefs.getString('user_email');
+    _userPhotoUrl = prefs.getString('user_photo_url');
+    
+    // Carregar localização
+    await loadUserLocation();
+    
+    notifyListeners();
+  }
+
+  // Carregar localização do usuário
+  Future<void> loadUserLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final locationData = prefs.getString('user_location');
+    
+    if (locationData != null) {
+      try {
+        final locationJson = json.decode(locationData);
+        _userLocation = UserLocation.fromJson(locationJson);
+      } catch (e) {
+        print('Erro ao carregar localização: $e');
+      }
+    }
+  }
+
+  // Salvar dados do usuário no SharedPreferences
+  Future<void> _saveUserToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_userName != null) await prefs.setString('user_name', _userName!);
+    if (_userEmail != null) await prefs.setString('user_email', _userEmail!);
+    if (_userPhotoUrl != null) await prefs.setString('user_photo_url', _userPhotoUrl!);
+  }
+
+  // Salvar localização no SharedPreferences
+  Future<void> _saveLocationToPrefs(UserLocation location) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_location', json.encode(location.toJson()));
+  }
+
+  // Remover dados do usuário do SharedPreferences
+  Future<void> _removeUserFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_name');
+    await prefs.remove('user_email');
+    await prefs.remove('user_photo_url');
+  }
+
+  // Remover localização do SharedPreferences
+  Future<void> _removeLocationFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_location');
   }
 
   // Método para extrair nome do email
@@ -63,9 +138,32 @@ class UserManager {
     _userName = null;
     _userEmail = null;
     _userPhotoUrl = null;
+    _userLocation = null;
+    
+    _removeUserFromPrefs();
+    _removeLocationFromPrefs();
+    notifyListeners();
+    
     print('🚪 Dados do usuário limpos');
+  }
+
+  // Limpar apenas localização
+  void clearUserLocation() {
+    _userLocation = null;
+    _removeLocationFromPrefs();
+    notifyListeners();
+    
+    print('📍 Localização removida');
   }
 
   // Verificar se há usuário logado
   bool get hasUser => _userName != null && _userEmail != null;
+
+  // Verificar se há localização
+  bool get hasLocation => _userLocation != null;
+
+  // Obter localização formatada
+  String get locationDisplay {
+    return _userLocation?.displayLocation ?? 'Localização não disponível';
+  }
 }

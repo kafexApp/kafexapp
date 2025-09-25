@@ -3,9 +3,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
+import '../utils/user_manager.dart';
 import '../widgets/custom_bottom_navbar.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/side_menu_overlay.dart';
+import '../widgets/location_permission_dialog.dart';
 import '../widgets/feed/post_card_factory.dart';
 import '../models/post_models.dart';
 import '../widgets/common/user_avatar.dart';
@@ -19,12 +21,43 @@ class HomeFeedScreen extends StatefulWidget {
 class _HomeFeedScreenState extends State<HomeFeedScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _loading = true;
+  bool _locationRequested = false;
   List<PostData> _posts = [];
 
   @override
   void initState() {
     super.initState();
     _loadFeedFromDatabase();
+    // Solicitar localização após um pequeno delay para a tela carregar
+    Future.delayed(Duration(milliseconds: 800), () {
+      _requestLocationPermission();
+    });
+  }
+
+  Future<void> _requestLocationPermission() async {
+    // Verificar se já foi solicitada ou se já temos localização
+    if (_locationRequested || UserManager.instance.hasLocation) {
+      return;
+    }
+
+    _locationRequested = true;
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => LocationPermissionDialog(
+          onLocationResult: (location) {
+            if (location != null) {
+              print('📍 Localização obtida: ${location.displayLocation}');
+              // A localização já é salva automaticamente pelo dialog
+            } else {
+              print('❌ Usuário não permitiu localização');
+            }
+          },
+        ),
+      );
+    }
   }
 
   Future<void> _loadFeedFromDatabase() async {
@@ -407,8 +440,11 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                         ),
                       ),
                       const SizedBox(height: 1),
+                      // Mostrar localização se disponível
                       Text(
-                        'Que tal um cafezinho?',
+                        UserManager.instance.hasLocation 
+                          ? 'Em ${UserManager.instance.locationDisplay}'
+                          : 'Que tal um cafezinho?',
                         style: GoogleFonts.albertSans(
                           fontSize: 16,
                           color: AppColors.textSecondary,
