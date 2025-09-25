@@ -68,24 +68,24 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     try {
       // Buscar dados do Supabase
       final rawPosts = await FeedService.getFeed();
-      
+
       // Converter para PostData
       final List<PostData> convertedPosts = [];
-      
+
       for (var post in rawPosts) {
         // Determinar tipo do post baseado nos campos
         PostType postType = PostType.traditional;
-        
+
         // Verificar tipo baseado nos campos disponíveis
         if (post.pontuacao != null && post.nomeCafeteria != null) {
           postType = PostType.coffeeReview;
         } else if (post.nomeCafeteria != null && post.endereco != null) {
           postType = PostType.newCoffee;
         }
-        
+
         // Criar PostData baseado no tipo
         PostData newPost;
-        
+
         switch (postType) {
           case PostType.coffeeReview:
             newPost = PostData.review(
@@ -97,7 +97,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               coffeeName: post.nomeCafeteria ?? '',
               rating: post.pontuacao ?? 0.0,
               coffeeId: 'coffee_${post.id}',
-              imageUrl: post.imagemUrl,
+              imageUrl: post.urlFoto,
               videoUrl: post.urlVideo,
               likes: _parseIntFromString(post.comentarios) ?? 0,
               comments: 0,
@@ -107,7 +107,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               recentComments: [],
             );
             break;
-            
+
           case PostType.newCoffee:
             newPost = PostData.newCoffee(
               id: post.id?.toString() ?? '0',
@@ -117,14 +117,14 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               coffeeName: post.nomeCafeteria ?? 'Nova Cafeteria',
               coffeeAddress: post.endereco ?? 'Endereço não informado',
               coffeeId: 'coffee_${post.id}',
-              imageUrl: post.imagemUrl,
+              imageUrl: post.urlFoto,
               likes: _parseIntFromString(post.comentarios) ?? 0,
               comments: 0,
               isLiked: false,
               recentComments: [],
             );
             break;
-            
+
           default:
             newPost = PostData.traditional(
               id: post.id?.toString() ?? '0',
@@ -132,7 +132,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               authorAvatar: post.fotoUrl ?? post.urlFoto ?? '',
               date: _formatDate(post.criadoEm),
               content: post.descricao ?? '',
-              imageUrl: post.imagemUrl,
+              imageUrl: post.urlFoto,
               videoUrl: post.urlVideo,
               likes: _parseIntFromString(post.comentarios) ?? 0,
               comments: 0,
@@ -140,23 +140,22 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               recentComments: [],
             );
         }
-        
+
         convertedPosts.add(newPost);
       }
-      
+
       // Se não houver posts, adicionar alguns de exemplo
       if (convertedPosts.isEmpty) {
         convertedPosts.addAll(_getExamplePosts());
       }
-      
+
       setState(() {
         _posts = convertedPosts;
         _loading = false;
       });
-      
     } catch (e) {
       print('Erro ao carregar feed: $e');
-      
+
       // Em caso de erro, usar posts de exemplo
       setState(() {
         _posts = _getExamplePosts();
@@ -173,7 +172,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
         authorName: 'Equipe Kafex',
         authorAvatar: '',
         date: 'agora',
-        content: 'Bem-vindo ao Kafex! Explore cafeterias incríveis e compartilhe suas experiências ☕',
+        content:
+            'Bem-vindo ao Kafex! Explore cafeterias incríveis e compartilhe suas experiências ☕',
         imageUrl: null,
         videoUrl: null,
         likes: 1,
@@ -186,7 +186,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
         authorName: 'Sistema',
         authorAvatar: '',
         date: 'há 1 hora',
-        content: 'Compartilhe suas experiências com café e descubra novos lugares incríveis!',
+        content:
+            'Compartilhe suas experiências com café e descubra novos lugares incríveis!',
         imageUrl: null,
         videoUrl: null,
         likes: 0,
@@ -204,9 +205,9 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'agora';
-    
+
     final Duration difference = DateTime.now().difference(date);
-    
+
     if (difference.inMinutes < 1) {
       return 'agora';
     } else if (difference.inMinutes < 60) {
@@ -351,16 +352,20 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                       coffeeId: post.coffeeId,
                       isFavorited: post.isFavorited,
                       wantToVisit: post.wantToVisit,
-                      onFavorite: post.coffeeId != null 
-                        ? () => _handleFavorite(post.coffeeId!) 
-                        : null,
-                      onWantToVisit: post.coffeeId != null 
-                        ? () => _handleWantToVisit(post.coffeeId!) 
-                        : null,
+                      onFavorite: post.coffeeId != null
+                          ? () => _handleFavorite(post.coffeeId!)
+                          : null,
+                      onWantToVisit: post.coffeeId != null
+                          ? () => _handleWantToVisit(post.coffeeId!)
+                          : null,
                       coffeeAddress: post.coffeeAddress,
-                      onEvaluateNow: post.coffeeId != null && post.coffeeName != null
-                        ? () => _handleEvaluateNow(post.coffeeId!, post.coffeeName!)
-                        : null,
+                      onEvaluateNow:
+                          post.coffeeId != null && post.coffeeName != null
+                          ? () => _handleEvaluateNow(
+                              post.coffeeId!,
+                              post.coffeeName!,
+                            )
+                          : null,
                       onViewAllComments: () => _handleViewAllComments(post.id),
                     );
                   }).toList(),
@@ -442,9 +447,9 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                       const SizedBox(height: 1),
                       // Mostrar localização se disponível
                       Text(
-                        UserManager.instance.hasLocation 
-                          ? 'Em ${UserManager.instance.locationDisplay}'
-                          : 'Que tal um cafezinho?',
+                        UserManager.instance.hasLocation
+                            ? 'Em ${UserManager.instance.locationDisplay}'
+                            : 'Que tal um cafezinho?',
                         style: GoogleFonts.albertSans(
                           fontSize: 16,
                           color: AppColors.textSecondary,
