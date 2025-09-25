@@ -1,5 +1,5 @@
 name: kafex
-description: "A new Flutter project."
+description: "Um guia confiável para quem ama café especial"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -75,6 +75,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -96,6 +97,22 @@ flutter:
     - family: Monigue
       fonts:
         - asset: assets/fonts/Monigue.ttf
+
+# Configuração do ícone do app
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "app_icon/icon.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "app_icon/icon.png"
+  windows:
+    generate: true
+    image_path: "app_icon/icon.png"
+  macos:
+    generate: true
+    image_path: "app_icon/icon.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
