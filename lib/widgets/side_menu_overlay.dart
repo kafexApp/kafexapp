@@ -1,16 +1,14 @@
-// lib/widgets/side_menu_overlay.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../utils/app_colors.dart';
-import '../utils/app_icons.dart';
 import '../utils/user_manager.dart';
 import '../services/auth_service.dart';
 import '../screens/home_feed_screen.dart';
 import '../screens/cafe_explorer_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/splash_screen.dart';
-import '../widgets/create_post.dart'; // Import do widget create_post
+import '../screens/profile_settings_screen.dart';
 
 class SideMenuOverlay extends StatefulWidget {
   final VoidCallback onClose;
@@ -45,16 +43,13 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
     }
   }
 
-  void _navigateToScreen(BuildContext context, Widget screen) {
+  void _openSettings() {
     widget.onClose();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => screen),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ProfileSettingsScreen(),
+      ),
     );
-  }
-
-  void _showCreatePostModal(BuildContext context) {
-    widget.onClose(); // Fecha o menu lateral primeiro
-    showCreatePostModal(context); // Usa a função do create_post_screen.dart
   }
 
   @override
@@ -63,23 +58,13 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
       color: Colors.transparent,
       child: Stack(
         children: [
-          // Background overlay com fade separado
-          AnimatedBuilder(
-            animation: ModalRoute.of(context)?.animation ?? const AlwaysStoppedAnimation(1.0),
-            builder: (context, child) {
-              final animation = ModalRoute.of(context)?.animation ?? const AlwaysStoppedAnimation(1.0);
-              return FadeTransition(
-                opacity: animation,
-                child: GestureDetector(
-                  onTap: widget.onClose,
-                  child: Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: Colors.black.withOpacity(0.5),
-                  ),
-                ),
-              );
-            },
+          GestureDetector(
+            onTap: widget.onClose,
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.black.withOpacity(0.5),
+            ),
           ),
           
           Positioned(
@@ -116,7 +101,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                   
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    child: _buildUserHeaderWithLogout(),
+                    child: _buildUserHeader(),
                   ),
                   
                   Container(
@@ -130,44 +115,51 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                     child: Column(
                       children: [
                         _buildMenuItem(
-                          context: context,
-                          icon: AppIcons.home, // Agora usando Phosphor Regular
+                          icon: PhosphorIcons.house(),
                           title: 'Início',
-                          onTap: () => _navigateToScreen(context, HomeFeedScreen()),
+                          onTap: () {
+                            widget.onClose();
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+                            );
+                          },
                         ),
                         
                         _buildMenuItem(
-                          context: context,
-                          icon: AppIcons.coffee, // Agora usando Phosphor Regular
+                          icon: PhosphorIcons.coffee(),
                           title: 'Cafeterias',
-                          onTap: () => _navigateToScreen(context, CafeExplorerScreen()),
+                          onTap: () {
+                            widget.onClose();
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (context) => CafeExplorerScreen()),
+                            );
+                          },
                         ),
                         
                         _buildMenuItem(
-                          context: context,
-                          icon: AppIcons.notification, // Agora usando Phosphor Regular
+                          icon: PhosphorIcons.bell(),
                           title: 'Notificações',
-                          onTap: () => _navigateToScreen(context, NotificationsScreen()),
+                          onTap: () {
+                            widget.onClose();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => NotificationsScreen()),
+                            );
+                          },
                         ),
                         
                         _buildMenuItem(
-                          context: context,
-                          icon: AppIcons.user, // Agora usando Phosphor Regular
+                          icon: PhosphorIcons.user(),
                           title: 'Perfil',
                           onTap: () {
                             widget.onClose();
-                            print('Navegar para perfil');
+                            print('Navegar para perfil - Em desenvolvimento');
                           },
                         ),
                         
                         _buildMenuItem(
-                          context: context,
-                          icon: AppIcons.settings, // Agora usando Phosphor Regular
+                          icon: PhosphorIcons.gear(),
                           title: 'Configurações',
-                          onTap: () {
-                            widget.onClose();
-                            print('Navegar para configurações');
-                          },
+                          onTap: _openSettings,
                         ),
                         
                         Container(
@@ -176,7 +168,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                           margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                         
-                        _buildCreatePostButton(context),
+                        _buildCreatePostButton(),
                       ],
                     ),
                   ),
@@ -191,7 +183,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
     );
   }
 
-  Widget _buildUserHeaderWithLogout() {
+  Widget _buildUserHeader() {
     final userManager = UserManager.instance;
     final userName = userManager.userName;
     final userEmail = userManager.userEmail;
@@ -212,7 +204,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                   width: 2,
                 ),
               ),
-              child: userPhotoUrl != null 
+              child: userPhotoUrl != null && userPhotoUrl.isNotEmpty
                   ? ClipOval(
                       child: Image.network(
                         userPhotoUrl,
@@ -267,7 +259,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  AppIcons.close, // Agora usando Phosphor Regular
+                  PhosphorIcons.x(),
                   color: AppColors.textSecondary,
                   size: 20,
                 ),
@@ -298,7 +290,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        AppIcons.signOut, // Agora usando Phosphor Regular
+                        PhosphorIcons.signOut(),
                         color: AppColors.spiced,
                         size: 16,
                       ),
@@ -319,88 +311,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildCreatePostButton(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showCreatePostModal(context),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppColors.papayaSensorial,
-                AppColors.papayaSensorial.withOpacity(0.8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.papayaSensorial.withOpacity(0.3),
-                blurRadius: 8,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.whiteWhite.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  AppIcons.plus, // Agora usando Phosphor Regular
-                  color: AppColors.whiteWhite,
-                  size: 24,
-                ),
-              ),
-              
-              SizedBox(width: 16),
-              
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Criar post',
-                      style: GoogleFonts.albertSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.whiteWhite,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Compartilhe sua experiência com café',
-                      style: GoogleFonts.albertSans(
-                        fontSize: 13,
-                        color: AppColors.whiteWhite.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              Icon(
-                AppIcons.chevronRight, // Agora usando Phosphor Regular
-                color: AppColors.whiteWhite,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -437,8 +347,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
   }
 
   Widget _buildMenuItem({
-    required BuildContext context,
-    required dynamic icon, // Agora aceita PhosphorIconData
+    required IconData icon,
     required String title,
     required VoidCallback onTap,
   }) {
@@ -480,7 +389,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
               Spacer(),
               
               Icon(
-                AppIcons.chevronRight, // Agora usando Phosphor Regular
+                PhosphorIcons.caretRight(),
                 color: AppColors.grayScale2,
                 size: 16,
               ),
@@ -490,15 +399,99 @@ class _SideMenuOverlayState extends State<SideMenuOverlay> {
       ),
     );
   }
+
+  Widget _buildCreatePostButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          widget.onClose();
+          print('Abrir modal de criar post - Em desenvolvimento');
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.papayaSensorial,
+                AppColors.papayaSensorial.withOpacity(0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.papayaSensorial.withOpacity(0.3),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.whiteWhite.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  PhosphorIcons.plus(),
+                  color: AppColors.whiteWhite,
+                  size: 24,
+                ),
+              ),
+              
+              SizedBox(width: 16),
+              
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Criar post',
+                      style: GoogleFonts.albertSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.whiteWhite,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Compartilhe sua experiência com café',
+                      style: GoogleFonts.albertSans(
+                        fontSize: 13,
+                        color: AppColors.whiteWhite.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              Icon(
+                PhosphorIcons.caretRight(),
+                color: AppColors.whiteWhite,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-// Função helper para mostrar o menu
 void showSideMenu(BuildContext context) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    barrierColor: Colors.transparent, // Remove o background padrão
+    barrierColor: Colors.transparent,
     builder: (context) => SideMenuOverlay(
       onClose: () => Navigator.of(context).pop(),
     ),

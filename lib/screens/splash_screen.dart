@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../utils/app_colors.dart';
 import '../services/update_service.dart';
 import 'welcome_screen.dart';
@@ -25,12 +26,28 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _exitFade;
 
   bool _hasCheckedForUpdates = false;
+  String _appVersion = '...'; // Versão será carregada dinamicamente
 
   @override
   void initState() {
     super.initState();
+    _loadAppVersion();
     _initAnimations();
     _startAnimationSequence();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      setState(() {
+        _appVersion = 'versão ${packageInfo.version}';
+      });
+    } catch (e) {
+      print('Erro ao carregar versão do app: $e');
+      setState(() {
+        _appVersion = 'versão 3.0.0'; // Fallback
+      });
+    }
   }
 
   void _initAnimations() {
@@ -298,9 +315,9 @@ class _SplashScreenState extends State<SplashScreen>
                                 padding: const EdgeInsets.only(bottom: 60.0),
                                 child: Column(
                                   children: [
-                                    // Texto da versão
+                                    // Texto da versão (dinâmico)
                                     Text(
-                                      'versão 3.0.0',
+                                      _appVersion,
                                       style: TextStyle(
                                         fontFamily: 'Albert Sans',
                                         fontSize: 12,

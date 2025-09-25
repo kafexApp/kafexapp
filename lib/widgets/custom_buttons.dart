@@ -6,7 +6,7 @@ import '../utils/app_colors.dart';
 // BOTÃO PRIMÁRIO - Papaya Sensorial com texto White White
 class PrimaryButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed; // Mudança aqui: nullable
   final bool isLoading;
   final double? width;
   final double height;
@@ -64,7 +64,7 @@ class PrimaryButton extends StatelessWidget {
 // BOTÃO SECUNDÁRIO - Velvet Merlot com texto Papaya
 class SecondaryButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed; // Mudança aqui: nullable
   final bool isLoading;
   final double? width;
   final double height;
@@ -122,7 +122,7 @@ class SecondaryButton extends StatelessWidget {
 // BOTÃO OUTLINED - Fundo transparente com borda Velvet Merlot
 class CustomOutlineButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed; // Mudança aqui: nullable
   final bool isLoading;
   final double? width;
   final double height;
