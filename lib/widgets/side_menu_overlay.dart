@@ -9,6 +9,7 @@ import '../screens/cafe_explorer_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/profile_settings_screen.dart';
+import '../screens/user_profile_screen.dart';
 import '../widgets/create_post.dart';
 
 class SideMenuOverlay extends StatefulWidget {
@@ -36,7 +37,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
     
     _animationController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 350), // Animação mais suave M3
+      duration: Duration(milliseconds: 350),
     );
     
     _slideAnimation = Tween<Offset>(
@@ -44,7 +45,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeOutCubic, // Curva M3
+      curve: Curves.easeOutCubic,
     ));
     
     _fadeAnimation = Tween<double>(
@@ -69,6 +70,38 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
     widget.onClose();
   }
 
+  // Método corrigido para navegação
+  Future<void> _navigateToScreen(Widget screen) async {
+    // Primeiro fecha o menu
+    await _closeMenu();
+    
+    // Aguarda um frame para garantir que o menu foi fechado
+    await Future.delayed(Duration(milliseconds: 50));
+    
+    // Então navega para a tela
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => screen),
+      );
+    }
+  }
+
+  // Método para navegação push (não replacement)
+  Future<void> _pushToScreen(Widget screen) async {
+    // Primeiro fecha o menu
+    await _closeMenu();
+    
+    // Aguarda um frame para garantir que o menu foi fechado
+    await Future.delayed(Duration(milliseconds: 50));
+    
+    // Então navega para a tela
+    if (mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => screen),
+      );
+    }
+  }
+
   Future<void> _logout(BuildContext context) async {
     try {
       UserManager.instance.clearUserData();
@@ -87,15 +120,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
     }
   }
 
-  void _openSettings() {
-    _closeMenu();
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ProfileSettingsScreen(),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -110,7 +134,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                color: Theme.of(context).colorScheme.scrim.withOpacity(0.32), // M3 scrim
+                color: Theme.of(context).colorScheme.scrim.withOpacity(0.32),
               ),
             ),
           ),
@@ -124,14 +148,14 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
               position: _slideAnimation,
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface, // M3 surface
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(28), // M3 border radius
+                    topLeft: Radius.circular(28),
                     topRight: Radius.circular(28),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.15), // M3 shadow
+                      color: Theme.of(context).colorScheme.shadow.withOpacity(0.15),
                       blurRadius: 24,
                       offset: Offset(0, -8),
                     ),
@@ -146,7 +170,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                       width: 32,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4), // M3 handle
+                        color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.4),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -164,12 +188,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.house(),
                             title: 'Início',
                             subtitle: 'Feed principal',
-                            onTap: () {
-                              _closeMenu();
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(builder: (context) => HomeFeedScreen()),
-                              );
-                            },
+                            onTap: () => _navigateToScreen(HomeFeedScreen()),
                           ),
                           
                           SizedBox(height: 8),
@@ -178,12 +197,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.coffee(),
                             title: 'Cafeterias',
                             subtitle: 'Explorar cafeterias',
-                            onTap: () {
-                              _closeMenu();
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(builder: (context) => CafeExplorerScreen()),
-                              );
-                            },
+                            onTap: () => _navigateToScreen(CafeExplorerScreen()),
                           ),
                           
                           SizedBox(height: 8),
@@ -192,12 +206,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.bell(),
                             title: 'Notificações',
                             subtitle: 'Alertas e atualizações',
-                            onTap: () {
-                              _closeMenu();
-                              Navigator.of(context).push(
-                                MaterialPageRoute(builder: (context) => NotificationsScreen()),
-                              );
-                            },
+                            onTap: () => _pushToScreen(NotificationsScreen()),
                           ),
                           
                           SizedBox(height: 8),
@@ -207,8 +216,12 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             title: 'Perfil',
                             subtitle: 'Meus dados',
                             onTap: () {
-                              _closeMenu();
-                              print('Navegar para perfil - Em desenvolvimento');
+                              final userManager = UserManager.instance;
+                              _pushToScreen(UserProfileScreen(
+                                userId: userManager.userEmail, // Usando email como ID
+                                userName: userManager.userName,
+                                userAvatar: userManager.userPhotoUrl,
+                              ));
                             },
                           ),
                           
@@ -218,7 +231,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.gear(),
                             title: 'Configurações',
                             subtitle: 'Preferências do app',
-                            onTap: _openSettings,
+                            onTap: () => _pushToScreen(ProfileSettingsScreen()),
                           ),
                           
                           SizedBox(height: 20),
@@ -255,7 +268,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
               height: 64,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primaryContainer, // M3 container
+                color: Theme.of(context).colorScheme.primaryContainer,
               ),
               child: userPhotoUrl != null && userPhotoUrl.isNotEmpty
                   ? ClipOval(
@@ -302,7 +315,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
               ),
             ),
             
-            // Botão fechar com cor cinza clara
+            // Botão fechar
             IconButton(
               onPressed: _closeMenu,
               icon: Icon(
@@ -310,7 +323,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               style: IconButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.surfaceVariant, // Cinza clarinho igual ao hover
+                backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -321,7 +334,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
         
         SizedBox(height: 16),
         
-        // Botão logout com Material 3
+        // Botão logout
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -337,7 +350,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                 fontWeight: FontWeight.w500,
               ),
             ),
-            style: OutlinedButton.styleFrom( // M3 OutlinedButton style
+            style: OutlinedButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
               side: BorderSide(
                 color: Theme.of(context).colorScheme.error.withOpacity(0.12),
@@ -359,7 +372,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
       height: 64,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Theme.of(context).colorScheme.primaryContainer, // M3 container
+        color: Theme.of(context).colorScheme.primaryContainer,
       ),
       child: Center(
         child: Text(
@@ -384,7 +397,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16), // M3 border radius
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -395,12 +408,12 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondaryContainer, // M3 container
+                  color: Theme.of(context).colorScheme.secondaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: Theme.of(context).colorScheme.onSecondaryContainer, // M3 on-container
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
                   size: 24,
                 ),
               ),
@@ -446,7 +459,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
   Widget _buildCreatePostButton() {
     return SizedBox(
       width: double.infinity,
-      child: FilledButton.tonalIcon( // M3 Filled Tonal - mais suave que o Filled
+      child: FilledButton.tonalIcon(
         onPressed: () async {
           await _animationController.reverse();
           Navigator.of(context).pop();
@@ -469,7 +482,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
           ),
         ),
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.papayaSensorial, // Cor Papaya Sensorial
+          backgroundColor: AppColors.papayaSensorial,
           foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           shape: RoundedRectangleBorder(
@@ -490,7 +503,7 @@ void showSideMenu(BuildContext context) {
       pageBuilder: (context, animation, secondaryAnimation) => SideMenuOverlay(
         onClose: () => Navigator.of(context).pop(),
       ),
-      transitionDuration: Duration(milliseconds: 350), // M3 timing
+      transitionDuration: Duration(milliseconds: 350),
       reverseTransitionDuration: Duration(milliseconds: 350),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         return child;
