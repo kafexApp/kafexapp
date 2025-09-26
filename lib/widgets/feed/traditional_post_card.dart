@@ -36,6 +36,8 @@ class TraditionalPostCard extends BasePostCard {
 class _TraditionalPostCardState extends BasePostCardState<TraditionalPostCard> {
   bool _isExpanded = false;
   
+  // Sobrescrever o método do base para usar nossa implementação específica
+  @override
   void _openCommentsModal() {
     widget.onComment?.call();
     
@@ -46,60 +48,6 @@ class _TraditionalPostCardState extends BasePostCardState<TraditionalPostCard> {
       onCommentAdded: (newComment) {
         print('Novo comentário adicionado: $newComment');
       },
-    );
-  }
-
-  bool get _isAuthor {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return false;
-    
-    return currentUser.displayName == widget.post.authorName ||
-           currentUser.email?.split('@')[0] == widget.post.authorName.toLowerCase().replaceAll(' ', '');
-  }
-
-  @override
-  void navigateToUserProfile(String userName, String? userAvatar) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UserProfileScreen(
-          userId: widget.post.id,
-          userName: widget.post.authorName,
-          userAvatar: widget.post.authorAvatar,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget buildCustomActions() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(
-        children: [
-          // Botão Like
-          GestureDetector(
-            onTap: toggleLike,
-            child: Icon(
-              isLiked ? AppIcons.heartFill : AppIcons.heart,
-              size: 24,
-              color: isLiked ? AppColors.spiced : AppColors.carbon,
-            ),
-          ),
-          
-          SizedBox(width: 16),
-          
-          // Botão Comentário
-          GestureDetector(
-            onTap: _openCommentsModal,
-            child: Icon(
-              AppIcons.comment,
-              size: 24,
-              color: AppColors.carbon,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -114,48 +62,66 @@ class _TraditionalPostCardState extends BasePostCardState<TraditionalPostCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // DESCRIÇÃO EXPANDÍVEL
+        // DESCRIÇÃO EXPANDÍVEL - Material 3 style
         if (widget.post.content.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 RichText(
                   text: TextSpan(
                     style: GoogleFonts.albertSans(
-                      fontSize: 14,
+                      fontSize: 15,
                       color: AppColors.carbon,
-                      height: 1.4,
+                      height: 1.5,
+                      letterSpacing: 0.1,
                     ),
                     children: [
                       TextSpan(
                         text: widget.post.authorName,
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.carbon,
+                        ),
                       ),
                       TextSpan(text: ' '),
                       TextSpan(
                         text: _isExpanded || widget.post.content.length <= 120
                           ? widget.post.content
                           : '${widget.post.content.substring(0, 120)}...',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.carbon.withOpacity(0.85),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 if (widget.post.content.length > 120)
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isExpanded = !_isExpanded;
-                      });
-                    },
-                    child: Padding(
-                      padding: EdgeInsets.only(top: 4),
-                      child: Text(
-                        _isExpanded ? 'menos' : 'mais',
-                        style: GoogleFonts.albertSans(
-                          fontSize: 14,
-                          color: AppColors.grayScale1,
+                  Container(
+                    margin: EdgeInsets.only(top: 6),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(4),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                          child: Text(
+                            _isExpanded ? 'ver menos' : 'ver mais',
+                            style: GoogleFonts.albertSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.grayScale1,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -164,17 +130,29 @@ class _TraditionalPostCardState extends BasePostCardState<TraditionalPostCard> {
             ),
           ),
         
-        // CONTADOR DE COMENTÁRIOS
+        // CONTADOR DE COMENTÁRIOS - Material 3 style
         if (widget.post.comments > 0)
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: GestureDetector(
-              onTap: _openCommentsModal,
-              child: Text(
-                'Ver ${widget.post.comments == 1 ? '1 comentário' : 'todos os ${widget.post.comments} comentários'}',
-                style: GoogleFonts.albertSans(
-                  fontSize: 14,
-                  color: AppColors.grayScale1,
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 16),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _openCommentsModal,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                  child: Text(
+                    widget.post.comments == 1 
+                      ? 'Ver 1 comentário' 
+                      : 'Ver todos os ${widget.post.comments} comentários',
+                    style: GoogleFonts.albertSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.grayScale1,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
                 ),
               ),
             ),
