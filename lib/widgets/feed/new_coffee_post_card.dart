@@ -73,19 +73,6 @@ class NewCoffeePostCard extends BasePostCard {
 class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
   bool _isFavorite = false;
   bool _wantToVisit = false;
-  
-  void _openCommentsModal() {
-    widget.onComment?.call();
-    
-    showCommentsModal(
-      context,
-      postId: widget.post.id,
-      comments: [],
-      onCommentAdded: (newComment) {
-        print('Novo comentário adicionado: $newComment');
-      },
-    );
-  }
 
   void _openEvaluationModal() {
     showCafeEvaluationModal(
@@ -155,64 +142,6 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
         customIcon: Icon(AppIcons.tag, color: AppColors.cyberLime, size: 20),
       );
     }
-  }
-
-  bool get _isAuthor {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return false;
-    
-    return currentUser.displayName == widget.post.authorName ||
-           currentUser.email?.split('@')[0] == widget.post.authorName.toLowerCase().replaceAll(' ', '');
-  }
-
-  @override
-  void navigateToUserProfile(String userName, String? userAvatar) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UserProfileScreen(
-          userId: widget.post.id,
-          userName: widget.post.authorName,
-          userAvatar: widget.post.authorAvatar,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget buildCustomActions() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(
-        children: [
-          // Botão Like
-          GestureDetector(
-            onTap: () {
-              print('Like clicado - Estado antes: isLiked=$isLiked, likesCount=$likesCount');
-              toggleLike();
-              print('Like clicado - Estado depois: isLiked=$isLiked, likesCount=$likesCount');
-            },
-            child: Icon(
-              isLiked ? AppIcons.heartFill : AppIcons.heart,
-              size: 24,
-              color: isLiked ? AppColors.spiced : AppColors.carbon,
-            ),
-          ),
-          
-          SizedBox(width: 16),
-          
-          // Botão Comentário
-          GestureDetector(
-            onTap: _openCommentsModal,
-            child: Icon(
-              AppIcons.comment,
-              size: 24,
-              color: AppColors.carbon,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   // Sobrescrever buildPostContent para não renderizar o conteúdo padrão
@@ -484,7 +413,17 @@ class _NewCoffeePostCardState extends BasePostCardState<NewCoffeePostCard> {
           Padding(
             padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: GestureDetector(
-              onTap: _openCommentsModal,
+              onTap: () {
+                widget.onComment?.call();
+                showCommentsModal(
+                  context,
+                  postId: widget.post.id,
+                  comments: [],
+                  onCommentAdded: (newComment) {
+                    print('Novo comentário adicionado: $newComment');
+                  },
+                );
+              },
               child: Text(
                 'Ver ${widget.post.comments == 1 ? '1 comentário' : 'todos os ${widget.post.comments} comentários'}',
                 style: GoogleFonts.albertSans(

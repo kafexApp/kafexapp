@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
 import '../comments_bottom_sheet.dart';
+import '../../screens/user_profile_screen.dart';
 
 abstract class BasePostCard extends StatefulWidget {
   final PostData post;
@@ -41,9 +43,10 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
     isLiked = widget.post.isLiked;
     likesCount = widget.post.likes;
     
-    print('BASE POST CARD INIT - Iniciado!');
-    
-    // Configurar animação do coração
+    _initializeHeartAnimation();
+  }
+
+  void _initializeHeartAnimation() {
     _heartAnimationController = AnimationController(
       duration: Duration(milliseconds: 400),
       vsync: this,
@@ -103,40 +106,43 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
     super.dispose();
   }
 
+  // MÉTODOS PRINCIPAIS QUE PODEM SER SOBRESCRITOS
   void toggleLike() {
-    print('TOGGLE LIKE - Estado antes: isLiked=$isLiked, likesCount=$likesCount');
-    
     setState(() {
       isLiked = !isLiked;
       likesCount += isLiked ? 1 : -1;
     });
-    
-    print('TOGGLE LIKE - Estado depois: isLiked=$isLiked, likesCount=$likesCount');
     widget.onLike?.call();
   }
 
   void _triggerHeartAnimation() {
-    print('TRIGGER HEART ANIMATION - Iniciando...');
-    
     if (mounted) {
       setState(() {
         _showHeartAnimation = true;
       });
-      print('TRIGGER HEART ANIMATION - _showHeartAnimation: $_showHeartAnimation');
       _heartAnimationController.forward(from: 0.0);
     }
   }
 
   void navigateToUserProfile(String userName, String? avatarUrl) {
-    Navigator.pushNamed(
+    Navigator.push(
       context,
-      '/user-profile',
-      arguments: {
-        'userId': 'user_${userName.toLowerCase().replaceAll(' ', '_')}',
-        'userName': userName,
-        'userAvatar': avatarUrl,
-      },
+      MaterialPageRoute(
+        builder: (context) => UserProfileScreen(
+          userId: userName.toLowerCase().replaceAll(' ', '_'),
+          userName: userName,
+          userAvatar: avatarUrl,
+        ),
+      ),
     );
+  }
+
+  bool get _isAuthor {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return false;
+    
+    return currentUser.displayName == widget.post.authorName ||
+           currentUser.email?.split('@')[0] == widget.post.authorName.toLowerCase().replaceAll(' ', '');
   }
 
   void showPostOptionsModal() {
@@ -156,7 +162,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle do modal - Material 3 style
+              // Handle do modal
               Container(
                 margin: EdgeInsets.only(top: 16, bottom: 8),
                 width: 32,
@@ -169,7 +175,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
               
               SizedBox(height: 16),
               
-              // Opção Editar - Material 3 style
+              // Opção Editar
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -178,7 +184,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
                     widget.onEdit?.call();
                   },
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16), // 20 → 12 (40% redução)
                     child: Row(
                       children: [
                         Container(
@@ -211,12 +217,12 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
               
               // Divider sutil
               Container(
-                margin: EdgeInsets.symmetric(horizontal: 20),
+                margin: EdgeInsets.symmetric(horizontal: 12), // 20 → 12 (40% redução)
                 height: 1,
                 color: AppColors.moonAsh.withOpacity(0.3),
               ),
               
-              // Opção Excluir - Material 3 style
+              // Opção Excluir
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -225,7 +231,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
                     widget.onDelete?.call();
                   },
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16), // 20 → 12 (40% redução)
                     child: Row(
                       children: [
                         Container(
@@ -264,12 +270,13 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
     );
   }
 
+  // MÉTODOS DE CONSTRUÇÃO DA UI
   Widget buildPostHeader() {
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
+      padding: EdgeInsets.fromLTRB(12, 10, 12, 8), // 16 → 8 (50% redução)
       child: Row(
         children: [
-          // Avatar clicável - Material 3 style
+          // Avatar clicável
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -307,9 +314,9 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
             ),
           ),
           
-          SizedBox(width: 12),
+          SizedBox(width: 8), // ESPAÇO ENTRE AVATAR E NOME DO USUÁRIO
           
-          // Informações do usuário - Material 3 style
+          // Informações do usuário
           Expanded(
             child: Material(
               color: Colors.transparent,
@@ -352,7 +359,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
             ),
           ),
           
-          // Menu de opções - Material 3 style
+          // Menu de opções
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -414,38 +421,29 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
                          widget.post.imageUrl!.isNotEmpty && 
                          widget.post.imageUrl!.startsWith('http');
     
-    print('BUILD POST MEDIA - hasValidImage: $hasValidImage');
-    print('BUILD POST MEDIA - imageUrl: ${widget.post.imageUrl}');
-    
     if (!hasValidImage) {
       return SizedBox.shrink();
     }
 
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.fromLTRB(20, 8, 20, 0),
+      margin: EdgeInsets.fromLTRB(0, 0, 0, 0), // Remove margem superior completamente
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onDoubleTap: () {
-            print('DUPLO CLIQUE DETECTADO NA IMAGEM!');
             toggleLike();
             _triggerHeartAnimation();
           },
-          borderRadius: BorderRadius.circular(16),
           child: Container(
             height: 300,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
               color: AppColors.moonAsh.withOpacity(0.1),
             ),
             child: Stack(
               children: [
-                // Imagem
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: buildImageMedia(),
-                ),
+                // Imagem sem bordas arredondadas
+                buildImageMedia(),
                 
                 // Animação do coração
                 if (_showHeartAnimation)
@@ -454,7 +452,6 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
                       child: AnimatedBuilder(
                         animation: _heartAnimationController,
                         builder: (context, child) {
-                          print('ANIMANDO CORAÇÃO - scale: ${_heartScaleAnimation.value}, opacity: ${_heartOpacityAnimation.value}');
                           return Transform.scale(
                             scale: _heartScaleAnimation.value,
                             child: Opacity(
@@ -521,25 +518,12 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
   }
 
   Widget buildLikesCounter() {
-    if (likesCount <= 0) return SizedBox.shrink();
-    
-    return Container(
-      padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Text(
-        '$likesCount curtida${likesCount != 1 ? 's' : ''}',
-        style: GoogleFonts.albertSans(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-          letterSpacing: 0.1,
-        ),
-      ),
-    );
+    return SizedBox.shrink(); // Remove contador de likes completamente
   }
 
   Widget buildPostContent() {
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 8, 20, 0),
+      padding: EdgeInsets.fromLTRB(12, 0, 12, 0), // Remove padding superior completamente
       child: RichText(
         text: TextSpan(
           children: [
@@ -568,13 +552,13 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
     );
   }
 
-  // Método padrão para ações - pode ser sobrescrito se necessário
+  // Método padrão para ações
   Widget buildCustomActions() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12), // 20 → 12 (40% redução)
       child: Row(
         children: [
-          // Botão Like - Material 3 Filled Tonal style
+          // Botão Like
           buildActionButton(
             icon: isLiked ? AppIcons.heartFill : AppIcons.heart,
             iconColor: isLiked ? AppColors.spiced : AppColors.carbon,
@@ -583,9 +567,9 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
             isActive: isLiked,
           ),
           
-          SizedBox(width: 12),
+          SizedBox(width: 0), // ESPAÇO ENTRE BOTÃO LIKE E COMENTÁRIO
           
-          // Botão Comentário - Material 3 Filled Tonal style  
+          // Botão Comentário
           buildActionButton(
             icon: AppIcons.comment,
             iconColor: AppColors.carbon,
@@ -595,9 +579,9 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
           
           Spacer(),
           
-          // Botão Share - Material 3 Filled Tonal style
+          // Botão Share - ÍCONE PHOSPHOR PAPER-PLANE-TILT
           buildActionButton(
-            icon: AppIcons.share,
+            icon: AppIcons.paperPlaneTilt,
             iconColor: AppColors.carbon,
             onTap: _handleShare,
           ),
@@ -614,27 +598,29 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
     required VoidCallback onTap,
     bool isActive = false,
   }) {
+    final hasCount = count != null && count > 0;
+    
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: hasCount 
+          ? BorderRadius.circular(20) // Retangular quando tem contador
+          : BorderRadius.circular(20), // Circular quando só ícone
         splashColor: iconColor.withOpacity(0.1),
         highlightColor: iconColor.withOpacity(0.05),
         child: AnimatedContainer(
           duration: Duration(milliseconds: 200),
-          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: hasCount 
+            ? EdgeInsets.symmetric(horizontal: 12, vertical: 8) // Padding retangular
+            : EdgeInsets.all(10), // Padding circular
           decoration: BoxDecoration(
             color: isActive 
               ? iconColor.withOpacity(0.08)
               : Colors.transparent,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: isActive 
-                ? iconColor.withOpacity(0.2)
-                : Colors.transparent,
-              width: 1,
-            ),
+            borderRadius: hasCount 
+              ? BorderRadius.circular(20) // Formato retangular
+              : BorderRadius.circular(20), // Formato circular
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -644,7 +630,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
                 size: 24,
                 color: iconColor,
               ),
-              if (count != null && count > 0) ...[
+              if (hasCount) ...[
                 SizedBox(width: 6),
                 Text(
                   '$count',
@@ -693,7 +679,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      margin: EdgeInsets.symmetric(horizontal: 12, vertical: 10), // 20 → 12 (40% redução)
       decoration: BoxDecoration(
         color: AppColors.whiteWhite,
         borderRadius: BorderRadius.circular(24),

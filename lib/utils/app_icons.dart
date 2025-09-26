@@ -86,6 +86,10 @@ class AppIcons {
   static PhosphorIconData get mailFill => PhosphorIcons.envelope(PhosphorIconsStyle.fill);
   static PhosphorIconData get phone => PhosphorIcons.phone(PhosphorIconsStyle.regular);
   static PhosphorIconData get chat => PhosphorIcons.chatTeardrop(PhosphorIconsStyle.regular);
+  
+  // Envio e compartilhamento
+  static PhosphorIconData get paperPlaneTilt => PhosphorIcons.paperPlaneTilt(PhosphorIconsStyle.regular);
+  static PhosphorIconData get paperPlaneTiltFill => PhosphorIcons.paperPlaneTilt(PhosphorIconsStyle.fill);
 
   // =============================================================================
   // 👤 USUÁRIO E PERFIL

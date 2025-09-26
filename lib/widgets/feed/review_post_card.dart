@@ -153,63 +153,10 @@ class _ReviewPostCardState extends BasePostCardState<ReviewPostCard> {
     showCafeModal(context, mockCafeModel);
   }
 
-  void _openCommentsModal() {
-    widget.onComment?.call();
-    
-    showCommentsModal(
-      context,
-      postId: widget.post.id,
-      comments: [],
-      onCommentAdded: (newComment) {
-        print('📝 Novo comentário adicionado: $newComment');
-      },
-    );
-  }
-
+  // Sobrescrever buildPostContent para não renderizar o conteúdo padrão
   @override
-  void navigateToUserProfile(String userName, String? userAvatar) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UserProfileScreen(
-          userId: widget.post.id,
-          userName: widget.post.authorName,
-          userAvatar: widget.post.authorAvatar,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget buildCustomActions() {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Row(
-        children: [
-          // Botão Like
-          GestureDetector(
-            onTap: toggleLike,
-            child: Icon(
-              isLiked ? AppIcons.heartFill : AppIcons.heart,
-              size: 24,
-              color: isLiked ? AppColors.spiced : AppColors.carbon,
-            ),
-          ),
-          
-          SizedBox(width: 16),
-          
-          // Botão Comentário
-          GestureDetector(
-            onTap: _openCommentsModal,
-            child: Icon(
-              AppIcons.comment,
-              size: 24,
-              color: AppColors.carbon,
-            ),
-          ),
-        ],
-      ),
-    );
+  Widget buildPostContent() {
+    return SizedBox.shrink(); // Não renderiza nada
   }
 
   @override
@@ -217,6 +164,32 @@ class _ReviewPostCardState extends BasePostCardState<ReviewPostCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // DESCRIÇÃO
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: RichText(
+            text: TextSpan(
+              style: GoogleFonts.albertSans(
+                fontSize: 14,
+                color: AppColors.carbon,
+                height: 1.4,
+              ),
+              children: [
+                TextSpan(
+                  text: widget.post.authorName,
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                TextSpan(text: ' '),
+                TextSpan(
+                  text: widget.post.content.isNotEmpty 
+                    ? widget.post.content 
+                    : 'avaliou a cafeteria ${widget.coffeeName}',
+                ),
+              ],
+            ),
+          ),
+        ),
+        
         // BOX COM INFORMAÇÕES DA CAFETERIA AVALIADA
         Container(
           margin: EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -408,7 +381,17 @@ class _ReviewPostCardState extends BasePostCardState<ReviewPostCard> {
           Padding(
             padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: GestureDetector(
-              onTap: _openCommentsModal,
+              onTap: () {
+                widget.onComment?.call();
+                showCommentsModal(
+                  context,
+                  postId: widget.post.id,
+                  comments: [],
+                  onCommentAdded: (newComment) {
+                    print('📝 Novo comentário adicionado: $newComment');
+                  },
+                );
+              },
               child: Text(
                 'Ver ${widget.post.comments == 1 ? '1 comentário' : 'todos os ${widget.post.comments} comentários'}',
                 style: GoogleFonts.albertSans(
