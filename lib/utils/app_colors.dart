@@ -11,6 +11,7 @@ class AppColors {
   static const Color grayScale2 = Color(0xFFA0A0A0);
   static const Color whiteWhite = Color(0xFFFFFFFF);
   static const Color moonAsh = Color(0xFFF4F4F4);
+  static const Color lightGray = Color(0xFFF5F5F5);
   static const Color roseClay = Color(0xFFBAA69E);
   static const Color oatWhite = Color(0xFFE7E4DE);
 

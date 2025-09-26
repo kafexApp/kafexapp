@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:share_plus/share_plus.dart'; // Comentado temporariamente
 import 'package:url_launcher/url_launcher.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
-import 'cafe_evaluation_modal.dart'; // NOVO: import do modal de avaliação
+import 'cafe_evaluation_modal.dart';
 
 // Modelo para avaliação de usuário
 class UserReview {
@@ -78,7 +78,7 @@ class CafeDetailModel {
         CafeFacility.officeFriendly,
         CafeFacility.petFriendly,
         CafeFacility.vegFriendly,
-      ], // Mock - em produção viria do banco de dados
+      ],
       reviews: [
         UserReview(
           userId: '1',
@@ -88,18 +88,18 @@ class CafeDetailModel {
           comment: 'A crema realmente faz toda a diferença. É incrível como ela intensifica o sabor e a experiência.',
           date: '03/05/2024',
         ),
-      ], // Mock - em produção viria do banco de dados
+      ],
       latitude: cafeModel.position.latitude,
       longitude: cafeModel.position.longitude,
     );
   }
 }
 
-// Widget principal do modal
-class CustomBoxcafe extends StatelessWidget {
+// Widget principal do modal com Material 3
+class M3CustomBoxcafe extends StatelessWidget {
   final CafeDetailModel cafe;
 
-  const CustomBoxcafe({
+  const M3CustomBoxcafe({
     Key? key,
     required this.cafe,
   }) : super(key: key);
@@ -108,22 +108,22 @@ class CustomBoxcafe extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.whiteWhite,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Indicador visual de modal (barrinha no topo)
+          // Handle clean
           Container(
-            margin: EdgeInsets.only(top: 8),
-            width: 40,
-            height: 4,
+            margin: EdgeInsets.only(top: 12, bottom: 8),
+            width: 32,
+            height: 3,
             decoration: BoxDecoration(
-              color: AppColors.grayScale2,
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -136,43 +136,43 @@ class CustomBoxcafe extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Imagem da cafeteria
-                    _buildCafeImage(),
+                    // Imagem da cafeteria - mais clean
+                    _buildCleanCafeImage(context),
                     SizedBox(height: 16),
                     
-                    // Nome e rating da cafeteria + Instagram
-                    _buildCafeHeader(),
+                    // Header com nome, rating e Instagram - mais organizado
+                    _buildCleanCafeHeader(context),
                     SizedBox(height: 12),
                     
                     // Endereço
-                    _buildAddress(),
+                    _buildCleanAddress(context),
                     SizedBox(height: 16),
                     
-                    // Status e facilidades
-                    _buildStatusAndFacilities(),
+                    // Status e facilidades - mais clean
+                    _buildCleanStatusAndFacilities(context),
                     SizedBox(height: 20),
                     
-                    // Última avaliação
-                    _buildLastReview(),
+                    // Última avaliação - mais clean
+                    _buildCleanLastReview(context),
                     SizedBox(height: 20),
                     
-                    // Título "O que você gostaria de fazer?"
+                    // Título - mais clean
                     Text(
                       'O que você gostaria de fazer?',
                       style: GoogleFonts.albertSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.carbon,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     SizedBox(height: 16),
                     
-                    // Botão "Avaliar cafeteria"
-                    _buildRateButton(context), // MODIFICADO: passa context
+                    // Botões de ação - mais clean
+                    _buildCleanActionButtons(context),
                     SizedBox(height: 16),
                     
-                    // Botão "Avisar que mudou"
-                    _buildReportButton(context),
+                    // Botão reportar - mais clean
+                    _buildCleanReportButton(context),
                   ],
                 ),
               ),
@@ -183,12 +183,12 @@ class CustomBoxcafe extends StatelessWidget {
     );
   }
 
-  Widget _buildCafeImage() {
+  Widget _buildCleanCafeImage(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 200,
+      height: 180, // Ligeiramente menor para ficar mais clean
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12), // Menos arredondado
         image: DecorationImage(
           image: NetworkImage(cafe.imageUrl),
           fit: BoxFit.cover,
@@ -197,7 +197,7 @@ class CustomBoxcafe extends StatelessWidget {
     );
   }
 
-  Widget _buildCafeHeader() {
+  Widget _buildCleanCafeHeader(BuildContext context) {
     return Row(
       children: [
         Expanded(
@@ -208,71 +208,52 @@ class CustomBoxcafe extends StatelessWidget {
               Text(
                 cafe.name,
                 style: GoogleFonts.albertSans(
-                  fontSize: 24,
+                  fontSize: 22, // Ligeiramente menor
                   fontWeight: FontWeight.w600,
-                  color: AppColors.velvetMerlot,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-              SizedBox(height: 4),
+              SizedBox(height: 6),
               
-              // Rating com estrelas do Phosphor
+              // Rating com estrelas - grain_note.svg
               Row(
                 children: [
+                  SvgPicture.asset(
+                    'assets/images/grain_note.svg',
+                    width: 16,
+                    height: 16,
+                    colorFilter: ColorFilter.mode(
+                      AppColors.sunsetBlaze,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  SizedBox(width: 4),
                   Text(
                     '${cafe.rating}',
                     style: GoogleFonts.albertSans(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.grayScale2,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  SizedBox(width: 8),
-                  ...List.generate(5, (starIndex) {
-                    return Padding(
-                      padding: EdgeInsets.only(right: 2),
-                      child: SvgPicture.asset(
-                        'assets/images/grain_note.svg',
-                        width: 16,
-                        height: 16,
-                        colorFilter: ColorFilter.mode(
-                          starIndex < cafe.rating.floor() 
-                              ? AppColors.sunsetBlaze 
-                              : AppColors.grayScale2.withOpacity(0.3),
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    );
-                  }),
                 ],
               ),
             ],
           ),
         ),
         
-        // Ícone do Instagram
-        GestureDetector(
-          onTap: () => _openInstagram(),
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.whiteWhite,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.oatWhite,
-                width: 1,
-              ),
-            ),
-            child: Center(
-              child: SvgPicture.asset(
-                'assets/images/instagram.svg',
-                width: 24,
-                height: 24,
-                colorFilter: ColorFilter.mode(
-                  AppColors.papayaSensorial,
-                  BlendMode.srcIn,
-                ),
-              ),
+        // Ícone do Instagram - Phosphor
+        IconButton(
+          onPressed: () => _openInstagram(),
+          icon: Icon(
+            PhosphorIcons.instagramLogo(),
+            size: 20,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          style: IconButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
         ),
@@ -280,33 +261,37 @@ class CustomBoxcafe extends StatelessWidget {
     );
   }
 
-  Widget _buildAddress() {
+  Widget _buildCleanAddress(BuildContext context) {
     return Text(
       cafe.address,
       style: GoogleFonts.albertSans(
         fontSize: 14,
-        color: AppColors.grayScale1,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         height: 1.4,
       ),
     );
   }
 
-  Widget _buildStatusAndFacilities() {
+  Widget _buildCleanStatusAndFacilities(BuildContext context) {
     return Row(
       children: [
-        // Status (Aberto/Fechado) - apenas a palavra
+        // Status (Aberto/Fechado) - mais clean
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: cafe.isOpen ? AppColors.cyberLime : AppColors.spiced,
-            borderRadius: BorderRadius.circular(1000),
+            color: cafe.isOpen 
+                ? Theme.of(context).colorScheme.primaryContainer 
+                : Theme.of(context).colorScheme.errorContainer,
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             cafe.isOpen ? 'Aberto' : 'Fechado',
             style: GoogleFonts.albertSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: cafe.isOpen ? AppColors.carbon : AppColors.whiteWhite,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: cafe.isOpen 
+                  ? Theme.of(context).colorScheme.onPrimaryContainer
+                  : Theme.of(context).colorScheme.onErrorContainer,
             ),
           ),
         ),
@@ -317,26 +302,24 @@ class CustomBoxcafe extends StatelessWidget {
           Text(
             cafe.openingHours,
             style: GoogleFonts.albertSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              color: AppColors.grayScale1,
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ],
         
         Spacer(),
         
-        // Facilidades com ícones do Phosphor
+        // Facilidades com ícones - mais clean e menores
         Row(
-          children: cafe.facilities.map((facility) => _buildFacilityIcon(facility)).toList(),
+          children: cafe.facilities.map((facility) => _buildCleanFacilityIcon(facility, context)).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildFacilityIcon(CafeFacility facility) {
+  Widget _buildCleanFacilityIcon(CafeFacility facility, BuildContext context) {
     String iconPath;
-    Color iconColor = AppColors.pear;
     
     switch (facility) {
       case CafeFacility.officeFriendly:
@@ -351,20 +334,20 @@ class CustomBoxcafe extends StatelessWidget {
     }
     
     return Container(
-      margin: EdgeInsets.only(right: 8),
-      width: 32,
-      height: 32,
+      margin: EdgeInsets.only(right: 6),
+      width: 28, // Menor
+      height: 28,
       decoration: BoxDecoration(
-        color: iconColor,
+        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.7),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Center(
         child: SvgPicture.asset(
           iconPath,
-          width: 18,
-          height: 18,
+          width: 16, // Menor
+          height: 16,
           colorFilter: ColorFilter.mode(
-            AppColors.carbon,
+            Theme.of(context).colorScheme.onSecondaryContainer,
             BlendMode.srcIn,
           ),
         ),
@@ -372,217 +355,211 @@ class CustomBoxcafe extends StatelessWidget {
     );
   }
 
-  Widget _buildLastReview() {
+  Widget _buildCleanLastReview(BuildContext context) {
     if (cafe.reviews.isEmpty) {
       return SizedBox.shrink();
     }
     
     final UserReview lastReview = cafe.reviews.first;
     
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.moonAsh,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar e info do usuário
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Título da seção
+        Text(
+          'Avaliações',
+          style: GoogleFonts.albertSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        SizedBox(height: 12),
+        
+        // Comment Card M3 - com a nova cor de background
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.lightGray, // Aplicando a nova cor #f5f5f5
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.moonAsh,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: SvgPicture.asset(
-                    'assets/images/default-avatar.svg',
-                    width: 24,
-                    height: 24,
-                  ),
-                ),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lastReview.userName,
-                      style: GoogleFonts.albertSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.carbon,
-                      ),
-                    ),
-                    Text(
-                      lastReview.date,
-                      style: GoogleFonts.albertSans(
-                        fontSize: 12,
-                        color: AppColors.grayScale2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Rating do usuário com grain_note.svg
+              // Header do comentário M3 - sem menu
               Row(
-                children: List.generate(5, (starIndex) {
-                  return Padding(
-                    padding: EdgeInsets.only(right: 1),
-                    child: SvgPicture.asset(
-                      'assets/images/grain_note.svg',
-                      width: 12,
-                      height: 12,
-                      colorFilter: ColorFilter.mode(
-                        starIndex < lastReview.rating.floor() 
-                            ? AppColors.sunsetBlaze 
-                            : AppColors.grayScale2.withOpacity(0.3),
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-          
-          SizedBox(height: 12),
-          
-          // Comentário da avaliação
-          Text(
-            lastReview.comment,
-            style: GoogleFonts.albertSans(
-              fontSize: 14,
-              color: AppColors.grayScale1,
-              height: 1.4,
-            ),
-          ),
-          
-          SizedBox(width: 12),
-          
-          // Botão "Ver todas as avaliações"
-          GestureDetector(
-            onTap: () => _showAllReviews(),
-            child: Container(
-              margin: EdgeInsets.only(top: 12),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.oatWhite,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  SvgPicture.asset(
-                    'assets/images/grain_note.svg',
-                    width: 16,
-                    height: 16,
-                    colorFilter: ColorFilter.mode(
-                      AppColors.papayaSensorial,
-                      BlendMode.srcIn,
+                  // Avatar sem borda
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.network(
+                      'https://images.unsplash.com/photo-1494790108755-2616b612b17c?w=150&h=150&fit=crop&crop=face',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Icon(
+                            PhosphorIcons.user(),
+                            size: 20,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        );
+                      },
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Text(
-                    'ver todas as avaliações',
-                    style: GoogleFonts.albertSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.carbon,
+                  
+                  SizedBox(width: 12),
+                  
+                  // Info do usuário
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Nome + Rating na mesma linha
+                        Row(
+                          children: [
+                            Text(
+                              lastReview.userName,
+                              style: GoogleFonts.albertSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            // Rating com grain_note.svg
+                            Row(
+                              children: List.generate(5, (starIndex) {
+                                return Padding(
+                                  padding: EdgeInsets.only(right: 1),
+                                  child: SvgPicture.asset(
+                                    'assets/images/grain_note.svg',
+                                    width: 12,
+                                    height: 12,
+                                    colorFilter: ColorFilter.mode(
+                                      starIndex < lastReview.rating.floor() 
+                                          ? AppColors.sunsetBlaze 
+                                          : Theme.of(context).colorScheme.outlineVariant,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          lastReview.date,
+                          style: GoogleFonts.albertSans(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRateButton(BuildContext context) { // MODIFICADO: aceita context
-    return Row(
-      children: [
-        // Botão "Avaliar cafeteria" - ocupa 3/5 do espaço (60%)
-        Expanded(
-          flex: 3,
-          child: Container(
-            height: 56,
-            child: ElevatedButton(
-              onPressed: () => _rateCafe(context), // MODIFICADO: passa context
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.velvetMerlot,
-                foregroundColor: AppColors.papayaSensorial,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                'Avaliar cafeteria',
+              
+              SizedBox(height: 12),
+              
+              // Conteúdo do comentário M3
+              Text(
+                lastReview.comment,
                 style: GoogleFonts.albertSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.papayaSensorial,
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  height: 1.5,
                 ),
               ),
-            ),
+              
+              SizedBox(height: 16),
+              
+              // Ações do comentário M3 - sem responder
+              Row(
+                children: [
+                  // Botão curtir
+                  TextButton.icon(
+                    onPressed: () {
+                      // TODO: Curtir comentário
+                    },
+                    icon: Icon(
+                      PhosphorIcons.heart(),
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    label: Text(
+                      'Útil',
+                      style: GoogleFonts.albertSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size(0, 0),
+                    ),
+                  ),
+                  
+                  Spacer(),
+                  
+                  // Timestamp relativo
+                  Text(
+                    '2 semanas atrás',
+                    style: GoogleFonts.albertSans(
+                      fontSize: 11,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
         
-        SizedBox(width: 12),
+        SizedBox(height: 12),
         
-        // Botão do mapa - ocupa 1/5 do espaço (20%)
-        Expanded(
-          flex: 1,
-          child: Container(
-            height: 56,
-            child: ElevatedButton(
-              onPressed: () => _openInMaps(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.whiteWhite,
-                foregroundColor: AppColors.carbon,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: AppColors.moonAsh, width: 1),
+        // Botão "Ver todas as avaliações" M3 - com grain_note.svg
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton(
+            onPressed: () => _showAllReviews(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  'assets/images/grain_note.svg',
+                  width: 16,
+                  height: 16,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.primary,
+                    BlendMode.srcIn,
+                  ),
                 ),
-                elevation: 0,
-              ),
-              child: Icon(
-                AppIcons.location,
-                size: 24,
-                color: AppColors.carbon,
-              ),
+                SizedBox(width: 8),
+                Text(
+                  'Ver todas as avaliações',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
-        
-        SizedBox(width: 12),
-        
-        // Botão compartilhar - ocupa 1/5 do espaço (20%)
-        Expanded(
-          flex: 1,
-          child: Container(
-            height: 56,
-            child: ElevatedButton(
-              onPressed: () => _shareCafe(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.papayaSensorial,
-                foregroundColor: AppColors.whiteWhite,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: Icon(
-                AppIcons.share,
-                size: 24,
-                color: AppColors.whiteWhite,
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
@@ -591,93 +568,110 @@ class CustomBoxcafe extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
-    return Row(
+  Widget _buildCleanActionButtons(BuildContext context) {
+    return Column(
       children: [
-        // Botão do mapa
-        Expanded(
-          child: Container(
-            height: 56,
-            child: ElevatedButton(
-              onPressed: () => _openInMaps(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.whiteWhite,
-                foregroundColor: AppColors.carbon,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: AppColors.moonAsh, width: 1),
-                ),
-                elevation: 0,
-              ),
-              child: Icon(
-                AppIcons.location,
-                size: 24,
-                color: AppColors.carbon,
+        // Botão principal "Avaliar cafeteria" - mais clean
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: () => _rateCafe(context),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              padding: EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-          ),
-        ),
-        
-        SizedBox(width: 12),
-        
-        // Botão compartilhar
-        Expanded(
-          child: Container(
-            height: 56,
-            child: ElevatedButton(
-              onPressed: () => _shareCafe(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.papayaSensorial,
-                foregroundColor: AppColors.whiteWhite,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-              child: Icon(
-                AppIcons.share,
-                size: 24,
-                color: AppColors.whiteWhite,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildReportButton(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: AppColors.moonAsh,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: GestureDetector(
-        onTap: () => _reportCafeChange(context),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SvgPicture.asset(
-              'assets/images/alert.svg',
-              width: 20,
-              height: 20,
-              colorFilter: ColorFilter.mode(
-                AppColors.spiced,
-                BlendMode.srcIn,
-              ),
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Avisar que mudou de endereço ou fechou',
+            child: Text(
+              'Avaliar cafeteria',
               style: GoogleFonts.albertSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.carbon,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+        
+        SizedBox(height: 10),
+        
+        // Botões secundários - Phosphor
+        Row(
+          children: [
+            // Botão do mapa
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _openInMaps(),
+                icon: Icon(PhosphorIcons.mapPin(), size: 16),
+                label: Text(
+                  'Mapa',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            
+            SizedBox(width: 10),
+            
+            // Botão compartilhar
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _shareCafe(),
+                icon: Icon(PhosphorIcons.shareNetwork(), size: 16),
+                label: Text(
+                  'Compartilhar',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCleanReportButton(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      child: TextButton.icon(
+        onPressed: () => _reportCafeChange(context),
+        icon: Icon(
+          PhosphorIcons.warning(),
+          size: 16,
+          color: Theme.of(context).colorScheme.error.withOpacity(0.8),
+        ),
+        label: Text(
+          'Avisar que mudou de endereço ou fechou',
+          style: GoogleFonts.albertSans(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Theme.of(context).colorScheme.error.withOpacity(0.8),
+          ),
+        ),
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          backgroundColor: Theme.of(context).colorScheme.errorContainer.withOpacity(0.1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       ),
     );
@@ -685,17 +679,14 @@ class CustomBoxcafe extends StatelessWidget {
 
   // Métodos de ação
   void _openInstagram() {
-    // TODO: Abrir Instagram da cafeteria
     print('Abrir Instagram: ${cafe.instagramHandle}');
   }
 
   void _showAllReviews() {
-    // TODO: Mostrar todas as avaliações em outro modal
     print('Mostrar todas as avaliações da cafeteria: ${cafe.name}');
   }
 
-  void _rateCafe(BuildContext context) { // MODIFICADO: aceita e usa context
-    // Chama o modal de avaliação de cafeteria
+  void _rateCafe(BuildContext context) {
     showCafeEvaluationModal(
       context,
       cafeName: cafe.name,
@@ -718,66 +709,55 @@ class CustomBoxcafe extends StatelessWidget {
     final String shareText = 
         'Olá, segue o endereço da cafeteria ${cafe.name}, ${cafe.address}. Quer conhecer mais cafeterias? Baixe o Kafex em kafex.com.br.';
     
-    // Por enquanto apenas imprime no console
-    // TODO: Implementar compartilhamento quando share_plus estiver funcionando
     print('Compartilhar: $shareText');
   }
 
   void _reportCafeChange(BuildContext context) {
-    // TODO: Marcar cafeteria como "Alteração" no banco de dados
     print('Reportar alteração na cafeteria: ${cafe.name}');
     
-    // Mostrar confirmação para o usuário
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           'Obrigado pelo aviso! Vamos verificar as informações da cafeteria.',
-          style: GoogleFonts.albertSans(
-            color: AppColors.whiteWhite,
-          ),
+          style: GoogleFonts.albertSans(),
         ),
-        backgroundColor: AppColors.velvetMerlot,
-        duration: Duration(seconds: 3),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
 }
 
-// Função helper para mostrar o modal
+// EXPORT da função para compatibilidade - adicione no final do arquivo original
+// Para usar em outros arquivos, importe assim:
+// import '../widgets/m3_custom_boxcafe.dart' show showM3CafeModal;
+
+// Função de compatibilidade que usa o modal antigo
 void showCafeModal(BuildContext context, dynamic cafeModel) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    isDismissible: true, // Permite fechar tocando fora
-    enableDrag: true, // Permite arrastar para fechar
+    isDismissible: true,
+    enableDrag: true,
     builder: (context) => GestureDetector(
-      // Detecta toques fora do modal para fechá-lo
       onTap: () => Navigator.of(context).pop(),
       child: Container(
         color: Colors.transparent,
         child: GestureDetector(
-          // Impede que toques no modal se propaguem para o GestureDetector pai
           onTap: () {},
           child: DraggableScrollableSheet(
             initialChildSize: 0.85,
             minChildSize: 0.5,
             maxChildSize: 0.95,
             builder: (context, scrollController) => Container(
-              // Container que absorve todos os gestos para não interferir no mapa
               child: AbsorbPointer(
                 absorbing: false,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.whiteWhite,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: CustomBoxcafe(
-                    cafe: CafeDetailModel.fromCafeModel(cafeModel),
-                  ),
+                child: M3CustomBoxcafe(
+                  cafe: CafeDetailModel.fromCafeModel(cafeModel),
                 ),
               ),
             ),
