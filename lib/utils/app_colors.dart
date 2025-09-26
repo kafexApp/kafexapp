@@ -60,112 +60,280 @@ class AppColors {
   );
 }
 
-// Tema personalizado para o app
+// Tema Material 3 personalizado para o Kafex
 class AppTheme {
+  
+  // LIGHT THEME - Material 3
   static ThemeData get lightTheme {
+    final lightColorScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.velvetMerlot,
+      brightness: Brightness.light,
+      // Personalizações específicas do Kafex
+      primary: AppColors.velvetMerlot,
+      onPrimary: AppColors.whiteWhite,
+      secondary: AppColors.papayaSensorial,
+      onSecondary: AppColors.whiteWhite,
+      tertiary: AppColors.roseClay,
+      onTertiary: AppColors.carbon,
+      surface: AppColors.whiteWhite,
+      onSurface: AppColors.carbon,
+      background: AppColors.oatWhite,
+      onBackground: AppColors.carbon,
+      error: AppColors.spiced,
+      onError: AppColors.whiteWhite,
+      outline: AppColors.grayScale2,
+      shadow: AppColors.carbon.withOpacity(0.1),
+    );
+
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        brightness: Brightness.light,
-        primary: AppColors.primary,
-        secondary: AppColors.secondary,
-        background: AppColors.background,
-        surface: AppColors.surface,
-        error: AppColors.error,
-        onPrimary: AppColors.textOnPrimary,
-        onSecondary: AppColors.textOnSecondary,
-        onBackground: AppColors.textPrimary,
-        onSurface: AppColors.textPrimary,
-        onError: AppColors.whiteWhite,
-      ),
-
-      // Configuração de AppBar
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.whiteWhite,
-        elevation: 0,
-        centerTitle: true,
-      ),
-
-      // Configuração de botões
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.whiteWhite,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        ),
-      ),
-
-      // Configuração de cards
-      cardTheme: const CardThemeData(
-        color: AppColors.surface,
-        shadowColor: AppColors.grayScale2,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-      ),
-
-      // Configuração de input fields
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.moonAsh,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-      ),
-
-      // Configuração de texto com fontes personalizadas
+      colorScheme: lightColorScheme,
+      
+      // TIPOGRAFIA - Material 3 com fontes do Kafex
       textTheme: const TextTheme(
+        // Display (títulos grandes)
+        displayLarge: TextStyle(
+          fontFamily: 'Monigue',
+          fontSize: 57,
+          fontWeight: FontWeight.w400,
+          letterSpacing: -0.25,
+        ),
+        displayMedium: TextStyle(
+          fontFamily: 'Monigue',
+          fontSize: 45,
+          fontWeight: FontWeight.w400,
+        ),
+        displaySmall: TextStyle(
+          fontFamily: 'Monigue',
+          fontSize: 36,
+          fontWeight: FontWeight.w400,
+        ),
+        
+        // Headlines (títulos)
         headlineLarge: TextStyle(
           fontFamily: 'Albert Sans',
-          color: AppColors.textPrimary,
           fontSize: 32,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
         ),
         headlineMedium: TextStyle(
           fontFamily: 'Albert Sans',
-          color: AppColors.textPrimary,
           fontSize: 28,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w600,
         ),
         headlineSmall: TextStyle(
           fontFamily: 'Albert Sans',
-          color: AppColors.textPrimary,
           fontSize: 24,
           fontWeight: FontWeight.w600,
         ),
+        
+        // Títulos (seções)
+        titleLarge: TextStyle(
+          fontFamily: 'Albert Sans',
+          fontSize: 22,
+          fontWeight: FontWeight.w500,
+        ),
+        titleMedium: TextStyle(
+          fontFamily: 'Albert Sans',
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.15,
+        ),
+        titleSmall: TextStyle(
+          fontFamily: 'Albert Sans',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+        ),
+        
+        // Corpo de texto
         bodyLarge: TextStyle(
           fontFamily: 'Albert Sans',
-          color: AppColors.textPrimary,
           fontSize: 16,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.5,
         ),
         bodyMedium: TextStyle(
           fontFamily: 'Albert Sans',
-          color: AppColors.textSecondary,
           fontSize: 14,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.25,
         ),
         bodySmall: TextStyle(
           fontFamily: 'Albert Sans',
-          color: AppColors.textTertiary,
           fontSize: 12,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.4,
+        ),
+        
+        // Labels (botões, campos)
+        labelLarge: TextStyle(
+          fontFamily: 'Albert Sans',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.1,
+        ),
+        labelMedium: TextStyle(
+          fontFamily: 'Albert Sans',
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.5,
+        ),
+        labelSmall: TextStyle(
+          fontFamily: 'Albert Sans',
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.5,
         ),
       ),
+
+      // APP BAR - Material 3
+      appBarTheme: AppBarTheme(
+        backgroundColor: lightColorScheme.surface,
+        foregroundColor: lightColorScheme.onSurface,
+        elevation: 0,
+        scrolledUnderElevation: 3,
+        centerTitle: true,
+        titleTextStyle: const TextStyle(
+          fontFamily: 'Albert Sans',
+          fontSize: 22,
+          fontWeight: FontWeight.w500,
+          color: AppColors.carbon,
+        ),
+      ),
+
+      // BOTÕES - Material 3
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: lightColorScheme.primary,
+          foregroundColor: lightColorScheme.onPrimary,
+          elevation: 1,
+          shadowColor: lightColorScheme.shadow,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20), // M3 usa bordas mais arredondadas
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          textStyle: const TextStyle(
+            fontFamily: 'Albert Sans',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.1,
+          ),
+        ),
+      ),
+
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: lightColorScheme.primary,
+          foregroundColor: lightColorScheme.onPrimary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        ),
+      ),
+
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: lightColorScheme.primary,
+          side: BorderSide(color: lightColorScheme.outline),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        ),
+      ),
+
+      // CARDS - Material 3
+      cardTheme: CardThemeData(
+        color: lightColorScheme.surface,
+        shadowColor: lightColorScheme.shadow,
+        elevation: 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16), // M3 usa bordas mais arredondadas
+        ),
+      ),
+
+      // INPUT FIELDS - Material 3
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: lightColorScheme.surfaceVariant,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: lightColorScheme.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: lightColorScheme.error, width: 1),
+        ),
+        labelStyle: TextStyle(
+          color: lightColorScheme.onSurfaceVariant,
+          fontFamily: 'Albert Sans',
+        ),
+        hintStyle: TextStyle(
+          color: lightColorScheme.onSurfaceVariant.withOpacity(0.6),
+          fontFamily: 'Albert Sans',
+        ),
+      ),
+
+      // BOTTOM NAVIGATION - Material 3
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: lightColorScheme.surface,
+        selectedItemColor: lightColorScheme.primary,
+        unselectedItemColor: lightColorScheme.onSurfaceVariant,
+        type: BottomNavigationBarType.fixed,
+        elevation: 3,
+      ),
+
+      // FAB - Material 3
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: lightColorScheme.primaryContainer,
+        foregroundColor: lightColorScheme.onPrimaryContainer,
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+
+      // DIVIDER
+      dividerTheme: DividerThemeData(
+        color: lightColorScheme.outlineVariant,
+        thickness: 1,
+      ),
+    );
+  }
+
+  // DARK THEME - Material 3 (para futuro)
+  static ThemeData get darkTheme {
+    final darkColorScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.velvetMerlot,
+      brightness: Brightness.dark,
+      primary: AppColors.papayaSensorial,
+      onPrimary: AppColors.carbon,
+      secondary: AppColors.roseClay,
+      surface: AppColors.carbon,
+      onSurface: AppColors.whiteWhite,
+      background: const Color(0xFF121212),
+      onBackground: AppColors.whiteWhite,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: darkColorScheme,
     );
   }
 }
 
-// Extensões úteis para cores
+// Extensões úteis para usar com Material 3
 extension AppColorsExtension on BuildContext {
   ColorScheme get colors => Theme.of(this).colorScheme;
   TextTheme get textStyles => Theme.of(this).textTheme;
+  
+  // Helpers para acessar cores do Kafex
+  Color get kafexPrimary => AppColors.velvetMerlot;
+  Color get kafexSecondary => AppColors.papayaSensorial;
+  Color get kafexBackground => AppColors.oatWhite;
 }
