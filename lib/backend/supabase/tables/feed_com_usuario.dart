@@ -1,3 +1,4 @@
+// lib/backend/supabase/tables/feed_com_usuario.dart
 import '../../database/database.dart';
 
 class FeedComUsuarioTable extends SupabaseTable<FeedComUsuarioRow> {
@@ -44,14 +45,12 @@ class FeedComUsuarioRow extends SupabaseDataRow {
 
   set comentarios(String? value) => setField<String>('comentarios', value);
 
-  // Campos para tipos de post
   String? get tipo => getField<String>('tipo');
   set tipo(String? value) => setField<String>('tipo', value);
 
   String? get tipoCalculado => getField<String>('tipo_calculado');
   set tipoCalculado(String? value) => setField<String>('tipo_calculado', value);
 
-  // Campos específicos para cafeterias
   String? get nomeCafeteria => getField<String>('nome_cafeteria');
   set nomeCafeteria(String? value) => setField<String>('nome_cafeteria', value);
 
@@ -72,7 +71,6 @@ class FeedComUsuarioRow extends SupabaseDataRow {
 
   set pontuacao(double? value) => setField<double>('pontuacao', value);
 
-  // Campos adicionais do usuário
   String? get nomeExibicao => getField<String>('nome_exibicao');
   set nomeExibicao(String? value) => setField<String>('nome_exibicao', value);
 

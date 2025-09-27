@@ -9,6 +9,7 @@ import '../screens/cafe_explorer_screen.dart' show CafeModel;
 import '../backend/supabase/tables/feed_com_usuario.dart';
 import '../models/comment_models.dart'; // NOVA IMPORTAÇÃO
 import '../widgets/custom_boxcafe_minicard.dart';
+import '../backend/supabase/tables/feed_com_usuario.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;

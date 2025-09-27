@@ -1,5 +1,5 @@
 import 'package:kafex/backend/supabase/supabase.dart';
-import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';
+import '../backend/supabase/tables/feed_com_usuario.dart';
 
 class FeedService {
   /// Busca posts do feed ordenados por data de criação

@@ -1,9 +1,12 @@
 // lib/widgets/comments_bottom_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../models/comment_models.dart';
+import '../services/comments_service.dart';
+import '../backend/supabase/tables/comentario_com_usuario.dart';
 
 class PostCommentsModal extends StatefulWidget {
   final String postId;
@@ -25,47 +28,15 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocus = FocusNode();
   final ScrollController _scrollController = ScrollController();
-  
+
   List<CommentData> comments = [];
   bool isPosting = false;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    comments = List.from(widget.initialComments);
-    
-    // Mock de comentários para demonstração
-    if (comments.isEmpty) {
-      comments = [
-        CommentData(
-          id: '1',
-          userName: 'Maria Santos',
-          userAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b829?w=150',
-          content: 'Que lugar incrível! Já fui lá várias vezes e sempre uma experiência única ☕️',
-          timestamp: DateTime.now().subtract(Duration(hours: 2)),
-          likes: 12,
-          isLiked: false,
-        ),
-        CommentData(
-          id: '2',
-          userName: 'João Silva',
-          userAvatar: null,
-          content: 'Concordo! O café lá é excepcional. Recomendo o espresso com notas de chocolate.',
-          timestamp: DateTime.now().subtract(Duration(hours: 4)),
-          likes: 8,
-          isLiked: true,
-        ),
-        CommentData(
-          id: '3',
-          userName: 'Ana Costa',
-          userAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
-          content: 'Ambiente aconchegante demais! Perfeito para trabalhar ou relaxar.',
-          timestamp: DateTime.now().subtract(Duration(days: 1)),
-          likes: 5,
-          isLiked: false,
-        ),
-      ];
-    }
+    _loadComments();
   }
 
   @override
@@ -76,83 +47,194 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     super.dispose();
   }
 
+  /// Carrega comentários do Supabase
+  Future<void> _loadComments() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final loadedComments = await CommentsService.getCommentsByPostId(
+        widget.postId,
+      );
+
+      setState(() {
+        comments = loadedComments;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Erro ao carregar comentários: $e');
+      setState(() {
+        comments = widget.initialComments;
+        isLoading = false;
+      });
+    }
+  }
+
+  /// Adiciona novo comentário
   Future<void> _postComment() async {
-    if (_commentController.text.trim().isEmpty) return;
+    final text = _commentController.text.trim();
+    if (text.isEmpty || isPosting) return;
+
+    // Verificar se usuário está logado
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      _showLoginRequiredDialog();
+      return;
+    }
 
     setState(() {
       isPosting = true;
     });
 
-    // Simular delay de postagem
-    await Future.delayed(Duration(milliseconds: 800));
-
-    final newComment = CommentData(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userName: 'Você', // Em um app real, viria do UserManager
-      userAvatar: null,
-      content: _commentController.text.trim(),
-      timestamp: DateTime.now(),
-      likes: 0,
-      isLiked: false,
-    );
-
-    setState(() {
-      comments.insert(0, newComment);
-      isPosting = false;
-    });
-
-    _commentController.clear();
-    widget.onCommentAdded?.call(newComment.content);
-
-    // Scroll para o novo comentário
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        0,
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeOut,
+    try {
+      final newComment = await CommentsService.addComment(
+        postId: widget.postId,
+        conteudo: text,
       );
+
+      if (newComment != null) {
+        setState(() {
+          comments.add(newComment);
+          _commentController.clear();
+        });
+
+        // Callback para atualizar contador na UI principal
+        widget.onCommentAdded?.call(text);
+
+        // Scroll para o final para mostrar novo comentário
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+
+        // Feedback visual
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Comentário adicionado!'),
+            backgroundColor: AppColors.papayaSensorial,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        _showErrorSnackBar('Erro ao adicionar comentário');
+      }
+    } catch (e) {
+      print('Erro ao postar comentário: $e');
+      _showErrorSnackBar('Erro ao adicionar comentário');
+    } finally {
+      setState(() {
+        isPosting = false;
+      });
     }
   }
 
-  void _toggleLike(String commentId) {
-    setState(() {
-      final commentIndex = comments.indexWhere((c) => c.id == commentId);
-      if (commentIndex != -1) {
-        final comment = comments[commentIndex];
-        comments[commentIndex] = comment.copyWith(
-          likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1,
-          isLiked: !comment.isLiked,
-        );
-      }
-    });
+  /// Curte ou descurte um comentário (funcionalidade desabilitada temporariamente)
+  Future<void> _toggleCommentLike(CommentData comment) async {
+    // TODO: Implementar sistema de curtidas se necessário
+    // A estrutura atual não possui campo de curtidas
+    print('Sistema de curtidas não implementado ainda');
   }
 
-  void _deleteComment(String commentId) {
-    setState(() {
-      comments.removeWhere((comment) => comment.id == commentId);
-    });
-    
-    // Mostrar feedback
+  /// Edita um comentário
+  Future<void> _editComment(String commentId, String newContent) async {
+    try {
+      final success = await CommentsService.editComment(
+        commentId: commentId,
+        novoConteudo: newContent,
+      );
+
+      if (success) {
+        setState(() {
+          final commentIndex = comments.indexWhere((c) => c.id == commentId);
+          if (commentIndex != -1) {
+            final comment = comments[commentIndex];
+            comments[commentIndex] = comment.copyWith(content: newContent);
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Comentário editado!'),
+            backgroundColor: AppColors.papayaSensorial,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        _showErrorSnackBar('Erro ao editar comentário');
+      }
+    } catch (e) {
+      print('Erro ao editar comentário: $e');
+      _showErrorSnackBar('Erro ao editar comentário');
+    }
+  }
+
+  /// Remove um comentário
+  Future<void> _deleteComment(String commentId) async {
+    try {
+      final success = await CommentsService.deleteComment(
+        commentId: commentId,
+        postId: widget.postId,
+      );
+
+      if (success) {
+        setState(() {
+          comments.removeWhere((comment) => comment.id == commentId);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Comentário excluído!'),
+            backgroundColor: AppColors.carbon,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        _showErrorSnackBar('Erro ao excluir comentário');
+      }
+    } catch (e) {
+      print('Erro ao excluir comentário: $e');
+      _showErrorSnackBar('Erro ao excluir comentário');
+    }
+  }
+
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Login necessário'),
+          content: Text('Você precisa estar logado para comentar.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Comentário excluído'),
-        backgroundColor: AppColors.carbon,
-        duration: Duration(seconds: 2),
+        content: Text(message),
+        backgroundColor: AppColors.spiced,
+        duration: Duration(seconds: 3),
       ),
     );
   }
 
-  void _editComment(String commentId, String newContent) {
-    setState(() {
-      final commentIndex = comments.indexWhere((c) => c.id == commentId);
-      if (commentIndex != -1) {
-        final comment = comments[commentIndex];
-        comments[commentIndex] = comment.copyWith(content: newContent);
-      }
-    });
-  }
+  void _showCommentOptionsModal(CommentData comment) async {
+    // Verificar se é comentário do usuário atual
+    final isOwnComment = await CommentsService.isUserComment(comment.id);
 
-  void _showCommentOptionsModal(CommentData comment) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -178,60 +260,83 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               SizedBox(height: 20),
-              
-              // Botão Editar
-              ListTile(
-                onTap: () {
-                  Navigator.pop(context);
-                  _showEditCommentDialog(comment);
-                },
-                leading: Icon(
-                  AppIcons.edit,
-                  color: AppColors.papayaSensorial,
-                  size: 24,
-                ),
-                title: Text(
-                  'Editar comentário',
-                  style: GoogleFonts.albertSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
+
+              if (isOwnComment) ...[
+                // Botão Editar
+                ListTile(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showEditCommentDialog(comment);
+                  },
+                  leading: Icon(
+                    AppIcons.edit,
+                    color: AppColors.papayaSensorial,
+                    size: 24,
+                  ),
+                  title: Text(
+                    'Editar comentário',
+                    style: GoogleFonts.albertSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
-              ),
-              
-              // Divisor
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: AppColors.moonAsh,
-                indent: 16,
-                endIndent: 16,
-              ),
-              
-              // Botão Excluir
-              ListTile(
-                onTap: () {
-                  Navigator.pop(context);
-                  _showDeleteConfirmDialog(comment.id);
-                },
-                leading: Icon(
-                  AppIcons.delete,
-                  color: AppColors.spiced,
-                  size: 24,
+
+                // Divisor
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.moonAsh,
+                  indent: 16,
+                  endIndent: 16,
                 ),
-                title: Text(
-                  'Excluir comentário',
-                  style: GoogleFonts.albertSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+
+                // Botão Excluir
+                ListTile(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showDeleteConfirmDialog(comment.id);
+                  },
+                  leading: Icon(
+                    AppIcons.delete,
                     color: AppColors.spiced,
+                    size: 24,
+                  ),
+                  title: Text(
+                    'Excluir comentário',
+                    style: GoogleFonts.albertSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.spiced,
+                    ),
                   ),
                 ),
-              ),
-              
+              ] else ...[
+                // Botão Reportar (para comentários de outros usuários)
+                ListTile(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showReportDialog(comment);
+                  },
+                  leading: Icon(
+                    AppIcons.warning,
+                    color: AppColors.spiced,
+                    size: 24,
+                  ),
+                  title: Text(
+                    'Reportar comentário',
+                    style: GoogleFonts.albertSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+
               SizedBox(height: 20),
             ],
           ),
@@ -241,77 +346,32 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
   }
 
   void _showEditCommentDialog(CommentData comment) {
-    final TextEditingController editController = TextEditingController(text: comment.content);
-    
+    final editController = TextEditingController(text: comment.content);
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.whiteWhite,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            'Editar comentário',
-            style: GoogleFonts.albertSans(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.carbon,
-            ),
-          ),
-          content: Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.oatWhite,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.moonAsh,
-                width: 1,
-              ),
-            ),
-            child: TextField(
-              controller: editController,
-              maxLines: null,
-              style: GoogleFonts.albertSans(
-                fontSize: 14,
-                color: AppColors.carbon,
-              ),
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: 'Digite seu comentário...',
-                hintStyle: GoogleFonts.albertSans(
-                  fontSize: 14,
-                  color: AppColors.grayScale2,
-                ),
-              ),
+          title: Text('Editar comentário'),
+          content: TextField(
+            controller: editController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Digite seu comentário...',
+              border: OutlineInputBorder(),
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancelar',
-                style: GoogleFonts.albertSans(
-                  fontSize: 14,
-                  color: AppColors.grayScale2,
-                ),
-              ),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancelar'),
             ),
             TextButton(
               onPressed: () {
-                if (editController.text.trim().isNotEmpty) {
-                  _editComment(comment.id, editController.text.trim());
-                  Navigator.pop(context);
-                }
+                Navigator.of(context).pop();
+                _editComment(comment.id, editController.text.trim());
               },
-              child: Text(
-                'Salvar',
-                style: GoogleFonts.albertSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.papayaSensorial,
-                ),
-              ),
+              child: Text('Salvar'),
             ),
           ],
         );
@@ -324,49 +384,22 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: AppColors.whiteWhite,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            'Excluir comentário?',
-            style: GoogleFonts.albertSans(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.carbon,
-            ),
-          ),
+          title: Text('Excluir comentário'),
           content: Text(
-            'Esta ação não pode ser desfeita.',
-            style: GoogleFonts.albertSans(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
+            'Tem certeza que deseja excluir este comentário? Esta ação não pode ser desfeita.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancelar',
-                style: GoogleFonts.albertSans(
-                  fontSize: 14,
-                  color: AppColors.grayScale2,
-                ),
-              ),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancelar'),
             ),
             TextButton(
               onPressed: () {
+                Navigator.of(context).pop();
                 _deleteComment(commentId);
-                Navigator.pop(context);
               },
-              child: Text(
-                'Excluir',
-                style: GoogleFonts.albertSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.spiced,
-                ),
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.spiced),
+              child: Text('Excluir'),
             ),
           ],
         );
@@ -374,24 +407,37 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     );
   }
 
-  // Método para verificar se o comentário é do usuário atual
-  bool _isUserComment(String userName) {
-    // Em um app real, você compararia com UserManager.instance.userName
-    // Por enquanto, vamos considerar que comentários do "Você" são do usuário atual
-    return userName == 'Você';
-  }
-
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h';
-    } else {
-      return '${difference.inDays}d';
-    }
+  void _showReportDialog(CommentData comment) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Reportar comentário'),
+          content: Text(
+            'Deseja reportar este comentário por conteúdo inadequado?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // TODO: Implementar sistema de reports
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Comentário reportado'),
+                    backgroundColor: AppColors.papayaSensorial,
+                  ),
+                );
+              },
+              child: Text('Reportar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -407,25 +453,58 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       ),
       child: Column(
         children: [
-          // Header do Modal
           _buildHeader(),
-          
-          // Lista de Comentários
+
           Expanded(
-            child: comments.isEmpty 
+            child: isLoading
+                ? _buildLoadingState()
+                : comments.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: EdgeInsets.fromLTRB(20, 16, 20, 0), // MARGEM SUPERIOR ADICIONADA
+                    padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
                     itemCount: comments.length,
                     itemBuilder: (context, index) {
                       return _buildCommentItem(comments[index]);
                     },
                   ),
           ),
-          
-          // Campo de Comentário
+
           _buildCommentInput(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: CircularProgressIndicator(color: AppColors.papayaSensorial),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(AppIcons.comment, size: 48, color: AppColors.grayScale2),
+          SizedBox(height: 16),
+          Text(
+            'Nenhum comentário ainda',
+            style: GoogleFonts.albertSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Seja o primeiro a comentar!',
+            style: GoogleFonts.albertSans(
+              fontSize: 14,
+              color: AppColors.grayScale2,
+            ),
+          ),
         ],
       ),
     );
@@ -450,7 +529,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       ),
       child: Row(
         children: [
-          // Handle do Modal
           Expanded(
             child: Column(
               children: [
@@ -474,8 +552,7 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
               ],
             ),
           ),
-          
-          // Botão Fechar
+
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
@@ -485,51 +562,7 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                 color: AppColors.moonAsh,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                AppIcons.close,
-                color: AppColors.textSecondary,
-                size: 18,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.moonAsh,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              AppIcons.comment,
-              size: 40,
-              color: AppColors.grayScale2,
-            ),
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Nenhum comentário ainda',
-            style: GoogleFonts.albertSans(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.carbon,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Seja o primeiro a comentar!',
-            style: GoogleFonts.albertSans(
-              fontSize: 14,
-              color: AppColors.grayScale1,
+              child: Icon(AppIcons.close, color: AppColors.carbon, size: 18),
             ),
           ),
         ],
@@ -538,48 +571,22 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
   }
 
   Widget _buildCommentItem(CommentData comment) {
-    final isUserComment = _isUserComment(comment.userName);
-    
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Avatar
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.papayaSensorial.withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.papayaSensorial.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: comment.userAvatar != null
-                ? ClipOval(
-                    child: Image.network(
-                      comment.userAvatar!,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildDefaultAvatar(comment.userName);
-                      },
-                    ),
-                  )
-                : _buildDefaultAvatar(comment.userName),
-          ),
-          
+          _buildUserAvatar(comment.userName, comment.userAvatar),
+
           SizedBox(width: 12),
-          
-          // Conteúdo do Comentário
+
+          // Conteúdo do comentário
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header: Nome, Tempo e Menu (se for do usuário)
+                // Nome e tempo
                 Row(
                   children: [
                     Text(
@@ -587,7 +594,7 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                       style: GoogleFonts.albertSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.carbon,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     SizedBox(width: 8),
@@ -599,60 +606,56 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                       ),
                     ),
                     Spacer(),
-                    // Menu de opções (só aparece para comentários do usuário)
-                    if (isUserComment)
-                      GestureDetector(
-                        onTap: () => _showCommentOptionsModal(comment),
-                        child: Container(
-                          padding: EdgeInsets.all(4),
-                          child: Icon(
-                            AppIcons.dotsThree,
-                            color: AppColors.grayScale2,
-                            size: 16,
-                          ),
+                    // Botão de opções
+                    GestureDetector(
+                      onTap: () => _showCommentOptionsModal(comment),
+                      child: Container(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(
+                          AppIcons.dotsThreeVertical,
+                          color: AppColors.grayScale2,
+                          size: 16,
                         ),
                       ),
+                    ),
                   ],
                 ),
-                
+
                 SizedBox(height: 4),
-                
-                // Texto do Comentário
+
+                // Conteúdo
                 Text(
                   comment.content,
                   style: GoogleFonts.albertSans(
                     fontSize: 14,
                     color: AppColors.textPrimary,
-                    height: 1.3,
+                    height: 1.4,
                   ),
                 ),
-                
+
                 SizedBox(height: 8),
-                
-                // Ações: Like
+
+                // Botão de curtir (desabilitado temporariamente)
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: () => _toggleLike(comment.id),
+                      onTap: null, // Desabilitado até implementar curtidas
                       child: Row(
                         children: [
                           Icon(
                             AppIcons.heart,
+                            color: AppColors.grayScale2.withOpacity(0.5),
                             size: 16,
-                            color: comment.isLiked 
-                                ? AppColors.spiced 
-                                : AppColors.grayScale2,
                           ),
-                          if (comment.likes > 0) ...[
-                            SizedBox(width: 4),
-                            Text(
-                              comment.likes.toString(),
-                              style: GoogleFonts.albertSans(
-                                fontSize: 12,
-                                color: AppColors.grayScale2,
-                              ),
+                          SizedBox(width: 4),
+                          Text(
+                            'Curtir',
+                            style: GoogleFonts.albertSans(
+                              fontSize: 12,
+                              color: AppColors.grayScale2.withOpacity(0.5),
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
@@ -666,7 +669,26 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     );
   }
 
-  Widget _buildDefaultAvatar(String userName) {
+  Widget _buildUserAvatar(String userName, String? avatarUrl) {
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.network(
+          avatarUrl,
+          width: 32,
+          height: 32,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildAvatarFallback(userName);
+          },
+        ),
+      );
+    }
+
+    return _buildAvatarFallback(userName);
+  }
+
+  Widget _buildAvatarFallback(String userName) {
     final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final colorIndex = userName.isNotEmpty ? userName.codeUnitAt(0) % 5 : 0;
     final avatarColors = [
@@ -676,16 +698,24 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       AppColors.forestInk,
       AppColors.pear,
     ];
-    
+
     final avatarColor = avatarColors[colorIndex];
-    
-    return Center(
-      child: Text(
-        initial,
-        style: GoogleFonts.albertSans(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: avatarColor,
+
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: avatarColor.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.albertSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: avatarColor,
+          ),
         ),
       ),
     );
@@ -693,54 +723,23 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
 
   Widget _buildCommentInput() {
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
       decoration: BoxDecoration(
         color: AppColors.whiteWhite,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.moonAsh,
-            width: 1,
-          ),
-        ),
+        border: Border(top: BorderSide(color: AppColors.moonAsh, width: 1)),
       ),
       child: SafeArea(
         child: Row(
           children: [
-            // Avatar do usuário atual
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.papayaSensorial.withOpacity(0.1),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.papayaSensorial.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  'V', // Em um app real, viria do UserManager
-                  style: GoogleFonts.albertSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.papayaSensorial,
-                  ),
-                ),
-              ),
-            ),
-            
-            SizedBox(width: 12),
-            
-            // Campo de Texto
+            // Campo de texto
             Expanded(
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.whiteWhite, // MUDANÇA: de oatWhite para whiteWhite
+                  color: AppColors.oatWhite,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: _commentFocus.hasFocus 
+                    color: _commentFocus.hasFocus
                         ? AppColors.papayaSensorial.withOpacity(0.3)
                         : AppColors.moonAsh,
                     width: 1,
@@ -764,11 +763,11 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                       color: AppColors.grayScale2,
                     ),
                     border: InputBorder.none,
-                    enabledBorder: InputBorder.none, // REMOVE BORDA PADRÃO
-                    focusedBorder: InputBorder.none, // REMOVE BORDA QUANDO FOCADO
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
-                    filled: false, // REMOVE PREENCHIMENTO AUTOMÁTICO
+                    filled: false,
                   ),
                   onChanged: (value) {
                     setState(() {}); // Para atualizar o botão de envio
@@ -776,9 +775,9 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                 ),
               ),
             ),
-            
+
             SizedBox(width: 12),
-            
+
             // Botão Enviar
             GestureDetector(
               onTap: _commentController.text.trim().isNotEmpty && !isPosting
@@ -803,7 +802,7 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                         ),
                       )
                     : Icon(
-                        AppIcons.forward,
+                        AppIcons.paperPlaneTilt,
                         color: AppColors.whiteWhite,
                         size: 18,
                       ),
@@ -813,6 +812,21 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
         ),
       ),
     );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}min';
+    } else {
+      return 'agora';
+    }
   }
 }
 
