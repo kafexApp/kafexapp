@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
-import '../screens/notifications_screen.dart';
+import '../ui/notifications/widgets/notifications_provider.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -26,7 +26,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => NotificationsScreen(),
+        builder: (context) => NotificationsProvider(),
       ),
     );
   }

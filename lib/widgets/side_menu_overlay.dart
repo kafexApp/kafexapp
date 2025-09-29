@@ -5,7 +5,7 @@ import '../utils/app_colors.dart';
 import '../utils/user_manager.dart';
 import '../services/auth_service.dart';
 import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
-import '../screens/notifications_screen.dart';
+import '../ui/notifications/widgets/notifications_provider.dart';
 import '../screens/splash_screen.dart';
 import '../screens/profile_settings_screen.dart';
 import '../screens/user_profile_screen.dart';
@@ -193,7 +193,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.bell(),
                             title: 'Notificações',
                             subtitle: 'Alertas e atualizações',
-                            onTap: () => _pushToScreen(NotificationsScreen()),
+                            onTap: () => _pushToScreen(NotificationsProvider()),
                           ),
                           
                           SizedBox(height: 8),
