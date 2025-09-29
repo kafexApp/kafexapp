@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/utils/app_icons.dart';
-import 'package:kafex/widgets/feed/feed_post_card.dart';
+import 'package:kafex/ui/posts/widgets/feed_post_widget.dart';
 import 'package:kafex/widgets/custom_boxcafe_minicard.dart';
 import 'package:kafex/ui/user_profile/viewmodel/user_profile_viewmodel.dart';
 import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';

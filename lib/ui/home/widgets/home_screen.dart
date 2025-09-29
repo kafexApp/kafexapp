@@ -7,7 +7,7 @@ import '../../../utils/user_manager.dart';
 import '../../../widgets/custom_bottom_navbar.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/side_menu_overlay.dart';
-import '../../../widgets/feed/post_card_factory.dart';
+import '../../posts/factories/post_card_factory.dart';
 import '../../../widgets/common/user_avatar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../viewmodel/home_feed_viewmodel.dart';

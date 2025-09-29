@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../utils/app_colors.dart';
-import '../../utils/app_icons.dart';
-import '../../backend/supabase/tables/feed_com_usuario.dart';
-import '../../models/comment_models.dart';
-import '../../ui/user_profile/widgets/user_profile_provider.dart';
-import '../../services/comments_service.dart';
-import '../comments_bottom_sheet.dart';
+import 'package:kafex/utils/app_colors.dart';
+import 'package:kafex/utils/app_icons.dart';
+import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';
+import 'package:kafex/models/comment_models.dart';
+import 'package:kafex/ui/user_profile/widgets/user_profile_provider.dart';
+import 'package:kafex/services/comments_service.dart';
+import 'package:kafex/widgets/comments_bottom_sheet.dart';
 
 class FeedPostCard extends StatefulWidget {
   final FeedComUsuarioRow post;
