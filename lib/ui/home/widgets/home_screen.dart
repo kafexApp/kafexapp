@@ -11,7 +11,6 @@ import '../../../widgets/feed/post_card_factory.dart';
 import '../../../widgets/common/user_avatar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../viewmodel/home_feed_viewmodel.dart';
-import '../viewmodel/post_adapter.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -142,33 +141,12 @@ class HomeScreen extends StatelessWidget {
       children: [
         _buildWelcomeSection(),
         ...viewModel.posts.map((post) {
-          final postData = PostAdapter.toPostData(post);
           return PostCardFactory.create(
-            post: postData,
-            type: postData.type,
+            post: post,
             onLike: () => viewModel.likePost(post.id),
             onComment: () => _handleComment(post.id),
             onEdit: () => _handleEdit(post.id),
             onDelete: () => viewModel.deletePost(post.id),
-            coffeeName: postData.coffeeName,
-            rating: postData.rating,
-            coffeeId: postData.coffeeId,
-            isFavorited: postData.isFavorited,
-            wantToVisit: postData.wantToVisit,
-            onFavorite: postData.coffeeId != null
-                ? () => _handleFavorite(postData.coffeeId!)
-                : null,
-            onWantToVisit: postData.coffeeId != null
-                ? () => _handleWantToVisit(postData.coffeeId!)
-                : null,
-            coffeeAddress: postData.coffeeAddress,
-            onEvaluateNow: postData.coffeeId != null && postData.coffeeName != null
-                ? () => _handleEvaluateNow(
-                      postData.coffeeId!,
-                      postData.coffeeName!,
-                    )
-                : null,
-            onViewAllComments: () => _handleViewAllComments(post.id),
           );
         }).toList(),
       ],
@@ -275,21 +253,5 @@ class HomeScreen extends StatelessWidget {
 
   void _handleEdit(String postId) {
     print('Editar post: $postId');
-  }
-
-  void _handleViewAllComments(String postId) {
-    print('Ver todos os comentários do post: $postId');
-  }
-
-  void _handleFavorite(String coffeeId) {
-    print('Favoritar cafeteria: $coffeeId');
-  }
-
-  void _handleWantToVisit(String coffeeId) {
-    print('Quero visitar cafeteria: $coffeeId');
-  }
-
-  void _handleEvaluateNow(String coffeeId, String coffeeName) {
-    print('Avaliar cafeteria: $coffeeName ($coffeeId)');
   }
 }
