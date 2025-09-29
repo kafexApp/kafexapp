@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'post.freezed.dart';
 part 'post.g.dart';
 
-enum PostType {
+enum DomainPostType {
   traditional,
   coffeeReview,
   newCoffee,
@@ -22,16 +22,13 @@ class Post with _$Post {
     required int likes,
     required int comments,
     required bool isLiked,
-    required PostType type,
+    required DomainPostType type,
     
-    // Review-specific
     String? coffeeName,
     double? rating,
     String? coffeeId,
     bool? isFavorited,
     bool? wantToVisit,
-    
-    // New coffee-specific
     String? coffeeAddress,
   }) = _Post;
 

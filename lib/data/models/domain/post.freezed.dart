@@ -31,13 +31,12 @@ mixin _$Post {
   int get likes => throw _privateConstructorUsedError;
   int get comments => throw _privateConstructorUsedError;
   bool get isLiked => throw _privateConstructorUsedError;
-  PostType get type => throw _privateConstructorUsedError; // Review-specific
+  DomainPostType get type => throw _privateConstructorUsedError;
   String? get coffeeName => throw _privateConstructorUsedError;
   double? get rating => throw _privateConstructorUsedError;
   String? get coffeeId => throw _privateConstructorUsedError;
   bool? get isFavorited => throw _privateConstructorUsedError;
-  bool? get wantToVisit =>
-      throw _privateConstructorUsedError; // New coffee-specific
+  bool? get wantToVisit => throw _privateConstructorUsedError;
   String? get coffeeAddress => throw _privateConstructorUsedError;
 
   /// Serializes this Post to a JSON map.
@@ -65,7 +64,7 @@ abstract class $PostCopyWith<$Res> {
     int likes,
     int comments,
     bool isLiked,
-    PostType type,
+    DomainPostType type,
     String? coffeeName,
     double? rating,
     String? coffeeId,
@@ -153,7 +152,7 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
             type: null == type
                 ? _value.type
                 : type // ignore: cast_nullable_to_non_nullable
-                      as PostType,
+                      as DomainPostType,
             coffeeName: freezed == coffeeName
                 ? _value.coffeeName
                 : coffeeName // ignore: cast_nullable_to_non_nullable
@@ -203,7 +202,7 @@ abstract class _$$PostImplCopyWith<$Res> implements $PostCopyWith<$Res> {
     int likes,
     int comments,
     bool isLiked,
-    PostType type,
+    DomainPostType type,
     String? coffeeName,
     double? rating,
     String? coffeeId,
@@ -288,7 +287,7 @@ class __$$PostImplCopyWithImpl<$Res>
         type: null == type
             ? _value.type
             : type // ignore: cast_nullable_to_non_nullable
-                  as PostType,
+                  as DomainPostType,
         coffeeName: freezed == coffeeName
             ? _value.coffeeName
             : coffeeName // ignore: cast_nullable_to_non_nullable
@@ -365,8 +364,7 @@ class _$PostImpl implements _Post {
   @override
   final bool isLiked;
   @override
-  final PostType type;
-  // Review-specific
+  final DomainPostType type;
   @override
   final String? coffeeName;
   @override
@@ -377,7 +375,6 @@ class _$PostImpl implements _Post {
   final bool? isFavorited;
   @override
   final bool? wantToVisit;
-  // New coffee-specific
   @override
   final String? coffeeAddress;
 
@@ -470,7 +467,7 @@ abstract class _Post implements Post {
     required final int likes,
     required final int comments,
     required final bool isLiked,
-    required final PostType type,
+    required final DomainPostType type,
     final String? coffeeName,
     final double? rating,
     final String? coffeeId,
@@ -502,7 +499,7 @@ abstract class _Post implements Post {
   @override
   bool get isLiked;
   @override
-  PostType get type; // Review-specific
+  DomainPostType get type;
   @override
   String? get coffeeName;
   @override
@@ -512,7 +509,7 @@ abstract class _Post implements Post {
   @override
   bool? get isFavorited;
   @override
-  bool? get wantToVisit; // New coffee-specific
+  bool? get wantToVisit;
   @override
   String? get coffeeAddress;
 

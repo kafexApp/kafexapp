@@ -4,13 +4,12 @@ import 'firebase_options.dart';
 import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'ui/home/widgets/home_screen_provider.dart';
 
 void main() async {
-  // Garantir que o Flutter está inicializado
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Inicializar Firebase com configurações específicas por plataforma
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
@@ -19,7 +18,6 @@ void main() async {
     print('❌ Erro ao inicializar Firebase: $e');
   }
 
-  // Inicialização do Supabase
   await Supabase.initialize(
     url: 'https://mroljkgkiseuqlwlaibu.supabase.co',
     anonKey:
@@ -37,6 +35,10 @@ class KafexApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       home: SplashScreen(),
       debugShowCheckedModeBanner: false,
+      // ROTA TEMPORÁRIA PARA TESTES
+      routes: {
+        '/home-test': (context) => const HomeScreenProvider(),
+      },
     );
   }
 }

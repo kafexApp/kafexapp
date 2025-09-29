@@ -17,7 +17,7 @@ _$PostImpl _$$PostImplFromJson(Map<String, dynamic> json) => _$PostImpl(
   likes: (json['likes'] as num).toInt(),
   comments: (json['comments'] as num).toInt(),
   isLiked: json['isLiked'] as bool,
-  type: $enumDecode(_$PostTypeEnumMap, json['type']),
+  type: $enumDecode(_$DomainPostTypeEnumMap, json['type']),
   coffeeName: json['coffeeName'] as String?,
   rating: (json['rating'] as num?)?.toDouble(),
   coffeeId: json['coffeeId'] as String?,
@@ -38,7 +38,7 @@ Map<String, dynamic> _$$PostImplToJson(_$PostImpl instance) =>
       'likes': instance.likes,
       'comments': instance.comments,
       'isLiked': instance.isLiked,
-      'type': _$PostTypeEnumMap[instance.type]!,
+      'type': _$DomainPostTypeEnumMap[instance.type]!,
       'coffeeName': instance.coffeeName,
       'rating': instance.rating,
       'coffeeId': instance.coffeeId,
@@ -47,8 +47,8 @@ Map<String, dynamic> _$$PostImplToJson(_$PostImpl instance) =>
       'coffeeAddress': instance.coffeeAddress,
     };
 
-const _$PostTypeEnumMap = {
-  PostType.traditional: 'traditional',
-  PostType.coffeeReview: 'coffeeReview',
-  PostType.newCoffee: 'newCoffee',
+const _$DomainPostTypeEnumMap = {
+  DomainPostType.traditional: 'traditional',
+  DomainPostType.coffeeReview: 'coffeeReview',
+  DomainPostType.newCoffee: 'newCoffee',
 };

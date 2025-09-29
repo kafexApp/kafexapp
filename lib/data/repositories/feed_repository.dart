@@ -16,12 +16,8 @@ class FeedRepositoryImpl implements FeedRepository {
   @override
   Future<Result<List<Post>>> getFeed() async {
     try {
-      // Usa o FeedService existente para buscar dados brutos
       final rawPosts = await FeedService.getFeed();
-      
-      // Converte para modelos de domínio
       final posts = rawPosts.map((raw) => _convertToPost(raw)).toList();
-      
       return Result.ok(posts);
     } catch (e) {
       return Result.error(Exception('Erro ao carregar feed: $e'));
@@ -29,13 +25,12 @@ class FeedRepositoryImpl implements FeedRepository {
   }
 
   Post _convertToPost(dynamic raw) {
-    // Determinar tipo do post
-    PostType postType = PostType.traditional;
+    DomainPostType postType = DomainPostType.traditional;
     
     if (raw.pontuacao != null && raw.nomeCafeteria != null) {
-      postType = PostType.coffeeReview;
+      postType = DomainPostType.coffeeReview;
     } else if (raw.nomeCafeteria != null && raw.endereco != null) {
-      postType = PostType.newCoffee;
+      postType = DomainPostType.newCoffee;
     }
 
     return Post(

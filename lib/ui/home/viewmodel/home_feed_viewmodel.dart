@@ -25,14 +25,12 @@ class HomeFeedViewModel extends ChangeNotifier {
     if (result.isOk) {
       _posts = result.asOk.value;
     } else {
-      // Em caso de erro, usar lista vazia
       _posts = [];
     }
 
     return result;
   }
 
-  // Comandos para ações de posts
   void likePost(String postId) {
     final index = _posts.indexWhere((post) => post.id == postId);
     if (index != -1) {
@@ -43,12 +41,10 @@ class HomeFeedViewModel extends ChangeNotifier {
       );
       notifyListeners();
     }
-    // TODO: Salvar like no Supabase
   }
 
   void deletePost(String postId) {
     _posts.removeWhere((post) => post.id == postId);
     notifyListeners();
-    // TODO: Deletar no Supabase
   }
 }
