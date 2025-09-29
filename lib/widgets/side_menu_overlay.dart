@@ -6,9 +6,9 @@ import '../utils/user_manager.dart';
 import '../services/auth_service.dart';
 import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
 import '../ui/notifications/widgets/notifications_provider.dart';
+import '../ui/user_profile/widgets/user_profile_provider.dart';
 import '../screens/splash_screen.dart';
 import '../screens/profile_settings_screen.dart';
-import '../screens/user_profile_screen.dart';
 import '../widgets/create_post.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
@@ -204,7 +204,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             subtitle: 'Meus dados',
                             onTap: () {
                               final userManager = UserManager.instance;
-                              _pushToScreen(UserProfileScreen(
+                              _pushToScreen(UserProfileProvider(
                                 userId: userManager.userEmail,
                                 userName: userManager.userName,
                                 userAvatar: userManager.userPhotoUrl,
