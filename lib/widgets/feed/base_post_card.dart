@@ -7,7 +7,7 @@ import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
 import '../comments_bottom_sheet.dart';
-import '../../screens/user_profile_screen.dart';
+import '../../ui/user_profile/widgets/user_profile_provider.dart';
 
 abstract class BasePostCard extends StatefulWidget {
   final PostData post;
@@ -128,7 +128,7 @@ abstract class BasePostCardState<T extends BasePostCard> extends State<T>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UserProfileScreen(
+        builder: (context) => UserProfileProvider(
           userId: userName.toLowerCase().replaceAll(' ', '_'),
           userName: userName,
           userAvatar: avatarUrl,

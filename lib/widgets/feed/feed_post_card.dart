@@ -7,7 +7,7 @@ import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../backend/supabase/tables/feed_com_usuario.dart';
 import '../../models/comment_models.dart';
-import '../../screens/user_profile_screen.dart';
+import '../../ui/user_profile/widgets/user_profile_provider.dart';
 import '../../services/comments_service.dart';
 import '../comments_bottom_sheet.dart';
 
@@ -60,7 +60,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => UserProfileScreen(
+        builder: (context) => UserProfileProvider(
           userId: 'user_${userName.toLowerCase().replaceAll(' ', '_')}',
           userName: userName,
           userAvatar: avatarUrl,

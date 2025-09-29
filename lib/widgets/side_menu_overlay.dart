@@ -7,8 +7,8 @@ import '../services/auth_service.dart';
 import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
 import '../ui/notifications/widgets/notifications_provider.dart';
 import '../ui/user_profile/widgets/user_profile_provider.dart';
+import '../ui/profile_settings/widgets/profile_settings_provider.dart';
 import '../screens/splash_screen.dart';
-import '../screens/profile_settings_screen.dart';
 import '../widgets/create_post.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
@@ -218,7 +218,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.gear(),
                             title: 'Configurações',
                             subtitle: 'Preferências do app',
-                            onTap: () => _pushToScreen(ProfileSettingsScreen()),
+                            onTap: () => _pushToScreen(ProfileSettingsProvider()),
                           ),
                           
                           SizedBox(height: 20),

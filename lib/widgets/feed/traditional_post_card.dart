@@ -6,7 +6,7 @@ import '../../utils/app_colors.dart';
 import '../../utils/app_icons.dart';
 import '../../models/post_models.dart';
 import '../comments_bottom_sheet.dart';
-import '../../screens/user_profile_screen.dart';
+import '../../ui/user_profile/widgets/user_profile_provider.dart';
 import 'base_post_card.dart';
 
 class TraditionalPostCard extends BasePostCard {

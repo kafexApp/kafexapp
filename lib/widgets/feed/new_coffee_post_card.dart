@@ -9,7 +9,7 @@ import '../comments_bottom_sheet.dart';
 import '../cafe_evaluation_modal.dart';
 import '../custom_toast.dart';
 import '../custom_boxcafe.dart';
-import '../../screens/user_profile_screen.dart';
+import '../../ui/user_profile/widgets/user_profile_provider.dart';
 import 'base_post_card.dart';
 
 // Classes mock para compatibilidade com o CustomBoxcafe
