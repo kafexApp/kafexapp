@@ -11,143 +11,116 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.oatWhite,
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(56.0),
-              child: Column(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(56.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SvgPicture.asset(
+                'assets/images/kafex_logo_positive.svg',
+                width: 160,
+                height: 60,
+              ),
+
+              SizedBox(height: 80),
+
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SvgPicture.asset(
-                    'assets/images/kafex_logo_positive.svg',
-                    width: 160,
-                    height: 60,
-                  ),
-
-                  SizedBox(height: 80),
-
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'UM GUIA',
-                        style: TextStyle(
-                          fontFamily: 'Monigue',
-                          fontSize: 54,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.velvetMerlot,
-                          height: 0.9,
-                        ),
-                      ),
-                      Text(
-                        'CONFIÁVEL',
-                        style: TextStyle(
-                          fontFamily: 'Monigue',
-                          fontSize: 54,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.velvetMerlot,
-                          height: 0.9,
-                        ),
-                      ),
-                      Text(
-                        'PARA QUEM AMA',
-                        style: TextStyle(
-                          fontFamily: 'Monigue',
-                          fontSize: 54,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.papayaSensorial,
-                          height: 0.9,
-                        ),
-                      ),
-                      Text(
-                        'CAFÉ ESPECIAL',
-                        style: TextStyle(
-                          fontFamily: 'Monigue',
-                          fontSize: 54,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.papayaSensorial,
-                          height: 0.9,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 40),
-
-                  SvgPicture.asset(
-                    'assets/images/star.svg',
-                    width: 40,
-                    height: 40,
-                  ),
-
-                  SizedBox(height: 40),
-
                   Text(
-                    'Tem mais cafeteria boa no mundo do\nque o google é capaz de te mostrar.',
-                    textAlign: TextAlign.left,
-                    style: GoogleFonts.albertSans(
-                      fontSize: 16,
-                      color: AppColors.grayScale1,
-                      height: 1.4,
+                    'UM GUIA',
+                    style: TextStyle(
+                      fontFamily: 'Monigue',
+                      fontSize: 54,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.velvetMerlot,
+                      height: 0.9,
                     ),
                   ),
-
-                  Expanded(child: SizedBox()),
-
-                  Column(
-                    children: [
-                      PrimaryButton(
-                        text: 'Já sou membro',
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => LoginScreen()),
-                          );
-                        },
-                      ),
-
-                      SizedBox(height: 16),
-
-                      CustomOutlineButton(
-                        text: 'Criar conta grátis',
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => CreateAccountScreen()),
-                          );
-                        },
-                      ),
-                    ],
+                  Text(
+                    'CONFIÁVEL',
+                    style: TextStyle(
+                      fontFamily: 'Monigue',
+                      fontSize: 54,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.velvetMerlot,
+                      height: 0.9,
+                    ),
+                  ),
+                  Text(
+                    'PARA QUEM AMA',
+                    style: TextStyle(
+                      fontFamily: 'Monigue',
+                      fontSize: 54,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.papayaSensorial,
+                      height: 0.9,
+                    ),
+                  ),
+                  Text(
+                    'CAFÉ ESPECIAL',
+                    style: TextStyle(
+                      fontFamily: 'Monigue',
+                      fontSize: 54,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.papayaSensorial,
+                      height: 0.9,
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
-          
-          // BOTÃO DE TESTE - TEMPORÁRIO (canto superior direito)
-          Positioned(
-            top: 50,
-            right: 20,
-            child: GestureDetector(
-              onLongPress: () {
-                Navigator.pushNamed(context, '/home-test');
-              },
-              child: Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.papayaSensorial.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.code,
-                  size: 20,
-                  color: AppColors.papayaSensorial,
+
+              SizedBox(height: 40),
+
+              SvgPicture.asset(
+                'assets/images/star.svg',
+                width: 40,
+                height: 40,
+              ),
+
+              SizedBox(height: 40),
+
+              Text(
+                'Tem mais cafeteria boa no mundo do\nque o google é capaz de te mostrar.',
+                textAlign: TextAlign.left,
+                style: GoogleFonts.albertSans(
+                  fontSize: 16,
+                  color: AppColors.grayScale1,
+                  height: 1.4,
                 ),
               ),
-            ),
+
+              Expanded(child: SizedBox()),
+
+              Column(
+                children: [
+                  PrimaryButton(
+                    text: 'Já sou membro',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                      );
+                    },
+                  ),
+
+                  SizedBox(height: 16),
+
+                  CustomOutlineButton(
+                    text: 'Criar conta grátis',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => CreateAccountScreen()),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

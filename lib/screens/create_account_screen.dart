@@ -1,4 +1,5 @@
 import '../ui/home/widgets/home_screen_provider.dart';
+import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart'; // IMPORT NOVO
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';

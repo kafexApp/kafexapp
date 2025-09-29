@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
-import '../utils/app_icons.dart'; // Import dos ícones Phosphor
+import '../utils/app_icons.dart';
 import '../utils/user_manager.dart';
 import '../widgets/custom_buttons.dart';
 import '../widgets/custom_toast.dart';
@@ -172,8 +172,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             _isPasswordVisible
-                                ? AppIcons.eyeSlash // Ícone Phosphor para senha visível
-                                : AppIcons.eye,     // Ícone Phosphor para senha oculta
+                                ? AppIcons.eyeSlash
+                                : AppIcons.eye,
                             color: AppColors.grayScale2,
                             size: 20,
                           ),

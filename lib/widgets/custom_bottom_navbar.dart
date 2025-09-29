@@ -1,9 +1,8 @@
-// lib/widgets/custom_bottom_navbar.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
-import '../screens/cafe_explorer_screen.dart';
+import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart'; // IMPORT NOVO
 import '../screens/add_cafe_screen.dart';
 import 'side_menu_overlay.dart';
 
@@ -20,12 +19,12 @@ class CustomBottomNavbar extends StatelessWidget {
   }) : super(key: key);
 
   void _navigateToCafeExplorer(BuildContext context) {
-    print('🚀 Navegando para CafeExplorerScreen...');
+    print('🚀 Navegando para CafeExplorerProvider...');
     try {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CafeExplorerScreen(),
+          builder: (context) => CafeExplorerProvider(), // ROTA ATUALIZADA
         ),
       ).then((value) {
         print('✅ Navegação concluída com sucesso!');
@@ -83,12 +82,12 @@ class CustomBottomNavbar extends StatelessWidget {
                         print('🔥 Botão "Encontrar cafeterias" clicado!');
                         print('🔍 onSearchPressed é null? ${onSearchPressed == null}');
                         
-                        // Se houver um callback personalizado, usa ele, senão navega para CafeExplorerScreen
+                        // Se houver um callback personalizado, usa ele, senão navega para CafeExplorerProvider
                         if (onSearchPressed != null) {
                           print('📞 Executando onSearchPressed personalizado...');
                           onSearchPressed!();
                         } else {
-                          print('🎯 Usando navegação padrão para CafeExplorerScreen...');
+                          print('🎯 Usando navegação padrão para CafeExplorerProvider...');
                           _navigateToCafeExplorer(context);
                         }
                       }

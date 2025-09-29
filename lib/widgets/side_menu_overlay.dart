@@ -5,7 +5,7 @@ import '../utils/app_colors.dart';
 import '../utils/user_manager.dart';
 import '../services/auth_service.dart';
 import '../screens/home_feed_screen.dart';
-import '../screens/cafe_explorer_screen.dart';
+import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart'; // IMPORT NOVO
 import '../screens/notifications_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/profile_settings_screen.dart';
@@ -198,7 +198,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.coffee(),
                             title: 'Cafeterias',
                             subtitle: 'Explorar cafeterias',
-                            onTap: () => _navigateToScreen(CafeExplorerScreen()),
+                            onTap: () => _navigateToScreen(CafeExplorerProvider()), // ROTA ATUALIZADA
                           ),
                           
                           SizedBox(height: 8),
@@ -219,7 +219,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             onTap: () {
                               final userManager = UserManager.instance;
                               _pushToScreen(UserProfileScreen(
-                                userId: userManager.userEmail, // Usando email como ID
+                                userId: userManager.userEmail,
                                 userName: userManager.userName,
                                 userAvatar: userManager.userPhotoUrl,
                               ));
