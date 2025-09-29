@@ -1,5 +1,5 @@
 import '../ui/home/widgets/home_screen_provider.dart';
-import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart'; // IMPORT NOVO
+import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,7 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_buttons.dart';
 import '../services/auth_service.dart';
-import 'home_feed_screen.dart';
 import 'login_screen.dart';
 
 
@@ -71,10 +70,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
             height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
             child: Column(
               children: [
-                // Espaço superior
                 SizedBox(height: 60),
                 
-                // Área principal com fundo oatWhite
                 Expanded(
                   child: Container(
                     width: double.infinity,
@@ -91,7 +88,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         children: [
                           SizedBox(height: 40),
                           
-                          // Título
                           Text(
                             'Digite seus dados abaixo',
                             style: GoogleFonts.albertSans(
@@ -104,7 +100,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           
                           SizedBox(height: 40),
                           
-                          // Campos de entrada
                           _buildTextField(
                             controller: _nameController,
                             focusNode: _nameFocus,
@@ -160,7 +155,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           
                           SizedBox(height: 24),
                           
-                          // Checkbox de termos
                           Row(
                             children: [
                               GestureDetector(
@@ -204,7 +198,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           
                           SizedBox(height: 24),
                           
-                          // Aviso sobre exclusão de conta
                           Container(
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -248,7 +241,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           
                           SizedBox(height: 40),
                           
-                          // Texto "Ou continue com:"
                           Text(
                             'Ou continue com:',
                             style: GoogleFonts.albertSans(
@@ -259,11 +251,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           
                           SizedBox(height: 20),
                           
-                          // Botões de login social
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Botão Google
                               GestureDetector(
                                 onTap: _isLoading ? null : () => _handleGoogleSignIn(),
                                 child: Opacity(
@@ -278,7 +268,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
                               SizedBox(width: 24),
 
-                              // Botão Apple
                               GestureDetector(
                                 onTap: _isLoading ? null : () => _handleAppleSignIn(),
                                 child: Opacity(
@@ -295,7 +284,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                           
                           Spacer(),
                           
-                          // Botões inferiores
                           Row(
                             children: [
                               Expanded(
@@ -478,7 +466,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   void _handleCreateAccount() async {
-    // Validações básicas
     if (_nameController.text.isEmpty) {
       _showErrorMessage('Por favor, digite seu nome');
       return;
@@ -514,20 +501,17 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     });
 
     try {
-      // Usar Firebase Auth diretamente para criar conta
       final UserCredential result = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      // Atualizar perfil do usuário
       if (result.user != null) {
         await result.user!.updateDisplayName(_nameController.text.trim());
         await result.user!.reload();
       }
 
       _showSuccessMessage('Conta criada com sucesso!');
-      // Navegar para tela principal
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomeScreenProvider()),
@@ -553,7 +537,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
       if (result.isSuccess) {
         _showSuccessMessage('Login com Google realizado com sucesso!');
-        // Navegar para tela principal
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeScreenProvider()),
@@ -580,7 +563,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
       if (result.isSuccess) {
         _showSuccessMessage('Login com Apple realizado com sucesso!');
-        // Navegar para tela principal
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeScreenProvider()),

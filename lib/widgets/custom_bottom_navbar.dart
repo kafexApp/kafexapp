@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
-import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart'; // IMPORT NOVO
-import '../screens/add_cafe_screen.dart';
+import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
+import '../ui/add_cafe/widgets/add_cafe_provider.dart'; // IMPORT NOVO
 import 'side_menu_overlay.dart';
 
 class CustomBottomNavbar extends StatelessWidget {
@@ -24,7 +24,7 @@ class CustomBottomNavbar extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CafeExplorerProvider(), // ROTA ATUALIZADA
+          builder: (context) => CafeExplorerProvider(),
         ),
       ).then((value) {
         print('✅ Navegação concluída com sucesso!');
@@ -37,12 +37,12 @@ class CustomBottomNavbar extends StatelessWidget {
   }
 
   void _navigateToAddCafe(BuildContext context) {
-    print('🚀 Navegando para AddCafeScreen...');
+    print('🚀 Navegando para AddCafeProvider...');
     try {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => AddCafeScreen(),
+          builder: (context) => AddCafeProvider(), // ROTA ATUALIZADA
         ),
       ).then((value) {
         print('✅ Navegação para cadastro concluída com sucesso!');

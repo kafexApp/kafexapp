@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
-import '../utils/app_icons.dart'; // Nossa classe de ícones
+import '../utils/app_icons.dart';
 import '../screens/notifications_screen.dart';
-import '../screens/home_feed_screen.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -33,7 +32,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   void _navigateToHome(BuildContext context) {
-    // Navega para a home, removendo todas as telas do stack
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => HomeScreenProvider()),
@@ -52,7 +50,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Botão voltar (se necessário) ou logo clicável
               showBackButton
                   ? GestureDetector(
                       onTap: onBackPressed ?? () => Navigator.of(context).pop(),
@@ -71,7 +68,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                           ],
                         ),
                         child: Icon(
-                          AppIcons.back, // ← Usando Phosphor Icons!
+                          AppIcons.back,
                           color: AppColors.textPrimary,
                           size: 20,
                         ),
@@ -86,7 +83,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                       ),
                     ),
 
-              // Ícone de notificação com badge (usando Phosphor Icons)
               GestureDetector(
                 onTap: onNotificationPressed ?? () => _navigateToNotifications(context),
                 child: Container(
@@ -94,7 +90,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      // Ícone de notificação Phosphor (mais bonito!)
                       Icon(
                         notificationCount > 0 
                           ? AppIcons.notificationFill 
@@ -103,7 +98,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                         color: AppColors.textPrimary,
                       ),
                       
-                      // Badge de notificações
                       if (notificationCount > 0)
                         Positioned(
                           right: -2,

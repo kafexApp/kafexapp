@@ -1,15 +1,13 @@
-// lib/screens/user_profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../widgets/feed/feed_post_card.dart';
-import '../screens/cafe_explorer_screen.dart' show CafeModel;
+import '../models/cafe_model.dart';
 import '../backend/supabase/tables/feed_com_usuario.dart';
-import '../models/comment_models.dart'; // NOVA IMPORTAÇÃO
+import '../models/comment_models.dart';
 import '../widgets/custom_boxcafe_minicard.dart';
-import '../backend/supabase/tables/feed_com_usuario.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -31,12 +29,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // Mock data - em um app real viria de uma API
   List<FeedComUsuarioRow> userPosts = [];
   List<CafeModel> favoriteCafes = [];
   List<CafeModel> wantToVisitCafes = [];
 
-  // Estatísticas do usuário
   int postsCount = 0;
   int favoritesCount = 0;
   int wantToVisitCount = 0;
@@ -55,9 +51,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   void _loadUserData() {
-    // Mock data para demonstração - convertendo para FeedComUsuarioRow
     setState(() {
-      // Posts do usuário - criando dados mock compatíveis com FeedComUsuarioRow
       userPosts = [
         FeedComUsuarioRow({
           'id': 1,
@@ -81,7 +75,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         }),
       ];
 
-      // Cafés favoritos
       favoriteCafes = [
         CafeModel(
           id: '1',
@@ -111,7 +104,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         ),
       ];
 
-      // Cafés que quer visitar
       wantToVisitCafes = [
         CafeModel(
           id: '3',
@@ -132,7 +124,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         ),
       ];
 
-      // Atualizar contadores
       postsCount = userPosts.length;
       favoritesCount = favoriteCafes.length;
       wantToVisitCount = wantToVisitCafes.length;
@@ -145,16 +136,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       backgroundColor: AppColors.oatWhite,
       body: CustomScrollView(
         slivers: [
-          // Header com banner e perfil
           _buildProfileHeader(),
-
-          // Estatísticas
           _buildStatsSection(),
-
-          // Tab Bar
           _buildTabBar(),
-
-          // Conteúdo das tabs
           _buildTabContent(),
         ],
       ),
@@ -187,7 +171,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           children: [
-            // Banner image
             Container(
               width: double.infinity,
               height: 200,
@@ -196,12 +179,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   image: AssetImage('assets/images/user-banner-top.png'),
                   fit: BoxFit.cover,
                   onError: (exception, stackTrace) {
-                    // Se a imagem não carregar, usa um gradiente como fallback
                     print('Erro ao carregar banner: $exception');
                   },
                 ),
               ),
-              // Fallback caso a imagem não carregue
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -216,7 +197,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               ),
             ),
 
-            // Gradient overlay
             Container(
               width: double.infinity,
               height: 200,
@@ -229,7 +209,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               ),
             ),
 
-            // Profile avatar and info
             Positioned(
               bottom: 0,
               left: 0,
@@ -238,7 +217,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    // Avatar
                     Container(
                       width: 100,
                       height: 100,
@@ -274,7 +252,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
                     SizedBox(height: 12),
 
-                    // User name
                     Text(
                       widget.userName,
                       style: GoogleFonts.albertSans(
@@ -286,7 +263,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
                     SizedBox(height: 4),
 
-                    // Bio or location (mock)
                     Text(
                       'Coffeelover ☕️',
                       style: GoogleFonts.albertSans(
@@ -461,11 +437,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         return FeedPostCard(
           post: userPosts[index],
           onLike: () {
-            // Implementar ação de like
             print('Like no post ${userPosts[index].id}');
           },
           onComment: () {
-            // Implementar abertura de comentários
             print('Abrir comentários do post ${userPosts[index].id}');
           },
         );
@@ -569,7 +543,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 }
 
-// Delegate para TabBar persistente
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
 

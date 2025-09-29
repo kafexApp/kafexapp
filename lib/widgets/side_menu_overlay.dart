@@ -4,8 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../utils/app_colors.dart';
 import '../utils/user_manager.dart';
 import '../services/auth_service.dart';
-import '../screens/home_feed_screen.dart';
-import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart'; // IMPORT NOVO
+import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/splash_screen.dart';
 import '../screens/profile_settings_screen.dart';
@@ -71,15 +70,10 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
     widget.onClose();
   }
 
-  // Método corrigido para navegação
   Future<void> _navigateToScreen(Widget screen) async {
-    // Primeiro fecha o menu
     await _closeMenu();
-    
-    // Aguarda um frame para garantir que o menu foi fechado
     await Future.delayed(Duration(milliseconds: 50));
     
-    // Então navega para a tela
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => screen),
@@ -87,15 +81,10 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
     }
   }
 
-  // Método para navegação push (não replacement)
   Future<void> _pushToScreen(Widget screen) async {
-    // Primeiro fecha o menu
     await _closeMenu();
-    
-    // Aguarda um frame para garantir que o menu foi fechado
     await Future.delayed(Duration(milliseconds: 50));
     
-    // Então navega para a tela
     if (mounted) {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => screen),
@@ -127,7 +116,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
       color: Colors.transparent,
       child: Stack(
         children: [
-          // Background com Material 3 scrim
           FadeTransition(
             opacity: _fadeAnimation,
             child: GestureDetector(
@@ -140,7 +128,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
             ),
           ),
           
-          // Menu com Material 3 design
           Positioned(
             left: 0,
             right: 0,
@@ -165,7 +152,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Handle M3
                     Container(
                       margin: EdgeInsets.only(top: 16, bottom: 8),
                       width: 32,
@@ -198,7 +184,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.coffee(),
                             title: 'Cafeterias',
                             subtitle: 'Explorar cafeterias',
-                            onTap: () => _navigateToScreen(CafeExplorerProvider()), // ROTA ATUALIZADA
+                            onTap: () => _navigateToScreen(CafeExplorerProvider()),
                           ),
                           
                           SizedBox(height: 8),
@@ -263,7 +249,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
       children: [
         Row(
           children: [
-            // Avatar com Material 3
             Container(
               width: 64,
               height: 64,
@@ -316,7 +301,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
               ),
             ),
             
-            // Botão fechar
             IconButton(
               onPressed: _closeMenu,
               icon: Icon(
@@ -335,7 +319,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
         
         SizedBox(height: 16),
         
-        // Botão logout
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
@@ -404,7 +387,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
-              // Ícone com Material 3
               Container(
                 width: 48,
                 height: 48,

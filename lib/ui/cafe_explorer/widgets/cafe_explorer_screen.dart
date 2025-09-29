@@ -11,7 +11,7 @@ import '../../../widgets/custom_bottom_navbar.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/custom_boxcafe_minicard.dart';
 import '../../../widgets/side_menu_overlay.dart';
-import '../../../screens/cafe_explorer_screen.dart' show CafeModel;
+import '../../../models/cafe_model.dart';
 import '../../../data/services/clustering_service.dart';
 import '../../../data/models/domain/cafe.dart';
 import '../viewmodel/cafe_explorer_viewmodel.dart';

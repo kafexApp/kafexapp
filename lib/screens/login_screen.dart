@@ -8,7 +8,6 @@ import '../widgets/custom_buttons.dart';
 import '../widgets/custom_toast.dart';
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
-import 'home_feed_screen.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -40,7 +39,6 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Imagem de fundo no topo
             Container(
               width: double.infinity,
               height: 280,
@@ -51,12 +49,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
-            // Conteúdo principal
             Padding(
               padding: EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  // Logo do Kafex
                   SvgPicture.asset(
                     'assets/images/kafex_logo_positive.svg',
                     width: 120,
@@ -65,7 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   SizedBox(height: 40),
 
-                  // Campo de Email
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.whiteWhite,
@@ -122,7 +117,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 16),
 
-                  // Campo de Senha
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.whiteWhite,
@@ -195,7 +189,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 32),
 
-                  // Botão "Acessar" com loading
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -233,7 +226,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 16),
 
-                  // Botão "Recuperar senha"
                   CustomOutlineButton(
                     text: 'Recuperar senha',
                     onPressed: () {
@@ -250,7 +242,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 32),
 
-                  // Texto "Ou continue com:"
                   Text(
                     'Ou continue com:',
                     style: GoogleFonts.albertSans(
@@ -261,11 +252,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 24),
 
-                  // Botões de login social
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Botão Google
                       GestureDetector(
                         onTap: _isLoading ? null : _handleGoogleSignIn,
                         child: Opacity(
@@ -280,7 +269,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       SizedBox(width: 24),
 
-                      // Botão Apple
                       GestureDetector(
                         onTap: _isLoading ? null : _handleAppleSignIn,
                         child: Opacity(
@@ -327,7 +315,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (result.isSuccess) {
-        // SALVAR DADOS NO USER MANAGER
         String email = _emailController.text.trim();
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
@@ -340,7 +327,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login realizado com sucesso!');
         
-        // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeScreenProvider()),
@@ -366,7 +352,6 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _authService.signInWithGoogle();
 
       if (result.isSuccess) {
-        // SALVAR DADOS DO GOOGLE NO USER MANAGER
         String email = result.user?.email ?? 'usuario@gmail.com';
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
@@ -379,7 +364,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login com Google realizado com sucesso!');
         
-        // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeScreenProvider()),
@@ -405,7 +389,6 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _authService.signInWithApple();
 
       if (result.isSuccess) {
-        // SALVAR DADOS DO APPLE NO USER MANAGER
         String email = result.user?.email ?? 'usuario@icloud.com';
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
@@ -418,7 +401,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login com Apple realizado com sucesso!');
         
-        // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => HomeScreenProvider()),
