@@ -11,6 +11,7 @@ import '../screens/splash_screen.dart';
 import '../screens/profile_settings_screen.dart';
 import '../screens/user_profile_screen.dart';
 import '../widgets/create_post.dart';
+import '../ui/home/widgets/home_screen_provider.dart';
 
 class SideMenuOverlay extends StatefulWidget {
   final VoidCallback onClose;
@@ -188,7 +189,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             icon: PhosphorIcons.house(),
                             title: 'Início',
                             subtitle: 'Feed principal',
-                            onTap: () => _navigateToScreen(HomeFeedScreen()),
+                            onTap: () => _navigateToScreen(HomeScreenProvider()),
                           ),
                           
                           SizedBox(height: 8),

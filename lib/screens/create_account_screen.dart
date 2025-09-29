@@ -1,3 +1,4 @@
+import '../ui/home/widgets/home_screen_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +8,7 @@ import '../widgets/custom_buttons.dart';
 import '../services/auth_service.dart';
 import 'home_feed_screen.dart';
 import 'login_screen.dart';
+
 
 class CreateAccountScreen extends StatefulWidget {
   @override
@@ -527,7 +529,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       // Navegar para tela principal
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+        MaterialPageRoute(builder: (context) => HomeScreenProvider()),
       );
     } on FirebaseAuthException catch (e) {
       _showErrorMessage(_getErrorMessage(e.code));
@@ -553,7 +555,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         // Navegar para tela principal
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+          MaterialPageRoute(builder: (context) => HomeScreenProvider()),
         );
       } else {
         _showErrorMessage(result.errorMessage ?? 'Erro no login com Google');
@@ -580,7 +582,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         // Navegar para tela principal
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+          MaterialPageRoute(builder: (context) => HomeScreenProvider()),
         );
       } else {
         _showErrorMessage(result.errorMessage ?? 'Erro no login com Apple');

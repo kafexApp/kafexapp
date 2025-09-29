@@ -9,6 +9,7 @@ import '../widgets/custom_toast.dart';
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
 import 'home_feed_screen.dart';
+import '../ui/home/widgets/home_screen_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -342,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+          MaterialPageRoute(builder: (context) => HomeScreenProvider()),
         );
       } else {
         CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login');
@@ -381,7 +382,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+          MaterialPageRoute(builder: (context) => HomeScreenProvider()),
         );
       } else {
         CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login com Google');
@@ -420,7 +421,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Navegar diretamente para o feed
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+          MaterialPageRoute(builder: (context) => HomeScreenProvider()),
         );
       } else {
         CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login com Apple');

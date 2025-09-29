@@ -4,6 +4,7 @@ import '../utils/app_colors.dart';
 import '../utils/app_icons.dart'; // Nossa classe de ícones
 import '../screens/notifications_screen.dart';
 import '../screens/home_feed_screen.dart';
+import '../ui/home/widgets/home_screen_provider.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationPressed;
@@ -35,7 +36,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     // Navega para a home, removendo todas as telas do stack
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => HomeFeedScreen()),
+      MaterialPageRoute(builder: (context) => HomeScreenProvider()),
       (route) => false,
     );
   }
