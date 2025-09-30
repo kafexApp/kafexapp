@@ -9,7 +9,8 @@ import '../ui/notifications/widgets/notifications_provider.dart';
 import '../ui/user_profile/widgets/user_profile_provider.dart';
 import '../ui/profile_settings/widgets/profile_settings_provider.dart';
 import '../screens/splash_screen.dart';
-import '../widgets/create_post.dart';
+// ATUALIZADO: Novo import para a versão refatorada
+import '../ui/posts/widgets/create_post_screen.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
 class SideMenuOverlay extends StatefulWidget {
@@ -450,6 +451,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
           await Future.delayed(Duration(milliseconds: 50));
           
           if (context.mounted) {
+            // ATUALIZADO: Usa a nova função refatorada
             showCreatePostModal(context);
           }
         },

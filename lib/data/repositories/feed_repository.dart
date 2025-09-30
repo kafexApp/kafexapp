@@ -1,3 +1,4 @@
+// lib/data/repositories/feed_repository.dart
 import '../models/domain/post.dart';
 import '../services/supabase_service.dart';
 import '../../utils/result.dart';
@@ -5,6 +6,7 @@ import '../../services/feed_service.dart';
 
 abstract class FeedRepository {
   Future<Result<List<Post>>> getFeed();
+  Future<Result<void>> createPost(Post post);
 }
 
 class FeedRepositoryImpl implements FeedRepository {
@@ -21,6 +23,19 @@ class FeedRepositoryImpl implements FeedRepository {
       return Result.ok(posts);
     } catch (e) {
       return Result.error(Exception('Erro ao carregar feed: $e'));
+    }
+  }
+
+  @override
+  Future<Result<void>> createPost(Post post) async {
+    try {
+      // TODO: Implementar criação de post no backend
+      // Por enquanto, simula sucesso
+      await Future.delayed(Duration(seconds: 2));
+      print('Post criado: ${post.content}');
+      return Result.ok(null);
+    } catch (e) {
+      return Result.error(Exception('Erro ao criar post: $e'));
     }
   }
 
