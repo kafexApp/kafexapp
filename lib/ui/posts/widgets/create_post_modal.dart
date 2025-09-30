@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_icons.dart';
 import '../../../utils/user_manager.dart';
@@ -245,7 +246,7 @@ class CreatePostModal extends StatelessWidget {
         
         SizedBox(height: 12),
         
-        if (viewModel.selectedMedia != null) ...[
+        if (viewModel.selectedMediaFile != null) ...[
           // Preview da mídia selecionada
           Container(
             width: double.infinity,
@@ -258,38 +259,40 @@ class CreatePostModal extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: viewModel.isVideo
-                      ? Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          color: AppColors.carbon,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  AppIcons.video,
-                                  size: 48,
-                                  color: AppColors.whiteWhite,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Vídeo selecionado',
-                                  style: GoogleFonts.albertSans(
-                                    fontSize: 14,
-                                    color: AppColors.whiteWhite,
-                                  ),
-                                ),
-                              ],
+                  child: Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: AppColors.papayaSensorial.withOpacity(0.1),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            viewModel.isVideo ? AppIcons.video : AppIcons.image,
+                            size: 48,
+                            color: AppColors.papayaSensorial,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            viewModel.isVideo ? 'Vídeo selecionado' : 'Imagem selecionada',
+                            style: GoogleFonts.albertSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.papayaSensorial,
                             ),
                           ),
-                        )
-                      : Image.file(
-                          viewModel.selectedMedia!,
-                          width: double.infinity,
-                          height: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Upload temporariamente indisponível',
+                            style: GoogleFonts.albertSans(
+                              fontSize: 12,
+                              color: AppColors.grayScale2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 
                 // Botão remover

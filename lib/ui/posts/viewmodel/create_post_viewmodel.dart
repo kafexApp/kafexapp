@@ -1,10 +1,11 @@
-// lib/ui/posts/viewmodel/create_post_viewmodel.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import '../../../data/repositories/feed_repository.dart';
 import '../../../data/models/domain/post.dart';
 import '../../../utils/user_manager.dart';
+import '../../../services/post_creation_service.dart';
 
 class CreatePostViewModel extends ChangeNotifier {
   final FeedRepository _feedRepository;
@@ -19,18 +20,20 @@ class CreatePostViewModel extends ChangeNotifier {
   final TextEditingController linkController = TextEditingController();
 
   // State
-  File? _selectedMedia;
+  XFile? _selectedMediaFile;
+  File? _selectedMedia; // Apenas para mobile
   bool _isVideo = false;
   bool _isLoading = false;
   String? _errorMessage;
 
   // Getters
   File? get selectedMedia => _selectedMedia;
+  XFile? get selectedMediaFile => _selectedMediaFile;
   bool get isVideo => _isVideo;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get hasValidContent => 
-      descriptionController.text.trim().isNotEmpty || _selectedMedia != null;
+      descriptionController.text.trim().isNotEmpty || _selectedMediaFile != null;
   bool get hasLink => linkController.text.trim().isNotEmpty;
 
   // Commands
@@ -44,6 +47,7 @@ class CreatePostViewModel extends ChangeNotifier {
 
   void removeMedia() {
     _selectedMedia = null;
+    _selectedMediaFile = null;
     _isVideo = false;
     notifyListeners();
   }
@@ -58,33 +62,45 @@ class CreatePostViewModel extends ChangeNotifier {
     _clearError();
 
     try {
-      final userManager = UserManager.instance;
-      
-      final post = Post(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        authorName: userManager.userName,
-        authorAvatar: userManager.userPhotoUrl ?? '',
-        content: descriptionController.text.trim(),
-        imageUrl: _selectedMedia?.path,
-        videoUrl: _isVideo ? _selectedMedia?.path : null,
-        createdAt: DateTime.now(),
-        likes: 0,
-        comments: 0,
-        isLiked: false,
-        type: DomainPostType.traditional,
-        coffeeName: null,
-        rating: null,
-        coffeeId: null,
-        isFavorited: null,
-        wantToVisit: null,
-        coffeeAddress: null,
+      String? imageUrl;
+      String? videoUrl;
+
+      // Upload da mídia se selecionada
+      if (_selectedMediaFile != null) {
+        if (_isVideo) {
+          videoUrl = await PostCreationService.uploadVideoFromXFile(_selectedMediaFile!);
+          if (videoUrl == null) {
+            _setError('Erro ao enviar vídeo. Tente novamente.');
+            return false;
+          }
+        } else {
+          imageUrl = await PostCreationService.uploadImageFromXFile(_selectedMediaFile!);
+          if (imageUrl == null) {
+            _setError('Erro ao enviar imagem. Tente novamente.');
+            return false;
+          }
+        }
+      }
+
+      // Cria o post no banco
+      final success = await PostCreationService.createPost(
+        description: descriptionController.text.trim(),
+        imageUrl: imageUrl,
+        videoUrl: videoUrl,
+        externalLink: linkController.text.trim().isEmpty 
+            ? null 
+            : linkController.text.trim(),
       );
 
-      await _feedRepository.createPost(post);
-      _clearForm();
-      return true;
+      if (success) {
+        _clearForm();
+        return true;
+      } else {
+        _setError('Erro ao publicar post. Tente novamente.');
+        return false;
+      }
     } catch (e) {
-      _setError('Erro ao publicar post: ${e.toString()}');
+      _setError('Erro inesperado: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
@@ -108,7 +124,13 @@ class CreatePostViewModel extends ChangeNotifier {
       }
 
       if (pickedFile != null) {
-        _selectedMedia = File(pickedFile.path);
+        _selectedMediaFile = pickedFile;
+        
+        // Apenas no mobile, cria o File para preview
+        if (!kIsWeb) {
+          _selectedMedia = File(pickedFile.path);
+        }
+        
         notifyListeners();
       }
     } catch (e) {
@@ -141,6 +163,7 @@ class CreatePostViewModel extends ChangeNotifier {
     descriptionController.clear();
     linkController.clear();
     _selectedMedia = null;
+    _selectedMediaFile = null;
     _isVideo = false;
     notifyListeners();
   }
