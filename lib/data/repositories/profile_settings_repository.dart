@@ -39,11 +39,30 @@ class ProfileSettingsRepositoryImpl implements ProfileSettingsRepository {
       // Simular delay de API
       await Future.delayed(Duration(seconds: 1));
       
-      // Atualizar UserManager
-      UserManager.instance.setUserData(
+      // CORREÇÃO: Só atualiza a foto do usuário se for diferente da atual
+      // e se for realmente uma atualização de perfil (não de post)
+      final userManager = UserManager.instance;
+      final currentPhotoUrl = userManager.userPhotoUrl;
+      
+      // Só atualiza a foto se:
+      // 1. A foto atual for diferente da nova foto
+      // 2. A nova foto não for uma URL de post (contém '/posts/')
+      String? newPhotoUrl = currentPhotoUrl;
+      
+      if (settings.profileImagePath != null && 
+          settings.profileImagePath != currentPhotoUrl &&
+          !settings.profileImagePath!.contains('/posts/')) {
+        newPhotoUrl = settings.profileImagePath;
+        print('🔄 Atualizando foto do usuário: ${settings.profileImagePath}');
+      } else if (settings.profileImagePath?.contains('/posts/') == true) {
+        print('⚠️ Ignorando URL de post como foto de perfil: ${settings.profileImagePath}');
+      }
+      
+      // Atualizar UserManager apenas com dados válidos de perfil
+      userManager.setUserData(
         name: settings.name,
         email: settings.email,
-        photoUrl: settings.profileImagePath,
+        photoUrl: newPhotoUrl,
       );
       
       // TODO: Implementar salvamento no Supabase

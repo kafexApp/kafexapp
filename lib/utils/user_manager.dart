@@ -41,6 +41,9 @@ class UserManager extends ChangeNotifier {
     notifyListeners();
     
     print('✅ Dados do usuário salvos: $name - $email');
+    if (photoUrl != null) {
+      print('📷 Foto do usuário: ${photoUrl.substring(0, photoUrl.length > 50 ? 50 : photoUrl.length)}...');
+    }
   }
 
   // Setter para salvar localização do usuário

@@ -89,22 +89,22 @@ class _FeedPostCardState extends State<FeedPostCard> {
 
   Widget _buildPostHeader() {
     final authorName = _getAuthorName();
-    final avatarUrl = _getImageUrl();
+    final userAvatarUrl = _getUserAvatarUrl(); // CORREÇÃO: usar foto_url para avatar
 
     return Padding(
       padding: EdgeInsets.all(16),
       child: Row(
         children: [
           GestureDetector(
-            onTap: () => _navigateToUserProfile(authorName, avatarUrl),
-            child: _buildUserAvatar(authorName, avatarUrl),
+            onTap: () => _navigateToUserProfile(authorName, userAvatarUrl),
+            child: _buildUserAvatar(authorName, userAvatarUrl),
           ),
 
           SizedBox(width: 12),
 
           Expanded(
             child: GestureDetector(
-              onTap: () => _navigateToUserProfile(authorName, avatarUrl),
+              onTap: () => _navigateToUserProfile(authorName, userAvatarUrl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -201,13 +201,13 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   Widget _buildPostMedia() {
-    final imageUrl = _getImageUrl();
+    final postImageUrl = _getPostImageUrl(); // Usar url_foto para imagem do post
     final videoUrl = widget.post.urlVideo;
 
     if (videoUrl != null && videoUrl.isNotEmpty) {
       return _buildVideoPlayer(videoUrl);
-    } else if (imageUrl.isNotEmpty) {
-      return _buildImage(imageUrl);
+    } else if (postImageUrl.isNotEmpty) {
+      return _buildImage(postImageUrl);
     }
 
     return SizedBox.shrink();
@@ -586,8 +586,15 @@ class _FeedPostCardState extends State<FeedPostCard> {
     return widget.post.nomeExibicao ?? widget.post.usuario ?? 'Usuário';
   }
 
-  String _getImageUrl() {
-    // Prioriza url_foto, depois imagem_url
+  // CORREÇÃO: Avatar do usuário vem de foto_url (campo específico do usuário)
+  String? _getUserAvatarUrl() {
+    // Não usa fotoUrl, usa getField diretamente para buscar foto_url
+    return widget.post.getField<String>('foto_url');
+  }
+
+  // CORREÇÃO: Imagem do post vem de url_foto (campo específico do post)
+  String _getPostImageUrl() {
+    // Prioriza url_foto, depois imagem_url (ambos são campos de imagem do post)
     return widget.post.urlFoto ?? widget.post.imagemUrl ?? '';
   }
 
@@ -627,7 +634,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildPostHeader(),
-          if (_getImageUrl().isNotEmpty || widget.post.urlVideo != null)
+          if (_getPostImageUrl().isNotEmpty || widget.post.urlVideo != null)
             _buildPostMedia(),
           _buildPostActions(),
           if (_likesCount > 0) _buildLikesCounter(),

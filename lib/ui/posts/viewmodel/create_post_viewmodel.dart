@@ -1,4 +1,3 @@
-// lib/ui/posts/viewmodel/create_post_viewmodel.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -7,12 +6,10 @@ import '../../../data/repositories/feed_repository.dart';
 import '../../../data/models/domain/post.dart';
 import '../../../utils/user_manager.dart';
 import '../../../services/post_creation_service.dart';
-import '../../../services/event_bus_service.dart';
 
 class CreatePostViewModel extends ChangeNotifier {
   final FeedRepository _feedRepository;
   final ImagePicker _picker = ImagePicker();
-  final EventBusService _eventBus = EventBusService();
   
   CreatePostViewModel({
     required FeedRepository feedRepository,
@@ -39,7 +36,7 @@ class CreatePostViewModel extends ChangeNotifier {
       descriptionController.text.trim().isNotEmpty || _selectedMediaFile != null;
   bool get hasLink => linkController.text.trim().isNotEmpty;
 
-  // Commands
+  // Commands - versões melhoradas
   Future<void> pickMediaFromGallery() async {
     await _pickMedia(ImageSource.gallery);
   }
@@ -48,10 +45,21 @@ class CreatePostViewModel extends ChangeNotifier {
     await _pickMedia(ImageSource.camera);
   }
 
+  // Novo método para selecionar especificamente imagem
+  Future<void> pickImageFromSource(ImageSource source) async {
+    await _pickSpecificMedia(source, isVideo: false);
+  }
+
+  // Novo método para selecionar especificamente vídeo
+  Future<void> pickVideoFromSource(ImageSource source) async {
+    await _pickSpecificMedia(source, isVideo: true);
+  }
+
   void removeMedia() {
     _selectedMedia = null;
     _selectedMediaFile = null;
     _isVideo = false;
+    _clearError();
     notifyListeners();
   }
 
@@ -70,18 +78,22 @@ class CreatePostViewModel extends ChangeNotifier {
 
       // Upload da mídia se selecionada
       if (_selectedMediaFile != null) {
+        print('📤 Iniciando upload de ${_isVideo ? 'vídeo' : 'imagem'}...');
+        
         if (_isVideo) {
           videoUrl = await PostCreationService.uploadVideoFromXFile(_selectedMediaFile!);
           if (videoUrl == null) {
-            print('⚠️ Upload de vídeo falhou, mas continuando sem vídeo');
-            // Não falha o post se o upload der erro, apenas continua sem vídeo
+            _setError('Erro ao enviar vídeo. Tente novamente.');
+            return false;
           }
+          print('✅ Vídeo uploaded: $videoUrl');
         } else {
           imageUrl = await PostCreationService.uploadImageFromXFile(_selectedMediaFile!);
           if (imageUrl == null) {
-            print('⚠️ Upload de imagem falhou, mas continuando sem imagem');
-            // Não falha o post se o upload der erro, apenas continua sem imagem
+            _setError('Erro ao enviar imagem. Tente novamente.');
+            return false;
           }
+          print('✅ Imagem uploaded: $imageUrl');
         }
       }
 
@@ -96,11 +108,6 @@ class CreatePostViewModel extends ChangeNotifier {
       );
 
       if (success) {
-        print('✅ Post criado com sucesso!');
-        
-        // Emite evento de post criado para notificar o feed
-        _eventBus.emit(PostCreatedEvent('new_post_${DateTime.now().millisecondsSinceEpoch}'));
-        
         _clearForm();
         return true;
       } else {
@@ -108,7 +115,7 @@ class CreatePostViewModel extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print('❌ Erro inesperado ao criar post: $e');
+      print('❌ Erro ao publicar post: $e');
       _setError('Erro inesperado: ${e.toString()}');
       return false;
     } finally {
@@ -116,20 +123,43 @@ class CreatePostViewModel extends ChangeNotifier {
     }
   }
 
+  // Método melhorado para seleção de mídia
   Future<void> _pickMedia(ImageSource source) async {
     try {
-      // Primeiro, determinar se é foto ou vídeo
-      final mediaType = await _showMediaTypeDialog();
-      if (mediaType == null) return;
+      _clearError();
+      
+      // Por padrão, seleciona imagem
+      // O tipo será definido pelo modal de seleção
+      await _pickSpecificMedia(source, isVideo: false);
+    } catch (e) {
+      print('❌ Erro ao selecionar mídia: $e');
+      _setError('Erro ao selecionar mídia: ${e.toString()}');
+    }
+  }
 
+  // Método específico para selecionar mídia com tipo definido
+  Future<void> _pickSpecificMedia(ImageSource source, {required bool isVideo}) async {
+    try {
+      _clearError();
+      
       XFile? pickedFile;
       
-      if (mediaType == 'photo') {
-        pickedFile = await _picker.pickImage(source: source);
-        _isVideo = false;
-      } else {
-        pickedFile = await _picker.pickVideo(source: source);
+      if (isVideo) {
+        print('🎥 Selecionando vídeo da ${source == ImageSource.camera ? 'câmera' : 'galeria'}...');
+        pickedFile = await _picker.pickVideo(
+          source: source,
+          maxDuration: Duration(minutes: 5), // Limite de 5 minutos
+        );
         _isVideo = true;
+      } else {
+        print('📷 Selecionando imagem da ${source == ImageSource.camera ? 'câmera' : 'galeria'}...');
+        pickedFile = await _picker.pickImage(
+          source: source,
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 85,
+        );
+        _isVideo = false;
       }
 
       if (pickedFile != null) {
@@ -140,17 +170,15 @@ class CreatePostViewModel extends ChangeNotifier {
           _selectedMedia = File(pickedFile.path);
         }
         
+        print('✅ Mídia selecionada: ${pickedFile.name}');
         notifyListeners();
+      } else {
+        print('ℹ️ Seleção de mídia cancelada pelo usuário');
       }
     } catch (e) {
+      print('❌ Erro ao selecionar mídia: $e');
       _setError('Erro ao selecionar mídia: ${e.toString()}');
     }
-  }
-
-  Future<String?> _showMediaTypeDialog() async {
-    // Este método será implementado na View
-    // Por enquanto, retorna 'photo' como padrão
-    return 'photo';
   }
 
   void _setLoading(bool loading) {
@@ -174,6 +202,7 @@ class CreatePostViewModel extends ChangeNotifier {
     _selectedMedia = null;
     _selectedMediaFile = null;
     _isVideo = false;
+    _clearError();
     notifyListeners();
   }
 

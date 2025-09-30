@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'dart:typed_data';
 import '../../../utils/app_colors.dart';
@@ -259,40 +260,7 @@ class CreatePostModal extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: AppColors.papayaSensorial.withOpacity(0.1),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            viewModel.isVideo ? AppIcons.video : AppIcons.image,
-                            size: 48,
-                            color: AppColors.papayaSensorial,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            viewModel.isVideo ? 'Vídeo selecionado' : 'Imagem selecionada',
-                            style: GoogleFonts.albertSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.papayaSensorial,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Upload temporariamente indisponível',
-                            style: GoogleFonts.albertSans(
-                              fontSize: 12,
-                              color: AppColors.grayScale2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  child: _buildMediaPreview(viewModel),
                 ),
                 
                 // Botão remover
@@ -316,6 +284,39 @@ class CreatePostModal extends StatelessWidget {
                     ),
                   ),
                 ),
+                
+                // Badge indicando tipo de mídia
+                if (viewModel.isVideo)
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            AppIcons.video,
+                            color: AppColors.whiteWhite,
+                            size: 12,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'VÍDEO',
+                            style: GoogleFonts.albertSans(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.whiteWhite,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -346,6 +347,150 @@ class CreatePostModal extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildMediaPreview(CreatePostViewModel viewModel) {
+    if (viewModel.selectedMediaFile == null) {
+      return Container();
+    }
+
+    if (viewModel.isVideo) {
+      // Preview para vídeo - mostra thumbnail com ícone de play
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.black87,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  AppIcons.play,
+                  color: AppColors.whiteWhite,
+                  size: 30,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Vídeo selecionado',
+                style: GoogleFonts.albertSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.whiteWhite,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Preview para imagem
+      if (kIsWeb) {
+        // Para Web - usar FutureBuilder para carregar bytes
+        return FutureBuilder<Uint8List>(
+          future: viewModel.selectedMediaFile!.readAsBytes(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return Image.memory(
+                snapshot.data!,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+              );
+            } else if (snapshot.hasError) {
+              return _buildPreviewError();
+            } else {
+              return _buildPreviewLoading();
+            }
+          },
+        );
+      } else {
+        // Para Mobile - usar File
+        if (viewModel.selectedMedia != null) {
+          return Image.file(
+            viewModel.selectedMedia!,
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildPreviewError();
+            },
+          );
+        } else {
+          return _buildPreviewError();
+        }
+      }
+    }
+  }
+
+  Widget _buildPreviewLoading() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: AppColors.moonAsh,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: AppColors.papayaSensorial,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Carregando preview...',
+              style: GoogleFonts.albertSans(
+                fontSize: 14,
+                color: AppColors.grayScale2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewError() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: AppColors.papayaSensorial.withOpacity(0.1),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              AppIcons.image,
+              size: 48,
+              color: AppColors.papayaSensorial,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Imagem selecionada',
+              style: GoogleFonts.albertSans(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.papayaSensorial,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Preview indisponível',
+              style: GoogleFonts.albertSans(
+                fontSize: 12,
+                color: AppColors.grayScale2,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -505,9 +650,18 @@ class CreatePostModal extends StatelessWidget {
     );
 
     if (result == 'photo') {
-      await viewModel.pickMediaFromGallery();
+      if (source == ImageSource.gallery) {
+        await viewModel.pickMediaFromGallery();
+      } else {
+        await viewModel.pickMediaFromCamera();
+      }
     } else if (result == 'video') {
-      await viewModel.pickMediaFromCamera();
+      // Para vídeo, usar o método correto baseado na fonte
+      if (source == ImageSource.gallery) {
+        await viewModel.pickMediaFromGallery(); // Este método vai ser atualizado no ViewModel
+      } else {
+        await viewModel.pickMediaFromCamera();
+      }
     }
   }
 
