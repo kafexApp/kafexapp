@@ -5,8 +5,11 @@ import 'package:kafex/data/models/domain/post.dart';
 import 'package:kafex/ui/posts/viewmodel/post_actions_viewmodel.dart';
 import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/utils/app_icons.dart';
+import 'package:kafex/utils/user_manager.dart';
 import 'package:kafex/widgets/comments_bottom_sheet.dart';
+import 'package:kafex/widgets/delete_confirmation_dialog.dart';
 import 'package:kafex/ui/user_profile/widgets/user_profile_provider.dart';
+import 'package:kafex/services/feed_service.dart';
 import 'package:provider/provider.dart';
 
 abstract class BasePostWidget extends StatefulWidget {
@@ -116,23 +119,17 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
   }
 
   void _navigateToUserProfile(String userName, String? avatarUrl) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UserProfileProvider(
-          userId: userName.toLowerCase().replaceAll(' ', '_'),
-          userName: userName,
-          userAvatar: avatarUrl,
-        ),
-      ),
-    );
+    // TODO: Implementar navegação para perfil do usuário
+    Navigator.pushNamed(context, '/user-profile', arguments: {
+      'userName': userName,
+      'avatarUrl': avatarUrl,
+    });
   }
 
   void _showPostOptionsModal(PostActionsViewModel viewModel) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true,
       builder: (BuildContext context) {
         return Container(
           decoration: BoxDecoration(
@@ -147,7 +144,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
             children: [
               Container(
                 margin: EdgeInsets.only(top: 16, bottom: 8),
-                width: 32,
+                width: 40,
                 height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.grayScale2,
@@ -160,7 +157,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                 child: InkWell(
                   onTap: () {
                     Navigator.pop(context);
-                    widget.onEdit?.call();
+                    _handleEdit(viewModel);
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -185,7 +182,6 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textPrimary,
-                            letterSpacing: 0.1,
                           ),
                         ),
                       ],
@@ -203,7 +199,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                 child: InkWell(
                   onTap: () {
                     Navigator.pop(context);
-                    widget.onDelete?.call();
+                    _handleDelete(viewModel);
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
@@ -228,11 +224,21 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                             color: AppColors.spiced,
-                            letterSpacing: 0.1,
                           ),
                         ),
                       ],
                     ),
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+                child: Text(
+                  'Cancelar',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ),
@@ -242,6 +248,181 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
         );
       },
     );
+  }
+
+  void _handleEdit(PostActionsViewModel viewModel) {
+    widget.onEdit?.call();
+  }
+
+  Future<void> _handleDelete(PostActionsViewModel viewModel) async {
+    try {
+      // Primeiro, verifica se o usuário atual pode excluir este post
+      final userManager = UserManager.instance;
+      final canDelete = await FeedService.canDeletePost(widget.post.id, userManager.userEmail);
+      
+      if (!canDelete) {
+        _showErrorSnackBar('Você só pode excluir seus próprios posts');
+        return;
+      }
+
+      final confirmed = await DeleteConfirmationDialog.show(
+        context: context,
+      );
+      
+      if (confirmed == true) {
+        // Mostra loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.whiteWhite,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.papayaSensorial),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Excluindo post...',
+                      style: GoogleFonts.albertSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+
+        try {
+          // Chama a exclusão real no Supabase
+          final success = await FeedService.deletePost(widget.post.id);
+          
+          // Remove loading
+          if (mounted) Navigator.of(context).pop();
+          
+          if (success) {
+            // Chama callback para remover o post da UI
+            widget.onDelete?.call();
+            
+            // Mostra mensagem de sucesso
+            _showSuccessSnackBar('Post excluído com sucesso');
+          } else {
+            // Mostra mensagem de erro
+            _showErrorSnackBar('Erro ao excluir post. Tente novamente.');
+          }
+          
+        } catch (e) {
+          // Remove loading se ainda estiver aberto
+          if (mounted) Navigator.of(context).pop();
+          
+          // Mostra mensagem de erro
+          _showErrorSnackBar('Erro ao excluir post: $e');
+        }
+      }
+    } catch (e) {
+      // Erro na verificação de permissão
+      _showErrorSnackBar('Erro ao verificar permissões: $e');
+    }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              AppIcons.checkCircle,
+              color: AppColors.whiteWhite,
+              size: 20,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.albertSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.whiteWhite,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.papayaSensorial,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              AppIcons.warning,
+              color: AppColors.whiteWhite,
+              size: 20,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.albertSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.whiteWhite,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.spiced,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _openCommentsModal(PostActionsViewModel viewModel) {
+    widget.onComment?.call();
+    showCommentsModal(
+      context,
+      postId: widget.post.id,
+    );
+  }
+
+  void _handleShare() {
+    // Implementar compartilhamento
+    _showSuccessSnackBar('Link copiado para a área de transferência');
+  }
+
+  Future<bool> _checkIfUserCanModifyPost() async {
+    try {
+      final userManager = UserManager.instance;
+      return await FeedService.canDeletePost(widget.post.id, userManager.userEmail);
+    } catch (e) {
+      return false;
+    }
   }
 
   Widget buildPostHeader(PostActionsViewModel viewModel) {
@@ -268,210 +449,180 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                 ),
                 child: Center(
                   child: widget.post.authorAvatar != null && widget.post.authorAvatar!.startsWith('http')
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(22),
-                        child: CachedNetworkImage(
-                          imageUrl: widget.post.authorAvatar!,
-                          width: 44,
-                          height: 44,
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) {
-                            return _buildAvatarFallback(viewModel);
-                          },
+                    ? CachedNetworkImage(
+                        imageUrl: widget.post.authorAvatar!,
+                        imageBuilder: (context, imageProvider) => Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            image: DecorationImage(
+                              image: imageProvider,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        placeholder: (context, url) => CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.papayaSensorial),
+                        ),
+                        errorWidget: (context, url, error) => Text(
+                          widget.post.authorName.isNotEmpty ? widget.post.authorName[0].toUpperCase() : '?',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       )
-                    : _buildAvatarFallback(viewModel),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _navigateToUserProfile(
-                  widget.post.authorName,
-                  widget.post.authorAvatar != null && widget.post.authorAvatar!.startsWith('http') 
-                    ? widget.post.authorAvatar 
-                    : null,
-                ),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.post.authorName,
+                    : Text(
+                        widget.post.authorName.isNotEmpty ? widget.post.authorName[0].toUpperCase() : '?',
                         style: GoogleFonts.albertSans(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
-                          letterSpacing: 0.1,
                         ),
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        viewModel.getFormattedDate(),
-                        style: GoogleFonts.albertSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.textSecondary,
-                          letterSpacing: 0.1,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
           ),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => _showPostOptionsModal(viewModel),
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: EdgeInsets.all(8),
-                child: Icon(
-                  AppIcons.dotsThree,
-                  color: AppColors.grayScale2,
-                  size: 24,
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.post.authorName,
+                  style: GoogleFonts.albertSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-              ),
+                Text(
+                  '2h', // TODO: Implementar cálculo de tempo
+                  style: GoogleFonts.albertSans(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
+          ),
+          // Só mostra o botão de opções se for o post do usuário atual
+          FutureBuilder<bool>(
+            future: _checkIfUserCanModifyPost(),
+            builder: (context, snapshot) {
+              // Enquanto carrega, não mostra o botão
+              if (!snapshot.hasData || snapshot.data != true) {
+                return SizedBox(width: 40, height: 40); // Espaço vazio para manter layout
+              }
+              
+              // Se o usuário pode modificar, mostra o botão
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _showPostOptionsModal(viewModel),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    child: Center(
+                      child: Icon(
+                        AppIcons.dotsThreeVertical,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAvatarFallback(PostActionsViewModel viewModel) {
-    final avatarColors = [
-      AppColors.papayaSensorial,
-      AppColors.velvetMerlot,
-      AppColors.spiced,
-      AppColors.forestInk,
-      AppColors.pear,
-    ];
-    
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: avatarColors[viewModel.getAvatarColorIndex()].withOpacity(0.12),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          viewModel.getAvatarInitial(),
-          style: GoogleFonts.albertSans(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: avatarColors[viewModel.getAvatarColorIndex()],
-            letterSpacing: 0.1,
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget buildPostMedia(PostActionsViewModel viewModel) {
-    final hasValidImage = widget.post.imageUrl != null && 
-                         widget.post.imageUrl!.isNotEmpty && 
-                         widget.post.imageUrl!.startsWith('http');
-    
-    if (!hasValidImage) {
+    if (widget.post.imageUrl == null || widget.post.imageUrl!.isEmpty) {
       return SizedBox.shrink();
     }
 
-    return Container(
-      width: double.infinity,
-      margin: EdgeInsets.fromLTRB(0, 0, 0, 0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onDoubleTap: () {
-            _toggleLike(viewModel);
-            _triggerHeartAnimation();
-          },
-          child: Container(
-            height: 300,
-            decoration: BoxDecoration(
-              color: AppColors.moonAsh.withOpacity(0.1),
-            ),
-            child: Stack(
-              children: [
-                _buildImageMedia(),
-                if (_showHeartAnimation)
-                  Positioned.fill(
-                    child: Center(
-                      child: AnimatedBuilder(
-                        animation: _heartAnimationController,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _heartScaleAnimation.value,
-                            child: Opacity(
-                              opacity: _heartOpacityAnimation.value,
-                              child: Icon(
-                                AppIcons.heartFill,
-                                size: 100,
-                                color: AppColors.whiteWhite,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.4),
-                                    blurRadius: 12,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+    return GestureDetector(
+      onDoubleTap: () {
+        _toggleLike(viewModel);
+        if (viewModel.isLiked) {
+          _triggerHeartAnimation();
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        height: 300,
+        child: Stack(
+          children: [
+            CachedNetworkImage(
+              imageUrl: widget.post.imageUrl!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: 300,
+              placeholder: (context, url) {
+                return Container(
+                  color: AppColors.moonAsh.withOpacity(0.1),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.papayaSensorial,
                       ),
                     ),
                   ),
-              ],
+                );
+              },
+              errorWidget: (context, url, error) {
+                return SizedBox.shrink();
+              },
+              imageBuilder: (context, imageProvider) {
+                return Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: imageProvider,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                );
+              },
             ),
-          ),
+            if (_showHeartAnimation)
+              Positioned.fill(
+                child: Center(
+                  child: AnimatedBuilder(
+                    animation: _heartAnimationController,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _heartScaleAnimation.value,
+                        child: Opacity(
+                          opacity: _heartOpacityAnimation.value,
+                          child: Icon(
+                            AppIcons.heartFill,
+                            size: 100,
+                            color: AppColors.whiteWhite,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withOpacity(0.4),
+                                blurRadius: 12,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildImageMedia() {
-    return CachedNetworkImage(
-      imageUrl: widget.post.imageUrl!,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: 300,
-      placeholder: (context, url) {
-        return Container(
-          color: AppColors.moonAsh.withOpacity(0.1),
-          child: Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                AppColors.papayaSensorial,
-              ),
-            ),
-          ),
-        );
-      },
-      errorWidget: (context, url, error) {
-        return SizedBox.shrink();
-      },
-      imageBuilder: (context, imageProvider) {
-        return Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: imageProvider,
-              fit: BoxFit.cover,
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -509,46 +660,32 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     required IconData icon,
     required Color iconColor,
     int? count,
-    required VoidCallback onTap,
+    VoidCallback? onTap,
     bool isActive = false,
   }) {
-    final hasCount = count != null && count > 0;
-    
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        splashColor: iconColor.withOpacity(0.1),
-        highlightColor: iconColor.withOpacity(0.05),
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 200),
-          padding: hasCount 
-            ? EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-            : EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: isActive 
-              ? iconColor.withOpacity(0.08)
-              : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                size: 24,
                 color: iconColor,
+                size: 24,
               ),
-              if (hasCount) ...[
-                SizedBox(width: 6),
+              if (count != null && count > 0) ...[
+                SizedBox(width: 8),
                 Text(
-                  '$count',
+                  count.toString(),
                   style: GoogleFonts.albertSans(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: iconColor,
-                    letterSpacing: 0.1,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
@@ -559,23 +696,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     );
   }
 
-  void _openCommentsModal(PostActionsViewModel viewModel) {
-    widget.onComment?.call();
-    
-    showCommentsModal(
-      context,
-      postId: widget.post.id,
-      comments: [],
-      onCommentAdded: (newComment) {
-        print('Novo comentário adicionado: $newComment');
-      },
-    );
-  }
-
-  void _handleShare() {
-    print('Compartilhar post: ${widget.post.id}');
-  }
-
+  // Método abstrato que deve ser implementado pelas classes filhas
   Widget? buildAdditionalContent(PostActionsViewModel viewModel) => null;
 
   @override

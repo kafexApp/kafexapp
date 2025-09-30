@@ -117,17 +117,6 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
 
   @override
   Widget? buildAdditionalContent(PostActionsViewModel viewModel) {
-    // DEBUG - REMOVER DEPOIS
-    print('=== DEBUG REVIEW POST ===');
-    print('coffeeName: ${viewModel.coffeeName}');
-    print('rating: ${viewModel.rating}');
-    print('coffeeId: ${viewModel.coffeeId}');
-    print('isFavorited: ${viewModel.isFavorited}');
-    print('wantToVisit: ${viewModel.wantToVisit}');
-    print('post.coffeeName: ${widget.post.coffeeName}');
-    print('post.rating: ${widget.post.rating}');
-    print('========================');
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -218,94 +207,12 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
                   Text(
                     (viewModel.rating ?? 0.0).toStringAsFixed(1),
                     style: GoogleFonts.albertSans(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.carbon,
+                      color: AppColors.velvetMerlot,
                     ),
                   ),
                 ],
-              ),
-            ],
-          ),
-        ),
-        
-        // BOTÕES DE AÇÃO (FAVORITO E QUERO VISITAR)
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Row(
-            children: [
-              // Botão Favorito
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _toggleFavorite(viewModel),
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: viewModel.isFavorited ? AppColors.papayaSensorial : AppColors.moonAsh,
-                      borderRadius: BorderRadius.circular(12),
-                      border: viewModel.isFavorited 
-                        ? Border.all(color: AppColors.papayaSensorial, width: 1)
-                        : null,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          viewModel.isFavorited ? AppIcons.starFill : AppIcons.star,
-                          color: viewModel.isFavorited ? AppColors.whiteWhite : AppColors.carbon,
-                          size: 18,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          viewModel.isFavorited ? 'Favoritado' : 'Favoritar',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: viewModel.isFavorited ? AppColors.whiteWhite : AppColors.carbon,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              
-              SizedBox(width: 12),
-              
-              // Botão Quero Visitar
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _toggleWantToVisit(viewModel),
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: viewModel.wantToVisit ? AppColors.pear : AppColors.moonAsh,
-                      borderRadius: BorderRadius.circular(12),
-                      border: viewModel.wantToVisit 
-                        ? Border.all(color: AppColors.pear, width: 1)
-                        : null,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          viewModel.wantToVisit ? AppIcons.tagFill : AppIcons.tag,
-                          color: viewModel.wantToVisit ? AppColors.velvetMerlot : AppColors.carbon,
-                          size: 18,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          viewModel.wantToVisit ? 'Na lista!' : 'Quero visitar',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: viewModel.wantToVisit ? AppColors.velvetMerlot : AppColors.carbon,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ),
             ],
           ),

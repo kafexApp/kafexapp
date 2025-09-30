@@ -1,11 +1,16 @@
+// lib/ui/posts/viewmodel/post_actions_viewmodel.dart
 import 'package:flutter/foundation.dart';
 import 'package:kafex/data/models/domain/post.dart';
 import 'package:kafex/utils/command.dart';
 import 'package:kafex/utils/result.dart';
+import '../../../services/post_deletion_service.dart';
+import '../../../services/event_bus_service.dart';
+import '../../../utils/user_manager.dart';
 
 class PostActionsViewModel extends ChangeNotifier {
   final String postId;
   final Post initialPost;
+  final EventBusService _eventBus = EventBusService();
 
   PostActionsViewModel({
     required this.postId,
@@ -43,6 +48,17 @@ class PostActionsViewModel extends ChangeNotifier {
   double? get rating => _post.rating;
   String? get coffeeId => _post.coffeeId;
   String? get coffeeAddress => _post.coffeeAddress;
+
+  // Verificações de permissão
+  bool get canDelete => PostDeletionService.canDeletePost(_getAuthorEmail());
+  bool get canEdit => PostDeletionService.canDeletePost(_getAuthorEmail()); // Mesma lógica por enquanto
+
+  String _getAuthorEmail() {
+    // Por enquanto, usamos um método para extrair o email do autor
+    // Em uma implementação completa, isso viria do post
+    final userManager = UserManager.instance;
+    return userManager.userEmail;
+  }
 
   // Avatar e identificação
   String getAvatarInitial() {
@@ -162,10 +178,25 @@ class PostActionsViewModel extends ChangeNotifier {
 
   Future<Result<void>> _deletePost() async {
     try {
-      // TODO: Implementar exclusão
-      print('Excluir post: $postId');
-      return Result.ok(null);
+      print('🗑️ Iniciando exclusão do post: $postId');
+      
+      final success = await PostDeletionService.deletePost(
+        postId: postId,
+        authorEmail: _getAuthorEmail(),
+      );
+
+      if (success) {
+        print('✅ Post excluído com sucesso');
+        
+        // Emite evento de post excluído para atualizar o feed
+        _eventBus.emit(PostDeletedEvent(postId));
+        
+        return Result.ok(null);
+      } else {
+        return Result.error(Exception('Falha ao excluir post'));
+      }
     } catch (e) {
+      print('❌ Erro ao excluir post: $e');
       return Result.error(Exception('Erro ao excluir: $e'));
     }
   }

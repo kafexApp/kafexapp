@@ -35,6 +35,10 @@ class FeedComUsuarioRow extends SupabaseDataRow {
   String? get usuario => getField<String>('usuario');
   set usuario(String? value) => setField<String>('usuario', value);
 
+  // Campo adicionado para nome do usuário salvo na tabela feed
+  String? get nome_usuario => getField<String>('nome_usuario');
+  set nome_usuario(String? value) => setField<String>('nome_usuario', value);
+
   String? get comentarios {
     final value = getField<dynamic>('comentarios');
     if (value == null) return null;

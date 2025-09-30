@@ -48,10 +48,30 @@ class FeedRepositoryImpl implements FeedRepository {
       postType = DomainPostType.newCoffee;
     }
 
+    // Melhora o mapeamento do nome do autor
+    String authorName = 'Usuário';
+    if (raw.nomeExibicao != null && raw.nomeExibicao!.isNotEmpty) {
+      authorName = raw.nomeExibicao!;
+    } else if (raw.nome_usuario != null && raw.nome_usuario!.isNotEmpty) {
+      authorName = raw.nome_usuario!; // Campo que salvamos na criação
+    } else if (raw.usuario != null && raw.usuario!.isNotEmpty) {
+      authorName = raw.usuario!;
+    }
+
+    // Melhora o mapeamento do avatar do autor
+    String authorAvatar = '';
+    if (raw.fotoUrl != null && raw.fotoUrl!.isNotEmpty) {
+      authorAvatar = raw.fotoUrl!;
+    } else if (raw.urlFoto != null && raw.urlFoto!.isNotEmpty) {
+      authorAvatar = raw.urlFoto!;
+    }
+
+    print('🔍 Post mapeado: ID=${raw.id}, Nome=$authorName, Avatar=$authorAvatar');
+
     return Post(
       id: raw.id?.toString() ?? '0',
-      authorName: raw.nomeExibicao ?? raw.usuario ?? 'Usuário',
-      authorAvatar: raw.fotoUrl ?? raw.urlFoto ?? '',
+      authorName: authorName,
+      authorAvatar: authorAvatar,
       createdAt: raw.criadoEm ?? DateTime.now(),
       content: raw.descricao ?? '',
       imageUrl: raw.urlFoto,

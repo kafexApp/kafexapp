@@ -1,3 +1,4 @@
+// lib/ui/posts/viewmodel/create_post_viewmodel.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -6,10 +7,12 @@ import '../../../data/repositories/feed_repository.dart';
 import '../../../data/models/domain/post.dart';
 import '../../../utils/user_manager.dart';
 import '../../../services/post_creation_service.dart';
+import '../../../services/event_bus_service.dart';
 
 class CreatePostViewModel extends ChangeNotifier {
   final FeedRepository _feedRepository;
   final ImagePicker _picker = ImagePicker();
+  final EventBusService _eventBus = EventBusService();
   
   CreatePostViewModel({
     required FeedRepository feedRepository,
@@ -70,14 +73,14 @@ class CreatePostViewModel extends ChangeNotifier {
         if (_isVideo) {
           videoUrl = await PostCreationService.uploadVideoFromXFile(_selectedMediaFile!);
           if (videoUrl == null) {
-            _setError('Erro ao enviar vídeo. Tente novamente.');
-            return false;
+            print('⚠️ Upload de vídeo falhou, mas continuando sem vídeo');
+            // Não falha o post se o upload der erro, apenas continua sem vídeo
           }
         } else {
           imageUrl = await PostCreationService.uploadImageFromXFile(_selectedMediaFile!);
           if (imageUrl == null) {
-            _setError('Erro ao enviar imagem. Tente novamente.');
-            return false;
+            print('⚠️ Upload de imagem falhou, mas continuando sem imagem');
+            // Não falha o post se o upload der erro, apenas continua sem imagem
           }
         }
       }
@@ -93,6 +96,11 @@ class CreatePostViewModel extends ChangeNotifier {
       );
 
       if (success) {
+        print('✅ Post criado com sucesso!');
+        
+        // Emite evento de post criado para notificar o feed
+        _eventBus.emit(PostCreatedEvent('new_post_${DateTime.now().millisecondsSinceEpoch}'));
+        
         _clearForm();
         return true;
       } else {
@@ -100,6 +108,7 @@ class CreatePostViewModel extends ChangeNotifier {
         return false;
       }
     } catch (e) {
+      print('❌ Erro inesperado ao criar post: $e');
       _setError('Erro inesperado: ${e.toString()}');
       return false;
     } finally {

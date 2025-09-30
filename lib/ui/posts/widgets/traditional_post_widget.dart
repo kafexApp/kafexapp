@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:kafex/data/models/domain/post.dart';
 import 'package:kafex/ui/posts/viewmodel/post_actions_viewmodel.dart';
 import 'package:kafex/ui/posts/widgets/base_post_widget.dart';
 import 'package:kafex/utils/app_colors.dart';
+import 'package:kafex/utils/app_icons.dart';
+import 'package:kafex/widgets/comments_bottom_sheet.dart';
 
 class TraditionalPostWidget extends BasePostWidget {
   final VoidCallback? onViewAllComments;
@@ -115,6 +118,10 @@ class _TraditionalPostWidgetState extends BasePostWidgetState<TraditionalPostWid
               child: InkWell(
                 onTap: () {
                   widget.onComment?.call();
+                  showCommentsModal(
+                    context,
+                    postId: widget.post.id,
+                  );
                 },
                 borderRadius: BorderRadius.circular(6),
                 child: Padding(

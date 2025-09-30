@@ -6,7 +6,7 @@ import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';
 import '../utils/user_manager.dart';
 
 class PostCreationService {
-  /// Cria um novo post no feed (apenas texto por enquanto)
+  /// Cria um novo post no feed incluindo informações do usuário
   static Future<bool> createPost({
     required String description,
     String? imageUrl,
@@ -16,6 +16,9 @@ class PostCreationService {
     try {
       final userManager = UserManager.instance;
       
+      // Garante que os dados do usuário estão carregados
+      await userManager.loadUserData();
+      
       // Usa os nomes corretos das colunas da tabela FEED
       final postData = {
         'descricao': description.trim(),
@@ -23,6 +26,18 @@ class PostCreationService {
         'tipo': 'tradicional',
         'usuario_uid': userManager.userEmail, // uid do usuário para relacionar
       };
+
+      // Adiciona nome de exibição do usuário se disponível
+      // A coluna nome_usuario existe na tabela feed
+      if (userManager.userName.isNotEmpty && userManager.userName != 'Usuário Kafex') {
+        postData['nome_usuario'] = userManager.userName;
+      } else {
+        // Se não tem nome, extrai do email
+        postData['nome_usuario'] = userManager.extractNameFromEmail(userManager.userEmail);
+      }
+
+      // NOTA: A foto do usuário não é salva diretamente na tabela feed
+      // Ela vem do JOIN com a tabela de usuários na view feed_com_usuario
 
       // Adiciona URL da imagem se fornecida (campo url_foto)
       if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -39,7 +54,10 @@ class PostCreationService {
         postData['url_externa'] = externalLink;
       }
 
-      print('📝 Criando post na tabela FEED: $postData');
+      print('📝 Criando post na tabela FEED com dados do usuário:');
+      print('   Nome: ${postData['nome_usuario']}');
+      print('   Email: ${postData['usuario_uid']}');
+      print('   Descrição: ${postData['descricao']}');
 
       // Insere na tabela FEED
       final response = await SupaClient.client

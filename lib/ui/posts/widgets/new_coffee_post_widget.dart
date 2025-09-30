@@ -200,39 +200,63 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 TextSpan(text: ' '),
-                TextSpan(
-                  text: 'Acabei de cadastrar uma nova cafeteria. Já conhece a ${viewModel.coffeeName}? Então deixe a sua avaliação.',
-                ),
+                TextSpan(text: 'descobriu uma nova cafeteria'),
               ],
             ),
           ),
         ),
         
-        // BOX COM INFORMAÇÕES DA CAFETERIA
+        // INFORMAÇÕES DA NOVA CAFETERIA
         Container(
           margin: EdgeInsets.fromLTRB(16, 12, 16, 0),
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.moonAsh,
+            color: AppColors.pear.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.pear.withOpacity(0.3),
+              width: 1,
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Nome da cafeteria
+              // Nome da cafeteria com badge "NOVA"
               Row(
                 children: [
-                  Icon(
-                    AppIcons.coffee,
-                    color: AppColors.papayaSensorial,
-                    size: 20,
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.pear,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          AppIcons.star,
+                          color: AppColors.carbon,
+                          size: 12,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'NOVA',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.carbon,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(width: 8),
+                  SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
                       onTap: () => _openCafeModal(viewModel),
                       child: Text(
-                        viewModel.coffeeName ?? '',
+                        viewModel.coffeeName ?? 'Nova Cafeteria',
                         style: GoogleFonts.albertSans(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -244,28 +268,16 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                 ],
               ),
               
-              SizedBox(height: 8),
-              
-              // Endereço
-              Row(
-                children: [
-                  Icon(
-                    AppIcons.location,
-                    color: AppColors.grayScale2,
-                    size: 18,
+              if (viewModel.coffeeAddress?.isNotEmpty == true) ...[
+                SizedBox(height: 8),
+                Text(
+                  viewModel.coffeeAddress ?? '',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 14,
+                    color: AppColors.grayScale1,
                   ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      viewModel.coffeeAddress ?? '',
-                      style: GoogleFonts.albertSans(
-                        fontSize: 14,
-                        color: AppColors.grayScale1,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ],
           ),
         ),
