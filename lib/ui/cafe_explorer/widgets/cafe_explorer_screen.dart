@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
+import 'dart:math' as math;
 import '../../../utils/app_colors.dart';
 import '../../../widgets/custom_bottom_navbar.dart';
 import '../../../widgets/custom_app_bar.dart';
@@ -77,13 +78,33 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     if (_customPin == null) return;
 
     final viewModel = context.read<CafeExplorerViewModel>();
-    final groups = viewModel.getPinGroups();
+    
+    // Usar clustering com parâmetros ajustados diretamente
+    final groups = _getCustomPinGroups(viewModel.visibleCafes, viewModel.currentZoom);
     Set<Marker> newMarkers = {};
+
+    print('🔧 === DEBUG CAFETERIAS ===');
+    print('🔧 Total cafés no ViewModel: ${viewModel.visibleCafes.length}');
+    print('🔧 Total cafés ALL: ${viewModel.allCafes.length}');
+    print('🔧 Grupos de clustering: ${groups.length}');
+    print('🔧 Zoom atual: ${viewModel.currentZoom}');
+    
+    // Listar todos os cafés
+    print('📋 Lista completa de cafés:');
+    for (int i = 0; i < viewModel.visibleCafes.length; i++) {
+      final cafe = viewModel.visibleCafes[i];
+      print('  $i: ${cafe.name} (ID: ${cafe.id}) - ${cafe.position}');
+    }
 
     for (int i = 0; i < groups.length; i++) {
       PinGroup group = groups[i];
       
       if (group.isCluster) {
+        print('📍 Cluster $i: ${group.count} cafeterias em ${group.position}');
+        // Debug: mostrar quais cafés estão no cluster
+        for (var cafe in group.cafes) {
+          print('  - ${cafe.name} (ID: ${cafe.id}) em ${cafe.position}');
+        }
         BitmapDescriptor clusterIcon = await _createClusterIcon(group.count);
         newMarkers.add(
           Marker(
@@ -95,6 +116,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
         );
       } else {
         final cafe = group.cafes.first;
+        print('📍 Pin individual: ${cafe.name} (ID: ${cafe.id}) em ${cafe.position}');
         int cafeIndex = viewModel.visibleCafes.indexWhere((c) => c.id == cafe.id);
         newMarkers.add(
           Marker(
@@ -112,6 +134,69 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     });
 
     _updatePinLabels();
+  }
+
+  // Clustering customizado com parâmetros ajustados
+  List<PinGroup> _getCustomPinGroups(List<Cafe> cafes, double currentZoom) {
+    const double clusterDistanceKm = 0.5; // Aumentado de 0.2 para 0.5km
+    const double minZoomForClustering = 16.0; // Reduzido de 18.0 para 16.0
+    
+    print('🔧 Clustering: zoom=$currentZoom, minZoom=$minZoomForClustering, maxDist=${clusterDistanceKm}km');
+
+    // Se zoom alto, mostrar pins individuais
+    if (currentZoom >= minZoomForClustering) {
+      print('📍 Zoom alto (>= $minZoomForClustering) - pins individuais');
+      return cafes.map((cafe) => PinGroup.single(cafe)).toList();
+    }
+
+    print('📍 Zoom baixo (< $minZoomForClustering) - fazendo clustering');
+
+    // Fazer clustering
+    List<PinGroup> groups = [];
+    List<Cafe> remaining = List.from(cafes);
+
+    while (remaining.isNotEmpty) {
+      Cafe center = remaining.removeAt(0);
+      List<Cafe> nearby = [center];
+
+      // Encontrar cafés próximos
+      remaining.removeWhere((cafe) {
+        double distance = _calculateDistanceKm(center.position, cafe.position);
+        if (distance <= clusterDistanceKm) {
+          nearby.add(cafe);
+          print('  ➕ ${cafe.name} está a ${distance.toStringAsFixed(2)}km de ${center.name}');
+          return true;
+        }
+        return false;
+      });
+
+      // Criar grupo
+      if (nearby.length > 1) {
+        print('🔗 Criando cluster com ${nearby.length} cafés');
+        groups.add(PinGroup.cluster(nearby));
+      } else {
+        print('📍 ${center.name} fica como pin individual');
+        groups.add(PinGroup.single(center));
+      }
+    }
+
+    return groups;
+  }
+
+  // Calcular distância em km entre dois pontos
+  double _calculateDistanceKm(LatLng pos1, LatLng pos2) {
+    const double earthRadius = 6371; // km
+    double dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
+    double dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
+
+    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degreesToRadians(pos1.latitude)) *
+            math.cos(_degreesToRadians(pos2.latitude)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
   }
 
   Future<BitmapDescriptor> _createClusterIcon(int count) async {
@@ -160,7 +245,9 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     if (_mapController == null) return;
 
     final viewModel = context.read<CafeExplorerViewModel>();
-    final groups = viewModel.getPinGroups();
+    
+    // Usar o mesmo clustering customizado que usamos nos markers
+    final groups = _getCustomPinGroups(viewModel.visibleCafes, viewModel.currentZoom);
     List<Widget> newLabels = [];
     
     for (PinGroup group in groups) {
@@ -211,7 +298,105 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   }
 
   void _onClusterTapped(PinGroup cluster) {
-    // Implementar zoom para o cluster
+    if (_mapController == null) return;
+    
+    print('🎯 Cluster clicado com ${cluster.count} cafeterias');
+    
+    if (cluster.cafes.length == 1) {
+      print('⚠️ Cluster com apenas 1 cafeteria - erro no clustering');
+      return;
+    }
+    
+    // Calcular bounds para mostrar todos os cafés do cluster
+    double minLat = cluster.cafes.first.position.latitude;
+    double maxLat = cluster.cafes.first.position.latitude;
+    double minLng = cluster.cafes.first.position.longitude;
+    double maxLng = cluster.cafes.first.position.longitude;
+    
+    for (var cafe in cluster.cafes) {
+      minLat = math.min(minLat, cafe.position.latitude);
+      maxLat = math.max(maxLat, cafe.position.latitude);
+      minLng = math.min(minLng, cafe.position.longitude);
+      maxLng = math.max(maxLng, cafe.position.longitude);
+      print('  📍 ${cafe.name}: lat=${cafe.position.latitude}, lng=${cafe.position.longitude}');
+    }
+    
+    print('🔍 Bounds: SW($minLat,$minLng) - NE($maxLat,$maxLng)');
+    
+    // Calcular distância máxima entre os pontos
+    double maxDistance = 0;
+    for (int i = 0; i < cluster.cafes.length; i++) {
+      for (int j = i + 1; j < cluster.cafes.length; j++) {
+        double distance = _calculateDistance(
+          cluster.cafes[i].position, 
+          cluster.cafes[j].position
+        );
+        maxDistance = math.max(maxDistance, distance);
+      }
+    }
+    
+    print('📏 Distância máxima entre cafés: ${maxDistance.toStringAsFixed(0)}m');
+    
+    // Se todos os cafés estão muito próximos (< 50m), dar zoom fixo alto
+    if (maxDistance < 50) {
+      print('🎯 Cafés muito próximos - zoom fixo para 19');
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(cluster.position, 19.0),
+      );
+      return;
+    }
+    
+    // Se distância pequena (< 200m), dar zoom alto
+    if (maxDistance < 200) {
+      print('🎯 Cafés próximos - zoom para 18');
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(cluster.position, 18.0),
+      );
+      return;
+    }
+    
+    // Para distâncias maiores, usar bounds com padding
+    try {
+      // Adicionar padding baseado na distância
+      double latPadding = (maxLat - minLat) * 0.5;
+      double lngPadding = (maxLng - minLng) * 0.5;
+      
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngBounds(
+          LatLngBounds(
+            southwest: LatLng(minLat - latPadding, minLng - lngPadding),
+            northeast: LatLng(maxLat + latPadding, maxLng + lngPadding),
+          ),
+          80.0, // padding reduzido
+        ),
+      );
+    } catch (e) {
+      print('❌ Erro ao animar câmera: $e');
+      // Fallback: dar zoom alto
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(cluster.position, 17.0),
+      );
+    }
+  }
+
+  // Calcular distância em metros entre dois pontos
+  double _calculateDistance(LatLng pos1, LatLng pos2) {
+    const double earthRadius = 6371000; // metros
+    double dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
+    double dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
+
+    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degreesToRadians(pos1.latitude)) *
+            math.cos(_degreesToRadians(pos2.latitude)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c; // retorna em metros
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * (math.pi / 180);
   }
 
   void _onPinTapped(int index) {
@@ -321,6 +506,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,
+            style: _getMapStyle(),
             onTap: (_) {
               viewModel.clearSuggestions();
               _searchFocusNode.unfocus();
@@ -419,7 +605,13 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                     fontSize: 16,
                   ),
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
                   contentPadding: EdgeInsets.zero,
+                  fillColor: Colors.transparent,
+                  filled: false,
                 ),
                 style: GoogleFonts.albertSans(
                   fontSize: 16,
@@ -538,6 +730,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   }
 
   Widget _buildCafeCounter(CafeExplorerViewModel viewModel) {
+    // No mapa: mostrar cafés visíveis no viewport atual
+    // Na lista: mostrar total de cafés na lista
     final count = viewModel.isMapView 
         ? viewModel.cafesInViewport.length 
         : viewModel.visibleCafes.length;
@@ -566,7 +760,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
           ),
           SizedBox(width: 8),
           Text(
-            '$count',
+            '$count', // Mostra cafés no viewport (mapa) ou na lista
             style: GoogleFonts.albertSans(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -821,5 +1015,154 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
       price: cafe.price,
       specialties: List<String>.from(cafe.specialties),
     );
+  }
+
+  // Estilo clean e minimalista para o mapa
+  String _getMapStyle() {
+    return '''[
+      {
+        "featureType": "administrative",
+        "elementType": "labels.text",
+        "stylers": [{"visibility": "simplified"}]
+      },
+      {
+        "featureType": "administrative.country",
+        "elementType": "geometry.stroke",
+        "stylers": [{"visibility": "off"}]
+      },
+      {
+        "featureType": "administrative.province",
+        "elementType": "geometry.stroke",
+        "stylers": [{"visibility": "off"}]
+      },
+      {
+        "featureType": "landscape",
+        "elementType": "geometry",
+        "stylers": [{"color": "#f8f8f8"}]
+      },
+      {
+        "featureType": "poi",
+        "elementType": "all",
+        "stylers": [{"visibility": "off"}]
+      },
+      {
+        "featureType": "poi.business",
+        "elementType": "all",
+        "stylers": [{"visibility": "off"}]
+      },
+      {
+        "featureType": "poi.park",
+        "elementType": "geometry",
+        "stylers": [{"color": "#e8f5e8"}]
+      },
+      {
+        "featureType": "poi.park",
+        "elementType": "labels",
+        "stylers": [{"visibility": "off"}]
+      },
+      {
+        "featureType": "road",
+        "elementType": "geometry",
+        "stylers": [{"color": "#ffffff"}]
+      },
+      {
+        "featureType": "road",
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {"color": "#666666"},
+          {"visibility": "on"}
+        ]
+      },
+      {
+        "featureType": "road",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+          {"color": "#ffffff"},
+          {"weight": 2},
+          {"visibility": "on"}
+        ]
+      },
+      {
+        "featureType": "road.highway",
+        "elementType": "geometry",
+        "stylers": [{"color": "#e6e6e6"}]
+      },
+      {
+        "featureType": "road.highway",
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {"color": "#555555"},
+          {"visibility": "on"}
+        ]
+      },
+      {
+        "featureType": "road.highway",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+          {"color": "#ffffff"},
+          {"weight": 2},
+          {"visibility": "on"}
+        ]
+      },
+      {
+        "featureType": "road.arterial",
+        "elementType": "geometry",
+        "stylers": [{"color": "#f0f0f0"}]
+      },
+      {
+        "featureType": "road.arterial",
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {"color": "#666666"},
+          {"visibility": "on"}
+        ]
+      },
+      {
+        "featureType": "road.arterial",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+          {"color": "#ffffff"},
+          {"weight": 2},
+          {"visibility": "on"}
+        ]
+      },
+      {
+        "featureType": "road.local",
+        "elementType": "geometry",
+        "stylers": [{"color": "#f5f5f5"}]
+      },
+      {
+        "featureType": "road.local",
+        "elementType": "labels.text.fill",
+        "stylers": [
+          {"color": "#777777"},
+          {"visibility": "on"}
+        ]
+      },
+      {
+        "featureType": "road.local",
+        "elementType": "labels.text.stroke",
+        "stylers": [
+          {"color": "#ffffff"},
+          {"weight": 2},
+          {"visibility": "on"}
+        ]
+      },
+      {
+        "featureType": "transit",
+        "elementType": "all",
+        "stylers": [{"visibility": "off"}]
+      },
+      {
+        "featureType": "water",
+        "elementType": "geometry",
+        "stylers": [{"color": "#d4e7f7"}]
+      },
+      {
+        "featureType": "water",
+        "elementType": "labels",
+        "stylers": [{"visibility": "off"}]
+      }
+    ]''';
   }
 }

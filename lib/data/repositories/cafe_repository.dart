@@ -75,30 +75,6 @@ class CafeRepositoryImpl implements CafeRepository {
         price: 'R\$ 14-22',
         specialties: ['Cappuccino', 'Croissant', 'WiFi'],
       ),
-      Cafe(
-        id: '6',
-        name: 'Café Próximo 1',
-        address: 'Rua Próxima, 100',
-        rating: 4.3,
-        distance: '150m',
-        imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400',
-        isOpen: true,
-        position: LatLng(-23.5508, -46.6330),
-        price: 'R\$ 12-18',
-        specialties: ['Cappuccino'],
-      ),
-      Cafe(
-        id: '7',
-        name: 'Café Próximo 2',
-        address: 'Rua Próxima, 200',
-        rating: 4.1,
-        distance: '180m',
-        imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400',
-        isOpen: true,
-        position: LatLng(-23.5502, -46.6336),
-        price: 'R\$ 10-16',
-        specialties: ['Expresso'],
-      ),
     ];
   }
 
