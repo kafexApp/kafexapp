@@ -9,7 +9,7 @@ import 'package:kafex/utils/app_icons.dart';
 import 'package:kafex/widgets/comments_bottom_sheet.dart';
 import 'package:kafex/widgets/cafe_evaluation_modal.dart';
 import 'package:kafex/widgets/custom_toast.dart';
-import 'package:kafex/widgets/custom_boxcafe.dart';
+import 'package:kafex/ui/cafe_detail/widgets/cafe_detail_modal.dart';
 
 // Classes mock para compatibilidade com o CustomBoxcafe
 class MockLatLng {
@@ -112,7 +112,7 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
       position: MockLatLng(-23.5505, -46.6333),
     );
 
-    showCafeModal(context, mockCafeModel);
+    showCafeDetailModal(context, mockCafeModel);
   }
 
   @override

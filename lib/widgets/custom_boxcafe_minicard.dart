@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../models/cafe_model.dart';
-import 'custom_boxcafe.dart';
+import '../ui/cafe_detail/widgets/cafe_detail_modal.dart'; // NOVA IMPORTAÇÃO
 
 class CustomBoxcafeMinicard extends StatelessWidget {
   final CafeModel cafe;
@@ -20,7 +20,7 @@ class CustomBoxcafeMinicard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        showCafeModal(context, cafe);
+        showCafeDetailModal(context, cafe); // USANDO O NOVO MODAL
         if (onTap != null) onTap!();
       },
       child: Container(
