@@ -1,3 +1,4 @@
+// lib/ui/cafe_explorer/widgets/cafe_explorer_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -33,6 +34,11 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   
   PageController _pageController = PageController();
   ScrollController _horizontalScrollController = ScrollController();
+  
+  Timer? _labelTimer;
+  Timer? _clusterIconTimer;
+  Map<String, BitmapDescriptor> _clusterIconCache = {};
+  bool _isMapMoving = false;
 
   @override
   void initState() {
@@ -44,6 +50,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
   @override
   void dispose() {
+    _labelTimer?.cancel();
+    _clusterIconTimer?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     _pageController.dispose();
@@ -79,33 +87,19 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
     final viewModel = context.read<CafeExplorerViewModel>();
     
-    // Usar clustering com parâmetros ajustados diretamente
-    final groups = _getCustomPinGroups(viewModel.visibleCafes, viewModel.currentZoom);
-    Set<Marker> newMarkers = {};
-
-    print('🔧 === DEBUG CAFETERIAS ===');
-    print('🔧 Total cafés no ViewModel: ${viewModel.visibleCafes.length}');
-    print('🔧 Total cafés ALL: ${viewModel.allCafes.length}');
-    print('🔧 Grupos de clustering: ${groups.length}');
-    print('🔧 Zoom atual: ${viewModel.currentZoom}');
+    final groups = _getOptimizedPinGroups(
+      viewModel.visibleCafes, 
+      viewModel.currentZoom
+    );
     
-    // Listar todos os cafés
-    print('📋 Lista completa de cafés:');
-    for (int i = 0; i < viewModel.visibleCafes.length; i++) {
-      final cafe = viewModel.visibleCafes[i];
-      print('  $i: ${cafe.name} (ID: ${cafe.id}) - ${cafe.position}');
-    }
+    Set<Marker> newMarkers = {};
 
     for (int i = 0; i < groups.length; i++) {
       PinGroup group = groups[i];
       
       if (group.isCluster) {
-        print('📍 Cluster $i: ${group.count} cafeterias em ${group.position}');
-        // Debug: mostrar quais cafés estão no cluster
-        for (var cafe in group.cafes) {
-          print('  - ${cafe.name} (ID: ${cafe.id}) em ${cafe.position}');
-        }
-        BitmapDescriptor clusterIcon = await _createClusterIcon(group.count);
+        BitmapDescriptor clusterIcon = await _getClusterIconCached(group.count);
+        
         newMarkers.add(
           Marker(
             markerId: MarkerId('cluster_$i'),
@@ -116,8 +110,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
         );
       } else {
         final cafe = group.cafes.first;
-        print('📍 Pin individual: ${cafe.name} (ID: ${cafe.id}) em ${cafe.position}');
         int cafeIndex = viewModel.visibleCafes.indexWhere((c) => c.id == cafe.id);
+        
         newMarkers.add(
           Marker(
             markerId: MarkerId(cafe.id),
@@ -129,74 +123,24 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
       }
     }
 
-    setState(() {
-      _markers = newMarkers;
-    });
-
-    _updatePinLabels();
-  }
-
-  // Clustering customizado com parâmetros ajustados
-  List<PinGroup> _getCustomPinGroups(List<Cafe> cafes, double currentZoom) {
-    const double clusterDistanceKm = 0.5; // Aumentado de 0.2 para 0.5km
-    const double minZoomForClustering = 16.0; // Reduzido de 18.0 para 16.0
-    
-    print('🔧 Clustering: zoom=$currentZoom, minZoom=$minZoomForClustering, maxDist=${clusterDistanceKm}km');
-
-    // Se zoom alto, mostrar pins individuais
-    if (currentZoom >= minZoomForClustering) {
-      print('📍 Zoom alto (>= $minZoomForClustering) - pins individuais');
-      return cafes.map((cafe) => PinGroup.single(cafe)).toList();
-    }
-
-    print('📍 Zoom baixo (< $minZoomForClustering) - fazendo clustering');
-
-    // Fazer clustering
-    List<PinGroup> groups = [];
-    List<Cafe> remaining = List.from(cafes);
-
-    while (remaining.isNotEmpty) {
-      Cafe center = remaining.removeAt(0);
-      List<Cafe> nearby = [center];
-
-      // Encontrar cafés próximos
-      remaining.removeWhere((cafe) {
-        double distance = _calculateDistanceKm(center.position, cafe.position);
-        if (distance <= clusterDistanceKm) {
-          nearby.add(cafe);
-          print('  ➕ ${cafe.name} está a ${distance.toStringAsFixed(2)}km de ${center.name}');
-          return true;
-        }
-        return false;
+    if (mounted) {
+      setState(() {
+        _markers = newMarkers;
       });
-
-      // Criar grupo
-      if (nearby.length > 1) {
-        print('🔗 Criando cluster com ${nearby.length} cafés');
-        groups.add(PinGroup.cluster(nearby));
-      } else {
-        print('📍 ${center.name} fica como pin individual');
-        groups.add(PinGroup.single(center));
-      }
     }
-
-    return groups;
   }
 
-  // Calcular distância em km entre dois pontos
-  double _calculateDistanceKm(LatLng pos1, LatLng pos2) {
-    const double earthRadius = 6371; // km
-    double dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
-    double dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
-
-    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_degreesToRadians(pos1.latitude)) *
-            math.cos(_degreesToRadians(pos2.latitude)) *
-            math.sin(dLng / 2) *
-            math.sin(dLng / 2);
-
-    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadius * c;
+  Future<BitmapDescriptor> _getClusterIconCached(int count) async {
+    String cacheKey = 'cluster_$count';
+    
+    if (_clusterIconCache.containsKey(cacheKey)) {
+      return _clusterIconCache[cacheKey]!;
+    }
+    
+    BitmapDescriptor icon = await _createClusterIcon(count);
+    _clusterIconCache[cacheKey] = icon;
+    
+    return icon;
   }
 
   Future<BitmapDescriptor> _createClusterIcon(int count) async {
@@ -236,9 +180,101 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     
     final ui.Picture picture = pictureRecorder.endRecording();
     final ui.Image img = await picture.toImage(60, 60);
-    final ByteData? byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    final ByteData? byteData = await img.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+  }
+
+  List<PinGroup> _getOptimizedPinGroups(List<Cafe> cafes, double currentZoom) {
+    final double clusterDistanceKm = _getClusterDistance(currentZoom);
+    const double minZoomForClustering = 17.0; // Aumentado para 17
+
+    if (currentZoom >= minZoomForClustering) {
+      return cafes.map((cafe) => PinGroup.single(cafe)).toList();
+    }
+
+    return _performSpatialClustering(cafes, clusterDistanceKm);
+  }
+
+  double _getClusterDistance(double zoom) {
+    if (zoom >= 16) return 0.1;
+    if (zoom >= 15) return 0.3;
+    if (zoom >= 14) return 0.5;
+    if (zoom >= 13) return 1.0;
+    if (zoom >= 12) return 2.0;
+    return 5.0;
+  }
+
+  List<PinGroup> _performSpatialClustering(
+    List<Cafe> cafes, 
+    double clusterDistanceKm
+  ) {
+    if (cafes.isEmpty) return [];
+    
+    List<PinGroup> groups = [];
+    List<bool> processed = List.filled(cafes.length, false);
+
+    for (int i = 0; i < cafes.length; i++) {
+      if (processed[i]) continue;
+      
+      Cafe center = cafes[i];
+      List<Cafe> cluster = [center];
+      processed[i] = true;
+
+      for (int j = i + 1; j < cafes.length; j++) {
+        if (processed[j]) continue;
+        
+        double distance = _calculateDistanceKm(
+          center.position, 
+          cafes[j].position
+        );
+        
+        if (distance <= clusterDistanceKm) {
+          cluster.add(cafes[j]);
+          processed[j] = true;
+        }
+      }
+
+      if (cluster.length > 1) {
+        groups.add(PinGroup.cluster(cluster));
+      } else {
+        groups.add(PinGroup.single(center));
+      }
+    }
+
+    return groups;
+  }
+
+  double _calculateDistanceKm(LatLng pos1, LatLng pos2) {
+    const double earthRadius = 6371;
+    double dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
+    double dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
+
+    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degreesToRadians(pos1.latitude)) *
+            math.cos(_degreesToRadians(pos2.latitude)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * (math.pi / 180);
+  }
+
+  // NOVO: Atualizar labels apenas após 1 segundo parado
+  void _scheduleLabelUpdate() {
+    _labelTimer?.cancel();
+    _labelTimer = Timer(Duration(milliseconds: 800), () {
+      if (mounted && !_isMapMoving) {
+        print('🏷️ Agendando atualização de labels...');
+        _updatePinLabels();
+      }
+    });
   }
 
   void _updatePinLabels() async {
@@ -246,68 +282,90 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
     final viewModel = context.read<CafeExplorerViewModel>();
     
-    // Usar o mesmo clustering customizado que usamos nos markers
-    final groups = _getCustomPinGroups(viewModel.visibleCafes, viewModel.currentZoom);
-    List<Widget> newLabels = [];
+    print('🏷️ _updatePinLabels chamado - Zoom: ${viewModel.currentZoom}');
     
-    for (PinGroup group in groups) {
-      if (!group.isCluster) {
-        final cafe = group.cafes.first;
+    // Apenas em zoom alto
+    if (viewModel.currentZoom < 14.0) {
+      print('🏷️ Zoom muito baixo (${viewModel.currentZoom}), não mostrar labels');
+      if (_pinLabels.isNotEmpty) {
+        setState(() {
+          _pinLabels = [];
+        });
+      }
+      return;
+    }
+    
+    print('🏷️ Zoom OK, processando labels...');
+    print('🏷️ Total de cafés visíveis: ${viewModel.visibleCafes.length}');
+    
+    List<Widget> newLabels = [];
+    int labelCount = 0;
+    const int maxLabels = 20;
+    
+    // Mostrar labels para TODOS os cafés visíveis, não apenas os não-clusterizados
+    for (var cafe in viewModel.visibleCafes) {
+      if (labelCount >= maxLabels) break;
+      
+      try {
+        ScreenCoordinate screenCoord = await _mapController!
+            .getScreenCoordinate(cafe.position);
         
-        try {
-          ScreenCoordinate screenCoord = await _mapController!.getScreenCoordinate(cafe.position);
-          
-          String displayName = cafe.name.length > 14 
-              ? '${cafe.name.substring(0, 14)}...' 
-              : cafe.name;
-          
-          newLabels.add(
-            Positioned(
-              left: screenCoord.x.toDouble(),
-              top: screenCoord.y.toDouble() - 60,
-              child: FractionalTranslation(
-                translation: Offset(-0.5, 0),
-                child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: AppColors.velvetMerlot,
-                    borderRadius: BorderRadius.circular(1000),
-                  ),
-                  child: Text(
-                    displayName,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.albertSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.whiteWhite,
-                    ),
+        String displayName = cafe.name.length > 14 
+            ? '${cafe.name.substring(0, 14)}...' 
+            : cafe.name;
+        
+        print('🏷️ Criando label para: $displayName em (${screenCoord.x}, ${screenCoord.y})');
+        
+        newLabels.add(
+          Positioned(
+            left: screenCoord.x.toDouble(),
+            top: screenCoord.y.toDouble() - 60,
+            child: FractionalTranslation(
+              translation: Offset(-0.5, 0),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.velvetMerlot,
+                  borderRadius: BorderRadius.circular(1000),
+                ),
+                child: Text(
+                  displayName,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.albertSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.whiteWhite,
                   ),
                 ),
               ),
             ),
-          );
-        } catch (e) {
-          continue;
-        }
+          ),
+        );
+        
+        labelCount++;
+      } catch (e) {
+        print('🏷️ Erro ao criar label: $e');
+        continue;
       }
     }
 
-    setState(() {
-      _pinLabels = newLabels;
-    });
+    print('🏷️ Total de labels criados: ${newLabels.length}');
+
+    if (mounted) {
+      setState(() {
+        _pinLabels = newLabels;
+      });
+      print('🏷️ Labels atualizados no estado!');
+    }
   }
 
   void _onClusterTapped(PinGroup cluster) {
     if (_mapController == null) return;
     
-    print('🎯 Cluster clicado com ${cluster.count} cafeterias');
-    
     if (cluster.cafes.length == 1) {
-      print('⚠️ Cluster com apenas 1 cafeteria - erro no clustering');
       return;
     }
     
-    // Calcular bounds para mostrar todos os cafés do cluster
     double minLat = cluster.cafes.first.position.latitude;
     double maxLat = cluster.cafes.first.position.latitude;
     double minLng = cluster.cafes.first.position.longitude;
@@ -318,12 +376,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
       maxLat = math.max(maxLat, cafe.position.latitude);
       minLng = math.min(minLng, cafe.position.longitude);
       maxLng = math.max(maxLng, cafe.position.longitude);
-      print('  📍 ${cafe.name}: lat=${cafe.position.latitude}, lng=${cafe.position.longitude}');
     }
     
-    print('🔍 Bounds: SW($minLat,$minLng) - NE($maxLat,$maxLng)');
-    
-    // Calcular distância máxima entre os pontos
     double maxDistance = 0;
     for (int i = 0; i < cluster.cafes.length; i++) {
       for (int j = i + 1; j < cluster.cafes.length; j++) {
@@ -335,29 +389,21 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
       }
     }
     
-    print('📏 Distância máxima entre cafés: ${maxDistance.toStringAsFixed(0)}m');
-    
-    // Se todos os cafés estão muito próximos (< 50m), dar zoom fixo alto
     if (maxDistance < 50) {
-      print('🎯 Cafés muito próximos - zoom fixo para 19');
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(cluster.position, 19.0),
       );
       return;
     }
     
-    // Se distância pequena (< 200m), dar zoom alto
     if (maxDistance < 200) {
-      print('🎯 Cafés próximos - zoom para 18');
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(cluster.position, 18.0),
       );
       return;
     }
     
-    // Para distâncias maiores, usar bounds com padding
     try {
-      // Adicionar padding baseado na distância
       double latPadding = (maxLat - minLat) * 0.5;
       double lngPadding = (maxLng - minLng) * 0.5;
       
@@ -367,21 +413,18 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             southwest: LatLng(minLat - latPadding, minLng - lngPadding),
             northeast: LatLng(maxLat + latPadding, maxLng + lngPadding),
           ),
-          80.0, // padding reduzido
+          80.0,
         ),
       );
     } catch (e) {
-      print('❌ Erro ao animar câmera: $e');
-      // Fallback: dar zoom alto
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(cluster.position, 17.0),
       );
     }
   }
 
-  // Calcular distância em metros entre dois pontos
   double _calculateDistance(LatLng pos1, LatLng pos2) {
-    const double earthRadius = 6371000; // metros
+    const double earthRadius = 6371000;
     double dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
     double dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
 
@@ -392,11 +435,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             math.sin(dLng / 2);
 
     double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    return earthRadius * c; // retorna em metros
-  }
-
-  double _degreesToRadians(double degrees) {
-    return degrees * (math.pi / 180);
+    return earthRadius * c;
   }
 
   void _onPinTapped(int index) {
@@ -425,15 +464,30 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   }
 
   void _onCameraMove(CameraPosition position) {
+    // Esconder labels durante movimento
+    _isMapMoving = true;
+    if (_pinLabels.isNotEmpty) {
+      setState(() {
+        _pinLabels = [];
+      });
+    }
+    
     final viewModel = context.read<CafeExplorerViewModel>();
     viewModel.updateMapCenter(position.target);
     viewModel.updateZoom(position.zoom);
   }
 
   void _onCameraIdle() {
+    _isMapMoving = false;
     _updateMarkers();
     _updateCafesInViewport();
-    Future.delayed(Duration(milliseconds: 100), _updatePinLabels);
+    
+    // Forçar atualização imediata de labels para debug
+    Future.delayed(Duration(milliseconds: 500), () {
+      if (mounted && !_isMapMoving) {
+        _updatePinLabels();
+      }
+    });
   }
 
   void _updateCafesInViewport() async {
@@ -730,8 +784,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   }
 
   Widget _buildCafeCounter(CafeExplorerViewModel viewModel) {
-    // No mapa: mostrar cafés visíveis no viewport atual
-    // Na lista: mostrar total de cafés na lista
     final count = viewModel.isMapView 
         ? viewModel.cafesInViewport.length 
         : viewModel.visibleCafes.length;
@@ -760,7 +812,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
           ),
           SizedBox(width: 8),
           Text(
-            '$count', // Mostra cafés no viewport (mapa) ou na lista
+            '$count',
             style: GoogleFonts.albertSans(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -798,10 +850,22 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  onTap: () {
-                    viewModel.selectPlace.execute(suggestion);
+                  onTap: () async {
                     _searchController.text = suggestion.description;
                     _searchFocusNode.unfocus();
+                    
+                    // Executar seleção e aguardar
+                    await viewModel.selectPlace.execute(suggestion);
+                    
+                    // Se modo mapa, mover câmera
+                    if (viewModel.isMapView && _mapController != null) {
+                      _mapController!.animateCamera(
+                        CameraUpdate.newLatLngZoom(
+                          viewModel.currentPosition,
+                          15.0,
+                        ),
+                      );
+                    }
                   },
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1001,7 +1065,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     );
   }
 
-  // Adapter temporário: converte Cafe (novo) → CafeModel (antigo)
   CafeModel _convertToOldModel(Cafe cafe) {
     return CafeModel(
       id: cafe.id,
@@ -1017,7 +1080,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     );
   }
 
-  // Estilo clean e minimalista para o mapa
   String _getMapStyle() {
     return '''[
       {
@@ -1164,5 +1226,42 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
         "stylers": [{"visibility": "off"}]
       }
     ]''';
+  }
+}
+
+class PinGroup {
+  final List<Cafe> cafes;
+  final bool isCluster;
+  late final LatLng position;
+
+  PinGroup.cluster(this.cafes) : isCluster = true {
+    position = _calculateCenterPosition();
+  }
+
+  PinGroup.single(Cafe cafe)
+      : cafes = [cafe],
+        isCluster = false {
+    position = cafe.position;
+  }
+
+  int get count => cafes.length;
+
+  LatLng _calculateCenterPosition() {
+    if (cafes.isEmpty) {
+      return LatLng(0, 0);
+    }
+    
+    double totalLat = 0;
+    double totalLng = 0;
+    
+    for (var cafe in cafes) {
+      totalLat += cafe.position.latitude;
+      totalLng += cafe.position.longitude;
+    }
+    
+    return LatLng(
+      totalLat / cafes.length,
+      totalLng / cafes.length,
+    );
   }
 }

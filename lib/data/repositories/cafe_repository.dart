@@ -1,5 +1,8 @@
+// lib/data/repositories/cafe_repository.dart
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:math' as math;
 import '../models/domain/cafe.dart';
+import '../services/supabase_cafeteria_service.dart';
 
 /// Interface abstrata do repositório de cafeterias
 abstract class CafeRepository {
@@ -7,110 +10,228 @@ abstract class CafeRepository {
   Future<List<Cafe>> getCafesNearLocation(LatLng location, {double radiusKm = 2.0});
 }
 
-/// Implementação mock do repositório (dados estáticos)
+/// Implementação REAL do repositório usando Supabase
 class CafeRepositoryImpl implements CafeRepository {
+  final SupabaseCafeteriaService _service;
+
+  CafeRepositoryImpl({SupabaseCafeteriaService? service})
+      : _service = service ?? SupabaseCafeteriaService();
+
   @override
   Future<List<Cafe>> getAllCafes() async {
-    // Simular delay de rede
-    await Future.delayed(Duration(milliseconds: 500));
+    try {
+      print('🔍 Buscando cafeterias no Supabase...');
+      
+      final cafeteriasData = await _service.getAllCafeterias();
+      
+      print('✅ ${cafeteriasData.length} cafeterias encontradas no Supabase');
+      
+      // Converter dados do Supabase para modelo de domínio
+      final cafes = cafeteriasData
+          .map((data) => _mapSupabaseToCafe(data))
+          .where((cafe) => cafe != null)
+          .cast<Cafe>()
+          .toList();
 
-    return [
-      Cafe(
-        id: '1',
-        name: 'Coffeelab',
-        address: 'R. Fradique Coutinho, 1340 - Vila Madalena, São Paulo - SP, 05416-001',
-        rating: 4.8,
-        distance: '200m',
-        imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400',
-        isOpen: true,
-        position: LatLng(-23.5505, -46.6333),
-        price: 'R\$ 15-25',
-        specialties: ['Espresso', 'Latte Art', 'Doces'],
-      ),
-      Cafe(
-        id: '2',
-        name: 'Santo Grão',
-        address: 'Av. Rebouças, 456 - Pinheiros, São Paulo',
-        rating: 4.6,
-        distance: '350m',
-        imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400',
-        isOpen: true,
-        position: LatLng(-23.5515, -46.6343),
-        price: 'R\$ 12-20',
-        specialties: ['Café Gelado', 'Filtrado', 'Tortas'],
-      ),
-      Cafe(
-        id: '3',
-        name: 'Café do Centro',
-        address: 'Rua Augusta, 789 - Consolação, São Paulo',
-        rating: 4.4,
-        distance: '500m',
-        imageUrl: 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400',
-        isOpen: false,
-        position: LatLng(-23.5495, -46.6323),
-        price: 'R\$ 10-18',
-        specialties: ['Cappuccino', 'Prensado', 'Lanches'],
-      ),
-      Cafe(
-        id: '4',
-        name: 'Blend Coffee',
-        address: 'Rua dos Pinheiros, 321 - Pinheiros, São Paulo',
-        rating: 4.9,
-        distance: '1.2km',
-        imageUrl: 'https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=400',
-        isOpen: true,
-        position: LatLng(-23.5525, -46.6353),
-        price: 'R\$ 18-30',
-        specialties: ['Grãos Especiais', 'V60', 'Chemex'],
-      ),
-      Cafe(
-        id: '5',
-        name: 'The Coffee',
-        address: 'Rua Harmonia, 123 - Vila Madalena, São Paulo',
-        rating: 4.7,
-        distance: '800m',
-        imageUrl: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400',
-        isOpen: true,
-        position: LatLng(-23.5485, -46.6313),
-        price: 'R\$ 14-22',
-        specialties: ['Cappuccino', 'Croissant', 'WiFi'],
-      ),
-    ];
+      return cafes;
+    } catch (e) {
+      print('❌ Erro ao buscar cafeterias: $e');
+      // Retornar lista vazia em caso de erro
+      return [];
+    }
   }
 
   @override
-  Future<List<Cafe>> getCafesNearLocation(LatLng location, {double radiusKm = 2.0}) async {
-    final allCafes = await getAllCafes();
-    
-    return allCafes.where((cafe) {
-      double distance = _calculateDistanceKm(location, cafe.position);
-      return distance <= radiusKm;
-    }).toList()
-      ..sort((a, b) {
-        double distanceA = _calculateDistanceKm(location, a.position);
-        double distanceB = _calculateDistanceKm(location, b.position);
-        return distanceA.compareTo(distanceB);
+  Future<List<Cafe>> getCafesNearLocation(
+    LatLng location, {
+    double radiusKm = 2.0,
+  }) async {
+    try {
+      print('📍 Buscando cafeterias próximas a: (${location.latitude}, ${location.longitude})');
+      
+      final cafeteriasData = await _service.getCafeteriasNearLocation(
+        latitude: location.latitude,
+        longitude: location.longitude,
+        radiusKm: radiusKm,
+      );
+
+      print('✅ ${cafeteriasData.length} cafeterias encontradas no raio de ${radiusKm}km');
+
+      // Converter e calcular distância
+      final cafes = cafeteriasData
+          .map((data) => _mapSupabaseToCafe(data, referenceLocation: location))
+          .where((cafe) => cafe != null)
+          .cast<Cafe>()
+          .toList();
+
+      // Ordenar por distância (mais próximo primeiro)
+      cafes.sort((a, b) {
+        double distA = _calculateDistanceKm(location, a.position);
+        double distB = _calculateDistanceKm(location, b.position);
+        return distA.compareTo(distB);
       });
+
+      return cafes;
+    } catch (e) {
+      print('❌ Erro ao buscar cafeterias próximas: $e');
+      return [];
+    }
   }
 
+  /// Mapeia dados do Supabase para o modelo Cafe de domínio
+  Cafe? _mapSupabaseToCafe(
+    Map<String, dynamic> data, {
+    LatLng? referenceLocation,
+  }) {
+    try {
+      final id = data['id']?.toString();
+      final nome = data['nome'] as String?;
+      
+      // Tentar pegar lat/lng diretamente
+      double? lat = data['lat'] as double?;
+      double? lng = data['lng'] as double?;
+
+      // Se lat/lng estiverem null, tentar extrair de referencia_mapa
+      if ((lat == null || lng == null) && data['referencia_mapa'] != null) {
+        final coordsFromRef = _extractCoordinatesFromReferenceMap(data['referencia_mapa']);
+        if (coordsFromRef != null) {
+          lat = coordsFromRef.latitude;
+          lng = coordsFromRef.longitude;
+        }
+      }
+
+      // Campos obrigatórios
+      if (id == null || nome == null || lat == null || lng == null) {
+        print('⚠️ Cafeteria sem coordenadas válidas: id=$id, nome=$nome');
+        return null;
+      }
+
+      final position = LatLng(lat, lng);
+
+      // Calcular distância se tiver localização de referência
+      String distance = '0m';
+      if (referenceLocation != null) {
+        final distanceKm = _calculateDistanceKm(referenceLocation, position);
+        distance = _formatDistance(distanceKm);
+      }
+
+      // Montar endereço completo
+      final endereco = data['endereco'] as String?;
+      final bairro = data['bairro'] as String?;
+      final cidade = data['cidade'] as String?;
+      final estado = data['estado'] as String?;
+      
+      String fullAddress = '';
+      if (endereco != null) fullAddress += endereco;
+      if (bairro != null) fullAddress += fullAddress.isEmpty ? bairro : ', $bairro';
+      if (cidade != null) fullAddress += fullAddress.isEmpty ? cidade : ', $cidade';
+      if (estado != null) fullAddress += fullAddress.isEmpty ? estado : ' - $estado';
+
+      // Rating e avaliações
+      final pontuacao = (data['pontuacao'] as num?)?.toDouble() ?? 0.0;
+      final avaliacoes = (data['avaliacoes'] as num?)?.toInt() ?? 0;
+
+      // Foto
+      final urlFoto = data['url_foto'] as String?;
+      final imageUrl = urlFoto ?? 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400';
+
+      // Características especiais para as specialties
+      List<String> specialties = [];
+      if (data['pet_friendly'] == true) specialties.add('Pet Friendly');
+      if (data['opcao_vegana'] == true) specialties.add('Opções Veganas');
+      if (data['office_friendly'] == true) specialties.add('Office Friendly');
+      
+      // Se não tiver nenhuma característica, adicionar genérico
+      if (specialties.isEmpty) {
+        specialties.add('Café');
+      }
+
+      // Status (considera ativo e com coordenadas como "aberto")
+      final ativo = data['ativo'] == true;
+      final isOpen = ativo;
+
+      // Preço (pode ser implementado depois com base em dados reais)
+      final price = 'R\$ 10-25';
+
+      return Cafe(
+        id: id,
+        name: nome,
+        address: fullAddress.isEmpty ? 'Endereço não informado' : fullAddress,
+        rating: pontuacao,
+        distance: distance,
+        imageUrl: imageUrl,
+        isOpen: isOpen,
+        position: position,
+        price: price,
+        specialties: specialties,
+      );
+    } catch (e) {
+      print('❌ Erro ao mapear cafeteria: $e');
+      print('   Dados: $data');
+      return null;
+    }
+  }
+
+  /// Calcula distância em km entre duas coordenadas (Haversine)
   double _calculateDistanceKm(LatLng pos1, LatLng pos2) {
-    const double earthRadius = 6371;
-    double dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
-    double dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
+    const double earthRadius = 6371; // Raio da Terra em km
 
-    double a = _sin(dLat / 2) * _sin(dLat / 2) +
-        _cos(_degreesToRadians(pos1.latitude)) *
-            _cos(_degreesToRadians(pos2.latitude)) *
-            _sin(dLng / 2) *
-            _sin(dLng / 2);
+    final dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
+    final dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
 
-    double c = 2 * _atan2(_sqrt(a), _sqrt(1 - a));
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degreesToRadians(pos1.latitude)) *
+            math.cos(_degreesToRadians(pos2.latitude)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+
     return earthRadius * c;
   }
 
-  double _degreesToRadians(double degrees) => degrees * (3.14159265359 / 180);
-  double _sin(double x) => x - (x * x * x) / 6;
-  double _cos(double x) => 1 - (x * x) / 2;
-  double _sqrt(double x) => x;
-  double _atan2(double y, double x) => y / x;
+  double _degreesToRadians(double degrees) {
+    return degrees * math.pi / 180;
+  }
+
+  /// Formata distância para exibição
+  String _formatDistance(double distanceKm) {
+    if (distanceKm < 1) {
+      return '${(distanceKm * 1000).round()}m';
+    } else if (distanceKm < 10) {
+      return '${distanceKm.toStringAsFixed(1)}km';
+    } else {
+      return '${distanceKm.round()}km';
+    }
+  }
+
+  /// Extrai coordenadas do campo referencia_mapa
+  /// Exemplo: "LatLng(lat: -23.5719459, lng: -46.6553994)"
+  LatLng? _extractCoordinatesFromReferenceMap(dynamic referenciaMapaValue) {
+    try {
+      String referenciaMapaStr;
+      
+      // Pode vir como String ou como objeto
+      if (referenciaMapaValue is String) {
+        referenciaMapaStr = referenciaMapaValue;
+      } else {
+        referenciaMapaStr = referenciaMapaValue.toString();
+      }
+
+      // Extrair lat e lng da string "LatLng(lat: -23.5719459, lng: -46.6553994)"
+      final latMatch = RegExp(r'lat:\s*([-\d.]+)').firstMatch(referenciaMapaStr);
+      final lngMatch = RegExp(r'lng:\s*([-\d.]+)').firstMatch(referenciaMapaStr);
+
+      if (latMatch != null && lngMatch != null) {
+        final lat = double.parse(latMatch.group(1)!);
+        final lng = double.parse(lngMatch.group(1)!);
+        return LatLng(lat, lng);
+      }
+
+      return null;
+    } catch (e) {
+      print('❌ Erro ao extrair coordenadas de referencia_mapa: $e');
+      return null;
+    }
+  }
 }
