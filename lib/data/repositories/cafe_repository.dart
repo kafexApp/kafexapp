@@ -8,6 +8,7 @@ import '../services/supabase_cafeteria_service.dart';
 abstract class CafeRepository {
   Future<List<Cafe>> getAllCafes();
   Future<List<Cafe>> getCafesNearLocation(LatLng location, {double radiusKm = 2.0});
+  Future<Map<String, dynamic>?> getCafeById(int cafeId);
 }
 
 /// Implementação REAL do repositório usando Supabase
@@ -33,10 +34,10 @@ class CafeRepositoryImpl implements CafeRepository {
           .cast<Cafe>()
           .toList();
 
+      print('✅ ${cafes.length} cafeterias mapeadas com sucesso');
       return cafes;
     } catch (e) {
       print('❌ Erro ao buscar cafeterias: $e');
-      // Retornar lista vazia em caso de erro
       return [];
     }
   }
@@ -57,14 +58,12 @@ class CafeRepositoryImpl implements CafeRepository {
 
       print('✅ ${cafeteriasData.length} cafeterias encontradas no raio de ${radiusKm}km');
 
-      // Converter e calcular distância
       final cafes = cafeteriasData
           .map((data) => _mapSupabaseToCafe(data, referenceLocation: location))
           .where((cafe) => cafe != null)
           .cast<Cafe>()
           .toList();
 
-      // Ordenar por distância (mais próximo primeiro)
       cafes.sort((a, b) {
         double distA = _calculateDistanceKm(location, a.position);
         double distB = _calculateDistanceKm(location, b.position);
@@ -78,6 +77,26 @@ class CafeRepositoryImpl implements CafeRepository {
     }
   }
 
+  @override
+  Future<Map<String, dynamic>?> getCafeById(int cafeId) async {
+    try {
+      print('🔍 Buscando cafeteria por ID: $cafeId');
+      
+      final cafeData = await _service.getCafeteriaById(cafeId);
+      
+      if (cafeData == null) {
+        print('⚠️ Cafeteria não encontrada');
+        return null;
+      }
+
+      print('✅ Cafeteria encontrada: ${cafeData['nome']}');
+      return cafeData;
+    } catch (e) {
+      print('❌ Erro ao buscar cafeteria por ID: $e');
+      return null;
+    }
+  }
+
   /// Mapeia dados do Supabase para o modelo Cafe de domínio
   Cafe? _mapSupabaseToCafe(
     Map<String, dynamic> data, {
@@ -86,152 +105,114 @@ class CafeRepositoryImpl implements CafeRepository {
     try {
       final id = data['id']?.toString();
       final nome = data['nome'] as String?;
-      
-      // Tentar pegar lat/lng diretamente
-      double? lat = data['lat'] as double?;
-      double? lng = data['lng'] as double?;
 
-      // Se lat/lng estiverem null, tentar extrair de referencia_mapa
-      if ((lat == null || lng == null) && data['referencia_mapa'] != null) {
-        final coordsFromRef = _extractCoordinatesFromReferenceMap(data['referencia_mapa']);
-        if (coordsFromRef != null) {
-          lat = coordsFromRef.latitude;
-          lng = coordsFromRef.longitude;
-        }
-      }
-
-      // Campos obrigatórios
-      if (id == null || nome == null || lat == null || lng == null) {
-        print('⚠️ Cafeteria sem coordenadas válidas: id=$id, nome=$nome');
+      if (id == null || nome == null) {
         return null;
       }
 
-      final position = LatLng(lat, lng);
+      // EXTRAIR COORDENADAS DO CAMPO referencia_mapa
+      double? lat;
+      double? lng;
+      
+      final referenciaMapa = data['referencia_mapa'];
+      if (referenciaMapa != null) {
+        if (referenciaMapa is String) {
+          // Parse string: "LatLng(lat: -23.5505, lng: -46.6333)"
+          final regex = RegExp(r'lat:\s*([-\d.]+).*?lng:\s*([-\d.]+)');
+          final match = regex.firstMatch(referenciaMapa);
+          if (match != null) {
+            lat = double.tryParse(match.group(1) ?? '');
+            lng = double.tryParse(match.group(2) ?? '');
+          }
+        } else if (referenciaMapa is Map) {
+          lat = referenciaMapa['lat'] as double?;
+          lng = referenciaMapa['lng'] as double?;
+        }
+      }
 
-      // Calcular distância se tiver localização de referência
-      String distance = '0m';
+      // Fallback: tentar pegar de lat/lng direto (caso existam)
+      if (lat == null || lng == null) {
+        lat = data['lat'] as double?;
+        lng = data['lng'] as double?;
+      }
+
+      // Se ainda não tiver coordenadas, pular esta cafeteria
+      if (lat == null || lng == null || (lat == 0 && lng == 0)) {
+        print('⚠️ Cafeteria sem coordenadas válidas: $nome');
+        return null;
+      }
+
+      // Calcular distância
+      String distance = '0 km';
       if (referenceLocation != null) {
-        final distanceKm = _calculateDistanceKm(referenceLocation, position);
-        distance = _formatDistance(distanceKm);
+        final distKm = _calculateDistanceKm(
+          referenceLocation,
+          LatLng(lat, lng),
+        );
+        distance = distKm < 1 
+            ? '${(distKm * 1000).round()} m'
+            : '${distKm.toStringAsFixed(1)} km';
       }
 
-      // Montar endereço completo
-      final endereco = data['endereco'] as String?;
-      final bairro = data['bairro'] as String?;
-      final cidade = data['cidade'] as String?;
-      final estado = data['estado'] as String?;
+      // Montar endereço
+      final endereco = data['endereco'] as String? ?? '';
+      final bairro = data['bairro'] as String? ?? '';
+      final cidade = data['cidade'] as String? ?? '';
       
-      String fullAddress = '';
-      if (endereco != null) fullAddress += endereco;
-      if (bairro != null) fullAddress += fullAddress.isEmpty ? bairro : ', $bairro';
-      if (cidade != null) fullAddress += fullAddress.isEmpty ? cidade : ', $cidade';
-      if (estado != null) fullAddress += fullAddress.isEmpty ? estado : ' - $estado';
-
-      // Rating e avaliações
-      final pontuacao = (data['pontuacao'] as num?)?.toDouble() ?? 0.0;
-      final avaliacoes = (data['avaliacoes'] as num?)?.toInt() ?? 0;
-
-      // Foto
-      final urlFoto = data['url_foto'] as String?;
-      final imageUrl = urlFoto ?? 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400';
-
-      // Características especiais para as specialties
-      List<String> specialties = [];
-      if (data['pet_friendly'] == true) specialties.add('Pet Friendly');
-      if (data['opcao_vegana'] == true) specialties.add('Opções Veganas');
-      if (data['office_friendly'] == true) specialties.add('Office Friendly');
+      String enderecoCompleto = endereco;
+      if (bairro.isNotEmpty && !enderecoCompleto.contains(bairro)) {
+        enderecoCompleto += enderecoCompleto.isNotEmpty ? ', $bairro' : bairro;
+      }
+      if (cidade.isNotEmpty && !enderecoCompleto.contains(cidade)) {
+        enderecoCompleto += enderecoCompleto.isNotEmpty ? ' - $cidade' : cidade;
+      }
       
-      // Se não tiver nenhuma característica, adicionar genérico
-      if (specialties.isEmpty) {
-        specialties.add('Café');
+      if (enderecoCompleto.isEmpty) {
+        enderecoCompleto = 'Endereço não disponível';
       }
 
-      // Status (considera ativo e com coordenadas como "aberto")
-      final ativo = data['ativo'] == true;
-      final isOpen = ativo;
-
-      // Preço (pode ser implementado depois com base em dados reais)
-      final price = 'R\$ 10-25';
+      // URL da foto
+      String imageUrl = data['url_foto'] as String? ?? '';
+      if (imageUrl.isEmpty) {
+        imageUrl = 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400';
+      }
 
       return Cafe(
         id: id,
         name: nome,
-        address: fullAddress.isEmpty ? 'Endereço não informado' : fullAddress,
-        rating: pontuacao,
-        distance: distance,
+        address: enderecoCompleto,
+        rating: (data['pontuacao'] as num?)?.toDouble() ?? 0.0,
         imageUrl: imageUrl,
-        isOpen: isOpen,
-        position: position,
-        price: price,
-        specialties: specialties,
+        distance: distance,
+        isOpen: true,
+        position: LatLng(lat, lng),
+        price: 'R\$ 15,00',
+        specialties: [],
       );
     } catch (e) {
       print('❌ Erro ao mapear cafeteria: $e');
-      print('   Dados: $data');
       return null;
     }
   }
 
-  /// Calcula distância em km entre duas coordenadas (Haversine)
   double _calculateDistanceKm(LatLng pos1, LatLng pos2) {
-    const double earthRadius = 6371; // Raio da Terra em km
-
+    const earthRadius = 6371.0;
+    
     final dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
     final dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
-
+    
     final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_degreesToRadians(pos1.latitude)) *
             math.cos(_degreesToRadians(pos2.latitude)) *
             math.sin(dLng / 2) *
             math.sin(dLng / 2);
-
+    
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-
+    
     return earthRadius * c;
   }
 
   double _degreesToRadians(double degrees) {
     return degrees * math.pi / 180;
-  }
-
-  /// Formata distância para exibição
-  String _formatDistance(double distanceKm) {
-    if (distanceKm < 1) {
-      return '${(distanceKm * 1000).round()}m';
-    } else if (distanceKm < 10) {
-      return '${distanceKm.toStringAsFixed(1)}km';
-    } else {
-      return '${distanceKm.round()}km';
-    }
-  }
-
-  /// Extrai coordenadas do campo referencia_mapa
-  /// Exemplo: "LatLng(lat: -23.5719459, lng: -46.6553994)"
-  LatLng? _extractCoordinatesFromReferenceMap(dynamic referenciaMapaValue) {
-    try {
-      String referenciaMapaStr;
-      
-      // Pode vir como String ou como objeto
-      if (referenciaMapaValue is String) {
-        referenciaMapaStr = referenciaMapaValue;
-      } else {
-        referenciaMapaStr = referenciaMapaValue.toString();
-      }
-
-      // Extrair lat e lng da string "LatLng(lat: -23.5719459, lng: -46.6553994)"
-      final latMatch = RegExp(r'lat:\s*([-\d.]+)').firstMatch(referenciaMapaStr);
-      final lngMatch = RegExp(r'lng:\s*([-\d.]+)').firstMatch(referenciaMapaStr);
-
-      if (latMatch != null && lngMatch != null) {
-        final lat = double.parse(latMatch.group(1)!);
-        final lng = double.parse(lngMatch.group(1)!);
-        return LatLng(lat, lng);
-      }
-
-      return null;
-    } catch (e) {
-      print('❌ Erro ao extrair coordenadas de referencia_mapa: $e');
-      return null;
-    }
   }
 }

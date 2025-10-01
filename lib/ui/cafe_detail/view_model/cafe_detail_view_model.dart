@@ -7,15 +7,22 @@ import '../models/cafe_detail_model.dart';
 import '../services/cafe_actions_service.dart';
 import '../widgets/cafe_reviews_modal.dart';
 import '../../../widgets/cafe_evaluation_modal.dart';
+import '../../../data/repositories/cafe_repository.dart';
 
 class CafeDetailViewModel extends ChangeNotifier {
+  final CafeRepository _cafeRepository;
+  
   CafeDetailModel _cafe;
   bool _isLoading = false;
   String? _errorMessage;
   bool _isFavorited = false;
   bool _wantToVisit = false;
 
-  CafeDetailViewModel({required CafeDetailModel cafe}) : _cafe = cafe;
+  CafeDetailViewModel({
+    required CafeDetailModel cafe,
+    CafeRepository? cafeRepository,
+  })  : _cafe = cafe,
+        _cafeRepository = cafeRepository ?? CafeRepositoryImpl();
 
   // Getters
   CafeDetailModel get cafe => _cafe;
@@ -24,6 +31,42 @@ class CafeDetailViewModel extends ChangeNotifier {
   bool get hasReviews => _cafe.reviews.isNotEmpty;
   bool get isFavorited => _isFavorited;
   bool get wantToVisit => _wantToVisit;
+
+  /// Carrega dados completos da cafeteria do Supabase
+  Future<void> loadCafeData(String cafeId) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+
+      print('🔄 Carregando dados da cafeteria: $cafeId');
+
+      // Tentar converter ID para int
+      final cafeIdInt = int.tryParse(cafeId);
+      if (cafeIdInt == null) {
+        _setError('ID da cafeteria inválido');
+        return;
+      }
+
+      // Buscar dados do repository
+      final cafeData = await _cafeRepository.getCafeById(cafeIdInt);
+
+      if (cafeData == null) {
+        _setError('Cafeteria não encontrada');
+        return;
+      }
+
+      // Converter dados do Supabase para o modelo
+      _cafe = CafeDetailModel.fromSupabase(cafeData);
+      
+      print('✅ Dados da cafeteria carregados com sucesso');
+      notifyListeners();
+    } catch (e) {
+      _setError('Erro ao carregar dados da cafeteria');
+      print('❌ Erro ao carregar dados: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
 
   /// Atualiza os dados da cafeteria
   void updateCafe(CafeDetailModel newCafe) {

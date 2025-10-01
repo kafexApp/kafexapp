@@ -1,10 +1,13 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'ui/home/widgets/home_screen_provider.dart';
+import 'data/repositories/cafe_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,15 +33,24 @@ void main() async {
 class KafexApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Kafex',
-      theme: AppTheme.lightTheme,
-      home: SplashScreen(),
-      debugShowCheckedModeBanner: false,
-      // ROTA TEMPORÁRIA PARA TESTES
-      routes: {
-        '/home-test': (context) => const HomeScreenProvider(),
-      },
+    return MultiProvider(
+      providers: [
+        // Provider do CafeRepository para acesso global
+        Provider<CafeRepository>(
+          create: (_) => CafeRepositoryImpl(),
+        ),
+        // Adicione outros providers aqui conforme necessário
+      ],
+      child: MaterialApp(
+        title: 'Kafex',
+        theme: AppTheme.lightTheme,
+        home: SplashScreen(),
+        debugShowCheckedModeBanner: false,
+        // ROTA TEMPORÁRIA PARA TESTES
+        routes: {
+          '/home-test': (context) => const HomeScreenProvider(),
+        },
+      ),
     );
   }
 }

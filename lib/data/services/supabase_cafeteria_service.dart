@@ -24,6 +24,41 @@ class SupabaseCafeteriaService {
     }
   }
 
+  /// Busca uma cafeteria específica por ID com dados do usuário criador
+  Future<Map<String, dynamic>?> getCafeteriaById(int cafeteriaId) async {
+    try {
+      print('🔍 Buscando cafeteria ID: $cafeteriaId');
+
+      // Buscar cafeteria com JOIN no usuario_perfil
+      final response = await _client
+          .from('cafeteria')
+          .select('''
+            *,
+            usuario_perfil!cafeteria_user_id_fkey (
+              id,
+              nome_exibicao,
+              foto_url,
+              instagram,
+              cidade
+            )
+          ''')
+          .eq('id', cafeteriaId)
+          .eq('ativo', true)
+          .maybeSingle();
+
+      if (response == null) {
+        print('⚠️ Cafeteria não encontrada ou inativa');
+        return null;
+      }
+
+      print('✅ Cafeteria encontrada: ${response['nome']}');
+      return response;
+    } catch (e) {
+      print('❌ Erro ao buscar cafeteria por ID: $e');
+      return null;
+    }
+  }
+
   /// Busca cafeterias próximas a uma localização (raio em km)
   Future<List<Map<String, dynamic>>> getCafeteriasNearLocation({
     required double latitude,
@@ -48,7 +83,7 @@ class SupabaseCafeteriaService {
 
         if (cafeLat == null || cafeLng == null) return false;
 
-        final distance = _calculateDistance(
+        final distance = _calculateDistanceKm(
           latitude,
           longitude,
           cafeLat,
@@ -65,50 +100,32 @@ class SupabaseCafeteriaService {
     }
   }
 
-  /// Busca uma cafeteria específica por ID
-  Future<Map<String, dynamic>?> getCafeteriaById(int id) async {
+  /// Busca cafeterias por nome (para autocomplete/busca)
+  Future<List<Map<String, dynamic>>> searchCafeteriasByName(
+      String query) async {
     try {
-      final response = await _client
-          .from('cafeteria')
-          .select()
-          .eq('id', id)
-          .single();
-
-      return response as Map<String, dynamic>;
-    } catch (e) {
-      print('❌ Erro ao buscar cafeteria por ID: $e');
-      return null;
-    }
-  }
-
-  /// Busca cafeterias por texto (nome, endereço, bairro)
-  Future<List<Map<String, dynamic>>> searchCafeterias(String query) async {
-    try {
-      final searchTerm = '%${query.toLowerCase()}%';
-
       final response = await _client
           .from('cafeteria')
           .select()
           .eq('ativo', true)
-          .or('nome.ilike.$searchTerm,endereco.ilike.$searchTerm,bairro.ilike.$searchTerm,cidade.ilike.$searchTerm')
-          .order('pontuacao', ascending: false)
-          .limit(20);
+          .or('nome.ilike.%$query%,endereco.ilike.%$query%')
+          .limit(10);
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('❌ Erro ao buscar cafeterias: $e');
-      rethrow;
+      print('❌ Erro ao buscar cafeterias por nome: $e');
+      return [];
     }
   }
 
-  /// Calcula distância entre duas coordenadas (fórmula de Haversine)
-  double _calculateDistance(
+  /// Calcula distância entre dois pontos em km (fórmula de Haversine)
+  double _calculateDistanceKm(
     double lat1,
     double lon1,
     double lat2,
     double lon2,
   ) {
-    const double earthRadius = 6371; // Raio da Terra em km
+    const earthRadiusKm = 6371.0;
 
     final dLat = _degreesToRadians(lat2 - lat1);
     final dLon = _degreesToRadians(lon2 - lon1);
@@ -121,19 +138,10 @@ class SupabaseCafeteriaService {
 
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 
-    return earthRadius * c;
+    return earthRadiusKm * c;
   }
 
   double _degreesToRadians(double degrees) {
     return degrees * math.pi / 180;
-  }
-
-  /// Formata a distância para exibição
-  String formatDistance(double distanceKm) {
-    if (distanceKm < 1) {
-      return '${(distanceKm * 1000).round()}m';
-    } else {
-      return '${distanceKm.toStringAsFixed(1)}km';
-    }
   }
 }
