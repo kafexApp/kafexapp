@@ -14,33 +14,40 @@ import 'cafe_actions_widget.dart';
 class CafeDetailModal extends StatefulWidget {
   final CafeDetailModel cafe;
 
-  const CafeDetailModal({
-    Key? key,
-    required this.cafe,
-  }) : super(key: key);
+  const CafeDetailModal({Key? key, required this.cafe}) : super(key: key);
 
   @override
   State<CafeDetailModal> createState() => _CafeDetailModalState();
 }
 
 class _CafeDetailModalState extends State<CafeDetailModal> {
+  late CafeDetailViewModel _viewModel;
+
   @override
   void initState() {
     super.initState();
+    // Criar o ViewModel
+    _viewModel = CafeDetailViewModel(
+      cafe: widget.cafe,
+      cafeRepository: context.read<CafeRepository>(),
+    );
+
     // Carregar dados reais após o build inicial
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final viewModel = context.read<CafeDetailViewModel>();
-      viewModel.loadCafeData(widget.cafe.id);
+      _viewModel.loadCafeData(widget.cafe.id);
     });
   }
 
   @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => CafeDetailViewModel(
-        cafe: widget.cafe,
-        cafeRepository: context.read<CafeRepository>(),
-      ),
+    return ChangeNotifierProvider<CafeDetailViewModel>.value(
+      value: _viewModel,
       child: Consumer<CafeDetailViewModel>(
         builder: (context, viewModel, child) {
           return Container(
@@ -60,10 +67,9 @@ class _CafeDetailModalState extends State<CafeDetailModal> {
                   width: 32,
                   height: 3,
                   decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant
-                        .withOpacity(0.3),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -73,8 +79,8 @@ class _CafeDetailModalState extends State<CafeDetailModal> {
                   child: viewModel.isLoading
                       ? _buildLoadingState()
                       : viewModel.errorMessage != null
-                          ? _buildErrorState(viewModel)
-                          : _buildContent(viewModel),
+                      ? _buildErrorState(viewModel)
+                      : _buildContent(viewModel),
                 ),
               ],
             ),
@@ -113,11 +119,7 @@ class _CafeDetailModalState extends State<CafeDetailModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48,
-              color: Colors.red[300],
-            ),
+            Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
             SizedBox(height: 16),
             Text(
               viewModel.errorMessage ?? 'Erro ao carregar dados',
@@ -182,9 +184,7 @@ void showCafeDetailModal(BuildContext context, dynamic cafe) {
       initialChildSize: 0.9,
       minChildSize: 0.5,
       maxChildSize: 0.95,
-      builder: (context, scrollController) => CafeDetailModal(
-        cafe: cafeDetail,
-      ),
+      builder: (context, scrollController) => CafeDetailModal(cafe: cafeDetail),
     ),
   );
 }
