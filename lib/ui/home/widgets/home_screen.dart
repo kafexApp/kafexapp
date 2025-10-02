@@ -11,9 +11,40 @@ import '../../posts/factories/post_card_factory.dart';
 import '../../../widgets/common/user_avatar.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../viewmodel/home_feed_viewmodel.dart';
+import '../../../utils/sync_user_photo_helper.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  bool _photoSyncExecuted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncUserPhotoOnce();
+  }
+
+  /// Executa a sincronização da foto apenas uma vez
+  Future<void> _syncUserPhotoOnce() async {
+    if (_photoSyncExecuted) return;
+    
+    _photoSyncExecuted = true;
+    
+    // Aguarda um pouco para garantir que tudo está inicializado
+    await Future.delayed(Duration(milliseconds: 500));
+    
+    try {
+      print('🔄 Iniciando sincronização automática da foto...');
+      await SyncUserPhotoHelper.forceSyncWithDebug();
+    } catch (e) {
+      print('❌ Erro na sincronização automática: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
