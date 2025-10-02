@@ -1,99 +1,143 @@
 // lib/ui/cafe_detail/models/user_review_model.dart
 
+import '../../../backend/supabase/tables/avaliacao_com_cafeteria.dart';
+
 class UserReview {
-  final String userId;
+  final String id;
   final String userName;
   final String userAvatar;
   final double rating;
   final String comment;
-  final String date;
+  final DateTime date;
+  final List<String> images;
+  final int likes;
+  final bool isLiked;
 
   UserReview({
-    required this.userId,
+    required this.id,
     required this.userName,
     required this.userAvatar,
     required this.rating,
     required this.comment,
     required this.date,
+    this.images = const [],
+    this.likes = 0,
+    this.isLiked = false,
   });
+
+  /// Converte dados do Supabase (AvaliacaoComCafeteriaRow) para UserReview
+  factory UserReview.fromSupabase(AvaliacaoComCafeteriaRow avaliacao) {
+    // Monta lista de imagens se houver foto_url
+    List<String> images = [];
+    if (avaliacao.fotoUrl != null && avaliacao.fotoUrl!.isNotEmpty) {
+      images.add(avaliacao.fotoUrl!);
+    }
+
+    return UserReview(
+      id: avaliacao.avaliacaoId?.toString() ?? '0',
+      userName: avaliacao.nomeExibicao ?? 'Usuário Anônimo',
+      userAvatar: '', // TODO: Buscar avatar do usuário se necessário
+      rating: avaliacao.nota ?? 0.0,
+      comment: avaliacao.descricao ?? '',
+      date: avaliacao.avaliacaoCriadaEm ?? DateTime.now(),
+      images: images,
+      likes: (avaliacao.curtidasAvaliacao ?? 0).toInt(),
+      isLiked: false, // TODO: Verificar se o usuário atual curtiu
+    );
+  }
 
   factory UserReview.fromJson(Map<String, dynamic> json) {
     return UserReview(
-      userId: json['userId'] ?? '',
+      id: json['id'] ?? '',
       userName: json['userName'] ?? '',
       userAvatar: json['userAvatar'] ?? '',
       rating: (json['rating'] ?? 0.0).toDouble(),
       comment: json['comment'] ?? '',
-      date: json['date'] ?? '',
+      date: json['date'] != null
+          ? DateTime.parse(json['date'])
+          : DateTime.now(),
+      images:
+          (json['images'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      likes: json['likes'] ?? 0,
+      isLiked: json['isLiked'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'userId': userId,
+      'id': id,
       'userName': userName,
       'userAvatar': userAvatar,
       'rating': rating,
       'comment': comment,
-      'date': date,
+      'date': date.toIso8601String(),
+      'images': images,
+      'likes': likes,
+      'isLiked': isLiked,
     };
   }
 
-  // Mock data para testes
-  static UserReview get mockReview {
+  UserReview copyWith({
+    String? id,
+    String? userName,
+    String? userAvatar,
+    double? rating,
+    String? comment,
+    DateTime? date,
+    List<String>? images,
+    int? likes,
+    bool? isLiked,
+  }) {
     return UserReview(
-      userId: '1',
-      userName: 'Amanda Klein',
-      userAvatar: 'assets/images/default-avatar.svg',
-      rating: 5.0,
-      comment: 'A crema realmente faz toda a diferença. É incrível como ela intensifica o sabor e a experiência.',
-      date: '03/05/2024',
+      id: id ?? this.id,
+      userName: userName ?? this.userName,
+      userAvatar: userAvatar ?? this.userAvatar,
+      rating: rating ?? this.rating,
+      comment: comment ?? this.comment,
+      date: date ?? this.date,
+      images: images ?? this.images,
+      likes: likes ?? this.likes,
+      isLiked: isLiked ?? this.isLiked,
     );
   }
 
-  // Lista de avaliações mock para testes
-  static List<UserReview> get mockReviews {
-    return [
-      UserReview(
-        userId: '1',
-        userName: 'Amanda Klein',
-        userAvatar: 'assets/images/default-avatar.svg',
-        rating: 5.0,
-        comment: 'A crema realmente faz toda a diferença. É incrível como ela intensifica o sabor e a experiência.',
-        date: '03/05/2024',
-      ),
-      UserReview(
-        userId: '2',
-        userName: 'Carlos Santos',
-        userAvatar: 'assets/images/default-avatar.svg',
-        rating: 4.0,
-        comment: 'Ambiente muito aconchegante e café de qualidade. O atendimento foi excelente, mas achei o preço um pouco alto.',
-        date: '28/04/2024',
-      ),
-      UserReview(
-        userId: '3',
-        userName: 'Marina Silva',
-        userAvatar: 'assets/images/default-avatar.svg',
-        rating: 5.0,
-        comment: 'Simplesmente perfeito! O espresso estava no ponto ideal e o croissant estava fresquinho. Voltarei com certeza.',
-        date: '25/04/2024',
-      ),
-      UserReview(
-        userId: '4',
-        userName: 'João Pedro',
-        userAvatar: 'assets/images/default-avatar.svg',
-        rating: 3.0,
-        comment: 'Café bom, mas o tempo de espera foi muito longo. O ambiente é legal, mas pode melhorar na agilidade.',
-        date: '20/04/2024',
-      ),
-      UserReview(
-        userId: '5',
-        userName: 'Beatriz Oliveira',
-        userAvatar: 'assets/images/default-avatar.svg',
-        rating: 4.0,
-        comment: 'Adorei o cappuccino e os doces disponíveis. O Wi-Fi funciona bem, ótimo para trabalhar.',
-        date: '15/04/2024',
-      ),
-    ];
-  }
+  // Mock data para testes (manter temporariamente para compatibilidade)
+  static List<UserReview> get mockReviews => [
+    UserReview(
+      id: '1',
+      userName: 'Ana Silva',
+      userAvatar: 'https://i.pravatar.cc/150?img=1',
+      rating: 5.0,
+      comment:
+          'Café excepcional! O ambiente é acolhedor e o atendimento impecável. Voltarei com certeza.',
+      date: DateTime.now().subtract(Duration(days: 2)),
+      images: [],
+      likes: 12,
+    ),
+    UserReview(
+      id: '2',
+      userName: 'Carlos Santos',
+      userAvatar: 'https://i.pravatar.cc/150?img=2',
+      rating: 4.5,
+      comment:
+          'Muito bom! O cappuccino é delicioso e o local é perfeito para trabalhar.',
+      date: DateTime.now().subtract(Duration(days: 5)),
+      images: [],
+      likes: 8,
+    ),
+    UserReview(
+      id: '3',
+      userName: 'Maria Oliveira',
+      userAvatar: 'https://i.pravatar.cc/150?img=3',
+      rating: 4.0,
+      comment:
+          'Ótima experiência! Só achei o preço um pouco alto, mas vale a pena.',
+      date: DateTime.now().subtract(Duration(days: 10)),
+      images: [],
+      likes: 5,
+    ),
+  ];
 }

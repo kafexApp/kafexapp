@@ -4,16 +4,19 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/cafe_detail_model.dart';
+import '../models/user_review_model.dart';
 import '../services/cafe_actions_service.dart';
 import '../widgets/cafe_reviews_modal.dart';
 import '../../../widgets/cafe_evaluation_modal.dart';
 import '../../../data/repositories/cafe_repository.dart';
+import '../../../services/avaliacao_service.dart';
 
 class CafeDetailViewModel extends ChangeNotifier {
   final CafeRepository _cafeRepository;
-  
+
   CafeDetailModel _cafe;
   bool _isLoading = false;
+  bool _isLoadingReviews = false;
   String? _errorMessage;
   bool _isFavorited = false;
   bool _wantToVisit = false;
@@ -21,12 +24,13 @@ class CafeDetailViewModel extends ChangeNotifier {
   CafeDetailViewModel({
     required CafeDetailModel cafe,
     CafeRepository? cafeRepository,
-  })  : _cafe = cafe,
-        _cafeRepository = cafeRepository ?? CafeRepositoryImpl();
+  }) : _cafe = cafe,
+       _cafeRepository = cafeRepository ?? CafeRepositoryImpl();
 
   // Getters
   CafeDetailModel get cafe => _cafe;
   bool get isLoading => _isLoading;
+  bool get isLoadingReviews => _isLoadingReviews;
   String? get errorMessage => _errorMessage;
   bool get hasReviews => _cafe.reviews.isNotEmpty;
   bool get isFavorited => _isFavorited;
@@ -55,9 +59,15 @@ class CafeDetailViewModel extends ChangeNotifier {
         return;
       }
 
-      // Converter dados do Supabase para o modelo
-      _cafe = CafeDetailModel.fromSupabase(cafeData);
-      
+      // Carregar avaliações da cafeteria
+      await _loadReviews(cafeIdInt);
+
+      // Converter dados do Supabase para o modelo (com as reviews carregadas)
+      _cafe = CafeDetailModel.fromSupabase(
+        cafeData,
+        reviews: _cafe.reviews, // Usar as reviews já carregadas
+      );
+
       print('✅ Dados da cafeteria carregados com sucesso');
       notifyListeners();
     } catch (e) {
@@ -66,6 +76,48 @@ class CafeDetailViewModel extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  /// Carrega as avaliações reais da cafeteria do Supabase
+  Future<void> _loadReviews(int cafeteriaId) async {
+    try {
+      _isLoadingReviews = true;
+      notifyListeners();
+
+      print('🔄 Carregando avaliações da cafeteria ID: $cafeteriaId');
+
+      // Buscar avaliações do serviço
+      final avaliacoesSupabase =
+          await AvaliacaoService.getAvaliacoesByCafeteria(cafeteriaId);
+
+      // Converter para modelo UserReview
+      final reviews = avaliacoesSupabase
+          .map((avaliacao) => UserReview.fromSupabase(avaliacao))
+          .toList();
+
+      // Atualizar o modelo da cafeteria com as reviews reais
+      _cafe = _cafe.copyWith(reviews: reviews, reviewCount: reviews.length);
+
+      print('✅ ${reviews.length} avaliações carregadas');
+    } catch (e) {
+      print('❌ Erro ao carregar avaliações: $e');
+      // Em caso de erro, manter as reviews vazias ao invés de usar mock
+      _cafe = _cafe.copyWith(reviews: []);
+    } finally {
+      _isLoadingReviews = false;
+      notifyListeners();
+    }
+  }
+
+  /// Recarrega apenas as avaliações
+  Future<void> reloadReviews() async {
+    final cafeIdInt = int.tryParse(_cafe.id);
+    if (cafeIdInt == null) {
+      print('❌ ID da cafeteria inválido para recarregar reviews');
+      return;
+    }
+
+    await _loadReviews(cafeIdInt);
   }
 
   /// Atualiza os dados da cafeteria
@@ -90,7 +142,7 @@ class CafeDetailViewModel extends ChangeNotifier {
   Future<void> openInstagram() async {
     try {
       _setLoading(true);
-      await CafeActionsService.openInstagram(_cafe.instagramHandle);
+      await CafeActionsService.openInstagram(cafe.instagramHandle);
     } catch (e) {
       _setError('Erro ao abrir Instagram');
       print('Erro ao abrir Instagram: $e');
@@ -103,7 +155,7 @@ class CafeDetailViewModel extends ChangeNotifier {
   Future<void> openInMaps() async {
     try {
       _setLoading(true);
-      await CafeActionsService.openInMaps(_cafe.latitude, _cafe.longitude);
+      await CafeActionsService.openInMaps(cafe.latitude, cafe.longitude);
     } catch (e) {
       _setError('Erro ao abrir mapa');
       print('Erro ao abrir mapa: $e');
@@ -112,11 +164,11 @@ class CafeDetailViewModel extends ChangeNotifier {
     }
   }
 
-  /// Compartilha a cafeteria
+  /// Compartilha informações da cafeteria
   Future<void> shareCafe() async {
     try {
       _setLoading(true);
-      final shareText = CafeActionsService.generateShareText(_cafe);
+      final shareText = CafeActionsService.generateShareText(cafe);
       await Share.share(shareText);
     } catch (e) {
       _setError('Erro ao compartilhar');
@@ -128,22 +180,18 @@ class CafeDetailViewModel extends ChangeNotifier {
 
   /// Abre modal de avaliação
   void openEvaluationModal(BuildContext context) {
-    showCafeEvaluationModal(
-      context,
-      cafeName: _cafe.name,
-      cafeId: _cafe.id,
-    );
+    showCafeEvaluationModal(context, cafeName: cafe.name, cafeId: cafe.id);
   }
 
-  /// Mostra todas as avaliações
+  /// Abre modal com todas as avaliações
   void showAllReviews(BuildContext context) {
-    showCafeReviewsModal(context, _cafe.name, _cafe.reviews);
+    showCafeReviewsModal(context, cafe.name, cafe.reviews);
   }
 
   /// Reporta alteração na cafeteria
   void reportCafeChange(BuildContext context) {
-    print('Reportar alteração na cafeteria: ${_cafe.name}');
-    
+    print('Reportar alteração na cafeteria: ${cafe.name}');
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -151,9 +199,21 @@ class CafeDetailViewModel extends ChangeNotifier {
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  /// Reporta um problema com a cafeteria
+  void reportIssue(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Obrigado por reportar! Vamos verificar as informações da cafeteria.',
         ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -162,7 +222,7 @@ class CafeDetailViewModel extends ChangeNotifier {
   Future<void> likeReview(String reviewId) async {
     try {
       _setLoading(true);
-      // TODO: Implementar lógica de curtir avaliação
+      // TODO: Implementar lógica de curtir avaliação no backend
       print('Curtir avaliação: $reviewId');
     } catch (e) {
       _setError('Erro ao curtir avaliação');

@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../../utils/app_colors.dart';
+import '../../../utils/date_extensions.dart';
 import '../models/user_review_model.dart';
 
 class CafeReviewsModal extends StatelessWidget {
@@ -36,19 +37,21 @@ class CafeReviewsModal extends StatelessWidget {
             width: 32,
             height: 3,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
+
           // Header
           _buildHeader(context),
-          
+
           // Lista de avaliações
           Flexible(
-            child: reviews.isEmpty 
-              ? _buildEmptyState(context)
-              : _buildReviewsList(context),
+            child: reviews.isEmpty
+                ? _buildEmptyState(context)
+                : _buildReviewsList(context),
           ),
         ],
       ),
@@ -92,7 +95,9 @@ class CafeReviewsModal extends StatelessWidget {
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 style: IconButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.surfaceVariant.withOpacity(0.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -100,9 +105,9 @@ class CafeReviewsModal extends StatelessWidget {
               ),
             ],
           ),
-          
+
           SizedBox(height: 16),
-          
+
           // Estatísticas das avaliações
           if (reviews.isNotEmpty) _buildReviewStats(context),
         ],
@@ -111,8 +116,10 @@ class CafeReviewsModal extends StatelessWidget {
   }
 
   Widget _buildReviewStats(BuildContext context) {
-    final double averageRating = reviews.fold(0.0, (sum, review) => sum + review.rating) / reviews.length;
-    
+    final double averageRating =
+        reviews.fold(0.0, (sum, review) => sum + review.rating) /
+        reviews.length;
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -141,8 +148,8 @@ class CafeReviewsModal extends StatelessWidget {
                       width: 16,
                       height: 16,
                       colorFilter: ColorFilter.mode(
-                        index < averageRating.floor() 
-                            ? AppColors.sunsetBlaze 
+                        index < averageRating.floor()
+                            ? AppColors.sunsetBlaze
                             : Theme.of(context).colorScheme.outlineVariant,
                         BlendMode.srcIn,
                       ),
@@ -152,9 +159,9 @@ class CafeReviewsModal extends StatelessWidget {
               ),
             ],
           ),
-          
+
           SizedBox(width: 24),
-          
+
           // Total de avaliações
           Expanded(
             child: Column(
@@ -233,7 +240,11 @@ class CafeReviewsModal extends StatelessWidget {
     );
   }
 
-  Widget _buildReviewItem(BuildContext context, UserReview review, bool isLast) {
+  Widget _buildReviewItem(
+    BuildContext context,
+    UserReview review,
+    bool isLast,
+  ) {
     return Container(
       margin: EdgeInsets.fromLTRB(20, 0, 20, isLast ? 0 : 16),
       padding: EdgeInsets.all(16),
@@ -248,33 +259,23 @@ class CafeReviewsModal extends StatelessWidget {
           Row(
             children: [
               // Avatar do usuário
-              ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Image.network(
-                  'https://images.unsplash.com/photo-1494790108755-2616b612b17c?w=150&h=150&fit=crop&crop=face',
-                  width: 48,
-                  height: 48,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Icon(
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.moonAsh,
+                backgroundImage: review.userAvatar.isNotEmpty
+                    ? NetworkImage(review.userAvatar)
+                    : null,
+                child: review.userAvatar.isEmpty
+                    ? Icon(
                         PhosphorIcons.user(),
+                        color: AppColors.carbon,
                         size: 24,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      ),
-                    );
-                  },
-                ),
+                      )
+                    : null,
               ),
-              
+
               SizedBox(width: 12),
-              
+
               // Info do usuário
               Expanded(
                 child: Column(
@@ -290,7 +291,7 @@ class CafeReviewsModal extends StatelessWidget {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      review.date,
+                      review.date.toRelativeTime(),
                       style: GoogleFonts.albertSans(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -299,7 +300,7 @@ class CafeReviewsModal extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Rating da avaliação
               Row(
                 children: List.generate(5, (starIndex) {
@@ -310,8 +311,8 @@ class CafeReviewsModal extends StatelessWidget {
                       width: 16,
                       height: 16,
                       colorFilter: ColorFilter.mode(
-                        starIndex < review.rating.floor() 
-                            ? AppColors.sunsetBlaze 
+                        starIndex < review.rating.floor()
+                            ? AppColors.sunsetBlaze
                             : Theme.of(context).colorScheme.outlineVariant,
                         BlendMode.srcIn,
                       ),
@@ -321,9 +322,9 @@ class CafeReviewsModal extends StatelessWidget {
               ),
             ],
           ),
-          
+
           SizedBox(height: 16),
-          
+
           // Texto da avaliação
           Text(
             review.comment,
@@ -333,9 +334,9 @@ class CafeReviewsModal extends StatelessWidget {
               height: 1.5,
             ),
           ),
-          
+
           SizedBox(height: 16),
-          
+
           // Ações da avaliação
           Row(
             children: [
@@ -344,12 +345,16 @@ class CafeReviewsModal extends StatelessWidget {
                   // TODO: Implementar curtir avaliação
                 },
                 icon: Icon(
-                  PhosphorIcons.heart(),
+                  review.isLiked
+                      ? PhosphorIcons.heart(PhosphorIconsStyle.fill)
+                      : PhosphorIcons.heart(),
                   size: 16,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: review.isLiked
+                      ? AppColors.sunsetBlaze
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
                 label: Text(
-                  'Útil',
+                  review.likes > 0 ? '${review.likes}' : 'Útil',
                   style: GoogleFonts.albertSans(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -361,14 +366,16 @@ class CafeReviewsModal extends StatelessWidget {
                   minimumSize: Size(0, 0),
                 ),
               ),
-              
+
               Spacer(),
-              
+
               Text(
-                _getRelativeTime(review.date),
+                review.date.toRelativeTime(),
                 style: GoogleFonts.albertSans(
                   fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
                 ),
               ),
             ],
@@ -377,15 +384,14 @@ class CafeReviewsModal extends StatelessWidget {
       ),
     );
   }
-
-  String _getRelativeTime(String date) {
-    // Implementação simples - pode ser melhorada com package intl
-    return '2 semanas atrás';
-  }
 }
 
 // Função para mostrar o modal
-void showCafeReviewsModal(BuildContext context, String cafeName, List<UserReview> reviews) {
+void showCafeReviewsModal(
+  BuildContext context,
+  String cafeName,
+  List<UserReview> reviews,
+) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -396,10 +402,8 @@ void showCafeReviewsModal(BuildContext context, String cafeName, List<UserReview
       initialChildSize: 0.85,
       minChildSize: 0.5,
       maxChildSize: 0.95,
-      builder: (context, scrollController) => CafeReviewsModal(
-        cafeName: cafeName,
-        reviews: reviews,
-      ),
+      builder: (context, scrollController) =>
+          CafeReviewsModal(cafeName: cafeName, reviews: reviews),
     ),
   );
 }

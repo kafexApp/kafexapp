@@ -72,7 +72,11 @@ class CafeDetailModel {
   }
 
   /// Converte dados do Supabase para CafeDetailModel
-  factory CafeDetailModel.fromSupabase(Map<String, dynamic> data) {
+  /// NOTA: As reviews NÃO são carregadas aqui, devem ser buscadas separadamente
+  factory CafeDetailModel.fromSupabase(
+    Map<String, dynamic> data, {
+    List<UserReview>? reviews,
+  }) {
     // Extrair dados do usuário criador (vem do JOIN)
     final usuarioPerfil = data['usuario_perfil'] as Map<String, dynamic>?;
 
@@ -83,17 +87,11 @@ class CafeDetailModel {
     final estado = data['estado'] as String? ?? '';
 
     String enderecoCompleto = endereco;
-    if (bairro.isNotEmpty) {
-      enderecoCompleto += ', $bairro';
-    }
-    if (cidade.isNotEmpty) {
-      enderecoCompleto += ' - $cidade';
-    }
-    if (estado.isNotEmpty) {
-      enderecoCompleto += ', $estado';
-    }
+    if (bairro.isNotEmpty) enderecoCompleto += ', $bairro';
+    if (cidade.isNotEmpty) enderecoCompleto += ' - $cidade';
+    if (estado.isNotEmpty) enderecoCompleto += '/$estado';
 
-    // Mapear facilities baseado nos campos booleanos
+    // Montar lista de facilities baseada nos campos booleanos
     List<CafeFacility> facilities = [];
     if (data['pet_friendly'] == true) {
       facilities.add(CafeFacility.petFriendly);
@@ -101,17 +99,9 @@ class CafeDetailModel {
     if (data['opcao_vegana'] == true) {
       facilities.add(CafeFacility.vegFriendly);
     }
-    if (data['office_friendly'] == true) {
-      facilities.add(CafeFacility.officeFriendly);
-    }
+    // TODO: Adicionar outros campos de facilities quando disponíveis no banco
 
-    // DEBUG
-    print('🔍 FACILITIES MAPEADAS: ${facilities.length} ícones');
-    print('🔍 pet_friendly: ${data['pet_friendly']}');
-    print('🔍 opcao_vegana: ${data['opcao_vegana']}');
-    print('🔍 office_friendly: ${data['office_friendly']}');
-
-    // Extrair Instagram (remover @ se existir)
+    // Instagram
     String instagram = data['instagram'] as String? ?? '';
     if (instagram.isNotEmpty && !instagram.startsWith('@')) {
       instagram = '@$instagram';
@@ -119,18 +109,16 @@ class CafeDetailModel {
 
     return CafeDetailModel(
       id: data['id']?.toString() ?? '',
-      name: data['nome'] as String? ?? 'Cafeteria',
-      address: enderecoCompleto.isNotEmpty
-          ? enderecoCompleto
-          : 'Endereço não disponível',
+      name: data['nome'] as String? ?? '',
+      address: enderecoCompleto,
       rating: (data['pontuacao'] as num?)?.toDouble() ?? 0.0,
-      reviewCount: (data['avaliacoes'] as num?)?.toInt() ?? 0,
+      reviewCount: data['avaliacoes'] as int? ?? 0,
       imageUrl: data['url_foto'] as String? ?? '',
       isOpen: true, // TODO: Implementar lógica de horário de funcionamento
       openingHours: 'Horário não disponível', // TODO: Buscar horários reais
       instagramHandle: instagram,
       facilities: facilities,
-      reviews: UserReview.mockReviews, // TODO: Buscar avaliações reais
+      reviews: reviews ?? [], // Reviews são passadas separadamente
       latitude: (data['lat'] as num?)?.toDouble() ?? 0.0,
       longitude: (data['lng'] as num?)?.toDouble() ?? 0.0,
       creatorName: usuarioPerfil?['nome_exibicao'] as String?,
@@ -160,14 +148,51 @@ class CafeDetailModel {
     };
   }
 
+  /// Cria uma cópia do modelo com campos atualizados
+  CafeDetailModel copyWith({
+    String? id,
+    String? name,
+    String? address,
+    double? rating,
+    int? reviewCount,
+    String? imageUrl,
+    bool? isOpen,
+    String? openingHours,
+    String? instagramHandle,
+    List<CafeFacility>? facilities,
+    List<UserReview>? reviews,
+    double? latitude,
+    double? longitude,
+    String? creatorName,
+    String? creatorAvatar,
+    String? creatorInstagram,
+  }) {
+    return CafeDetailModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      address: address ?? this.address,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isOpen: isOpen ?? this.isOpen,
+      openingHours: openingHours ?? this.openingHours,
+      instagramHandle: instagramHandle ?? this.instagramHandle,
+      facilities: facilities ?? this.facilities,
+      reviews: reviews ?? this.reviews,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      creatorName: creatorName ?? this.creatorName,
+      creatorAvatar: creatorAvatar ?? this.creatorAvatar,
+      creatorInstagram: creatorInstagram ?? this.creatorInstagram,
+    );
+  }
+
   // Conversão do CafeModel para CafeDetailModel (compatibilidade)
-  // CORRIGIDO: Agora recebe os dados reais das facilities
   static CafeDetailModel fromCafeModel(dynamic cafeModel) {
     // Extrair facilities do cafeModel se disponível
     List<CafeFacility> facilities = [];
 
     // Se o cafeModel tiver os campos booleanos, usar eles
-    // Nota: Verifica se a propriedade existe usando try-catch
     try {
       if (cafeModel.petFriendly == true) {
         facilities.add(CafeFacility.petFriendly);
@@ -179,7 +204,6 @@ class CafeDetailModel {
         facilities.add(CafeFacility.officeFriendly);
       }
     } catch (e) {
-      // Se o modelo não tiver essas propriedades, facilities fica vazio
       print('⚠️ CafeModel não possui propriedades de facilities');
     }
 
@@ -193,9 +217,8 @@ class CafeDetailModel {
       isOpen: cafeModel.isOpen,
       openingHours: cafeModel.isOpen ? 'Abre ter. às 18:00' : 'Fechado',
       instagramHandle: '@${cafeModel.name.toLowerCase().replaceAll(' ', '')}',
-      facilities:
-          facilities, // CORRIGIDO: Usar facilities baseadas nos campos booleanos
-      reviews: UserReview.mockReviews,
+      facilities: facilities,
+      reviews: [], // Reviews serão carregadas separadamente
       latitude: cafeModel.position.latitude,
       longitude: cafeModel.position.longitude,
     );
