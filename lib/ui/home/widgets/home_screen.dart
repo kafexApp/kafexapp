@@ -22,28 +22,50 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _photoSyncExecuted = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _syncUserPhotoOnce();
+    _setupScrollListener();
+  }
+
+  /// Configura o listener do scroll para detectar quando chegar ao fim
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        // Quando estiver a 200px do fim, carrega mais posts
+        final viewModel = context.read<HomeFeedViewModel>();
+        if (viewModel.hasMorePosts && !viewModel.isLoadingMore) {
+          viewModel.loadMorePosts.execute();
+        }
+      }
+    });
   }
 
   /// Executa a sincronização da foto apenas uma vez
   Future<void> _syncUserPhotoOnce() async {
     if (_photoSyncExecuted) return;
-    
+
     _photoSyncExecuted = true;
-    
+
     // Aguarda um pouco para garantir que tudo está inicializado
     await Future.delayed(Duration(milliseconds: 500));
-    
+
     try {
       print('🔄 Iniciando sincronização automática da foto...');
       await SyncUserPhotoHelper.forceSyncWithDebug();
     } catch (e) {
       print('❌ Erro na sincronização automática: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -95,9 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildLoading() {
     return Center(
       child: CircularProgressIndicator(
-        valueColor: AlwaysStoppedAnimation<Color>(
-          AppColors.papayaSensorial,
-        ),
+        valueColor: AlwaysStoppedAnimation<Color>(AppColors.papayaSensorial),
       ),
     );
   }
@@ -107,11 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: AppColors.spiced,
-          ),
+          Icon(Icons.error_outline, size: 64, color: AppColors.spiced),
           SizedBox(height: 16),
           Text(
             'Erro ao carregar feed',
@@ -139,11 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.coffee,
-            size: 64,
-            color: AppColors.grayScale2,
-          ),
+          Icon(Icons.coffee, size: 64, color: AppColors.grayScale2),
           SizedBox(height: 16),
           Text(
             'Nenhum post ainda',
@@ -167,11 +179,21 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildFeed(BuildContext context, HomeFeedViewModel viewModel) {
-    return ListView(
+    return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 110),
-      children: [
-        _buildWelcomeSection(),
-        ...viewModel.posts.map((post) {
+      itemCount:
+          viewModel.posts.length +
+          2, // +2 para welcome section e loading indicator
+      itemBuilder: (context, index) {
+        // Primeiro item: Welcome Section
+        if (index == 0) {
+          return _buildWelcomeSection();
+        }
+
+        // Últimos posts
+        if (index <= viewModel.posts.length) {
+          final post = viewModel.posts[index - 1];
           return PostCardFactory.create(
             post: post,
             onLike: () => viewModel.likePost(post.id),
@@ -179,8 +201,44 @@ class _HomeScreenState extends State<HomeScreen> {
             onEdit: () => _handleEdit(post.id),
             onDelete: () => viewModel.deletePost(post.id),
           );
-        }).toList(),
-      ],
+        }
+
+        // Último item: Loading indicator ou mensagem de fim
+        if (viewModel.isLoadingMore) {
+          return _buildLoadingIndicator();
+        } else if (!viewModel.hasMorePosts) {
+          return _buildEndMessage();
+        }
+
+        return SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.papayaSensorial),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEndMessage() {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Center(
+        child: Text(
+          'Você viu todos os posts! ☕',
+          style: GoogleFonts.albertSans(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 
@@ -197,7 +255,12 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Container(
                 margin: EdgeInsets.only(top: 25),
-                padding: EdgeInsets.only(left: 12, right: 20, top: 20, bottom: 20),
+                padding: EdgeInsets.only(
+                  left: 12,
+                  right: 20,
+                  top: 20,
+                  bottom: 20,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.whiteWhite,
                   borderRadius: BorderRadius.circular(20),

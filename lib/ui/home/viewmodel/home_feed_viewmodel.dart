@@ -10,10 +10,9 @@ import '../../../services/event_bus_service.dart';
 class HomeFeedViewModel extends ChangeNotifier {
   HomeFeedViewModel({required FeedRepository feedRepository})
     : _feedRepository = feedRepository {
-    print('🎯 HomeFeedViewModel criado - EventBus: ${_eventBus.hashCode}');
-
     loadFeed = Command0(_loadFeed)..execute();
-    refreshFeed = Command0(_loadFeed);
+    refreshFeed = Command0(_refreshFeed);
+    loadMorePosts = Command0(_loadMorePosts);
 
     // Escuta eventos de novos posts criados
     _listenToPostEvents();
@@ -22,73 +21,110 @@ class HomeFeedViewModel extends ChangeNotifier {
   final FeedRepository _feedRepository;
   final EventBusService _eventBus = EventBusService();
   StreamSubscription<PostCreatedEvent>? _postCreatedSubscription;
-  StreamSubscription<AppEvent>? _allEventsSubscription;
 
   late Command0<List<Post>> loadFeed;
   late Command0<List<Post>> refreshFeed;
+  late Command0<List<Post>> loadMorePosts;
 
   List<Post> _posts = [];
   List<Post> get posts => _posts;
 
+  int _currentOffset = 0;
+  bool _hasMorePosts = true;
+  bool _isLoadingMore = false;
+
+  bool get hasMorePosts => _hasMorePosts;
+  bool get isLoadingMore => _isLoadingMore;
+
   /// Escuta eventos de posts criados para atualizar o feed automaticamente
   void _listenToPostEvents() {
-    print('👂 Configurando listener de eventos...');
-
-    // Primeiro listener: eventos específicos de PostCreatedEvent
-    _postCreatedSubscription = _eventBus.on<PostCreatedEvent>().listen(
-      (event) {
-        print('📱 Feed recebeu evento de novo post: ${event.postId}');
-        // Recarrega o feed quando um novo post é criado
-        _reloadFeedAfterPostCreated();
-      },
-      onError: (error) {
-        print('❌ Erro no listener de PostCreatedEvent: $error');
-      },
-      onDone: () {
-        print('⚠️ Stream de PostCreatedEvent foi fechada');
-      },
-    );
-
-    // Segundo listener: todos os eventos (para debug)
-    _allEventsSubscription = _eventBus.events.listen(
-      (event) {
-        print('🔔 Evento genérico recebido: ${event.runtimeType}');
-        if (event is PostCreatedEvent) {
-          print('📱📱 É um PostCreatedEvent! ID: ${event.postId}');
-        }
-      },
-      onError: (error) {
-        print('❌ Erro no listener de eventos genéricos: $error');
-      },
-    );
-
-    print('✅ Listeners configurados com sucesso');
+    _postCreatedSubscription = _eventBus.on<PostCreatedEvent>().listen((event) {
+      print('📱 Feed recebeu evento de novo post: ${event.postId}');
+      // Recarrega o feed quando um novo post é criado
+      refreshFeed.execute();
+    });
   }
 
-  /// Recarrega o feed após um post ser criado
-  void _reloadFeedAfterPostCreated() async {
-    print('🔄 Iniciando recarga do feed após criação de post...');
-
-    // Aguarda um pouco para garantir que o post foi salvo no banco
-    await Future.delayed(Duration(milliseconds: 500));
-
-    // Recarrega o feed
-    await refreshFeed.execute();
-
-    print('✅ Feed recarregado após criação de post');
-  }
-
+  /// Carrega o feed inicial
   Future<Result<List<Post>>> _loadFeed() async {
-    print('🔄 Carregando feed...');
-    final result = await _feedRepository.getFeed();
+    print('🔄 Carregando feed inicial...');
+    _currentOffset = 0;
+    _hasMorePosts = true;
+
+    final result = await _feedRepository.getFeed(offset: 0);
 
     if (result.isOk) {
       _posts = result.asOk.value;
-      print('✅ Feed carregado com ${_posts.length} posts');
-      notifyListeners();
+      _currentOffset = _posts.length;
+      _hasMorePosts =
+          _posts.length >=
+          10; // Se veio menos que o tamanho da página, não tem mais
+      print('✅ Feed inicial carregado com ${_posts.length} posts');
     } else {
       print('❌ Erro ao carregar feed: ${result.asError.error}');
       _posts = [];
+      _hasMorePosts = false;
+    }
+
+    return result;
+  }
+
+  /// Recarrega o feed do zero (pull to refresh)
+  Future<Result<List<Post>>> _refreshFeed() async {
+    print('🔄 Atualizando feed...');
+    _currentOffset = 0;
+    _hasMorePosts = true;
+
+    final result = await _feedRepository.getFeed(offset: 0);
+
+    if (result.isOk) {
+      _posts = result.asOk.value;
+      _currentOffset = _posts.length;
+      _hasMorePosts = _posts.length >= 10;
+      print('✅ Feed atualizado com ${_posts.length} posts');
+      notifyListeners();
+    } else {
+      print('❌ Erro ao atualizar feed: ${result.asError.error}');
+    }
+
+    return result;
+  }
+
+  /// Carrega mais posts (infinite scroll)
+  Future<Result<List<Post>>> _loadMorePosts() async {
+    if (_isLoadingMore || !_hasMorePosts) {
+      print(
+        '⏭️ Ignorando carregamento: isLoadingMore=$_isLoadingMore, hasMore=$_hasMorePosts',
+      );
+      return Result.ok([]);
+    }
+
+    print('📥 Carregando mais posts... offset: $_currentOffset');
+    _isLoadingMore = true;
+    notifyListeners();
+
+    final result = await _feedRepository.getFeed(offset: _currentOffset);
+
+    _isLoadingMore = false;
+
+    if (result.isOk) {
+      final newPosts = result.asOk.value;
+
+      if (newPosts.isEmpty) {
+        _hasMorePosts = false;
+        print('🏁 Não há mais posts para carregar');
+      } else {
+        _posts.addAll(newPosts);
+        _currentOffset = _posts.length;
+        _hasMorePosts = newPosts.length >= 10;
+        print(
+          '✅ ${newPosts.length} novos posts carregados. Total: ${_posts.length}',
+        );
+      }
+
+      notifyListeners();
+    } else {
+      print('❌ Erro ao carregar mais posts: ${result.asError.error}');
     }
 
     return result;
@@ -116,9 +152,7 @@ class HomeFeedViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    print('🔴 Cancelando listeners do HomeFeedViewModel...');
     _postCreatedSubscription?.cancel();
-    _allEventsSubscription?.cancel();
     super.dispose();
   }
 }

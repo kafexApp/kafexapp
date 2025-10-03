@@ -5,23 +5,32 @@ import '../../utils/result.dart';
 import '../../services/feed_service.dart';
 
 abstract class FeedRepository {
-  Future<Result<List<Post>>> getFeed();
+  Future<Result<List<Post>>> getFeed({int offset = 0});
   Future<Result<void>> createPost(Post post);
 }
 
 class FeedRepositoryImpl implements FeedRepository {
   FeedRepositoryImpl({required SupabaseService supabaseService})
-      : _supabaseService = supabaseService;
+    : _supabaseService = supabaseService;
 
   final SupabaseService _supabaseService;
+  static const int _pageSize = 10;
 
   @override
-  Future<Result<List<Post>>> getFeed() async {
+  Future<Result<List<Post>>> getFeed({int offset = 0}) async {
     try {
-      final rawPosts = await FeedService.getFeed();
+      print('📥 Carregando feed - offset: $offset, limit: $_pageSize');
+      final rawPosts = await FeedService.getFeed(
+        limit: _pageSize,
+        offset: offset,
+      );
+
       final posts = rawPosts.map((raw) => _convertToPost(raw)).toList();
+      print('✅ ${posts.length} posts carregados');
+
       return Result.ok(posts);
     } catch (e) {
+      print('❌ Erro ao carregar feed: $e');
       return Result.error(Exception('Erro ao carregar feed: $e'));
     }
   }
@@ -41,7 +50,7 @@ class FeedRepositoryImpl implements FeedRepository {
 
   Post _convertToPost(dynamic raw) {
     DomainPostType postType = DomainPostType.traditional;
-    
+
     if (raw.pontuacao != null && raw.nomeCafeteria != null) {
       postType = DomainPostType.coffeeReview;
     } else if (raw.nomeCafeteria != null && raw.endereco != null) {
@@ -66,7 +75,9 @@ class FeedRepositoryImpl implements FeedRepository {
       authorAvatar = raw.urlFoto!;
     }
 
-    print('🔍 Post mapeado: ID=${raw.id}, Nome=$authorName, Avatar=$authorAvatar');
+    print(
+      '🔍 Post mapeado: ID=${raw.id}, Nome=$authorName, Avatar=$authorAvatar',
+    );
 
     return Post(
       id: raw.id?.toString() ?? '0',
