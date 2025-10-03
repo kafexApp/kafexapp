@@ -29,9 +29,8 @@ abstract class BasePostWidget extends StatefulWidget {
   }) : super(key: key);
 }
 
-abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T> 
+abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     with SingleTickerProviderStateMixin {
-  
   // Animação do coração
   late AnimationController _heartAnimationController;
   late Animation<double> _heartScaleAnimation;
@@ -49,43 +48,55 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
       duration: Duration(milliseconds: 400),
       vsync: this,
     );
-    
+
     _heartScaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.2)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 1.2,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 30,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.2, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween<double>(
+          begin: 1.2,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 20,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 50,
       ),
     ]).animate(_heartAnimationController);
-    
+
     _heartOpacityAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 20,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 1.0)
-            .chain(CurveTween(curve: Curves.linear)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.linear)),
         weight: 30,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.0)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 50,
       ),
     ]).animate(_heartAnimationController);
-    
+
     _heartAnimationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         if (mounted) {
@@ -119,221 +130,91 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
   }
 
   void _navigateToUserProfile(String userName, String? avatarUrl) {
-    // TODO: Implementar navegação para perfil do usuário
-    Navigator.pushNamed(context, '/user-profile', arguments: {
-      'userName': userName,
-      'avatarUrl': avatarUrl,
-    });
+    print('🔍 Navegando para perfil de: $userName');
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserProfileProvider(
+          userId: 'user_${userName.toLowerCase().replaceAll(' ', '_')}',
+          userName: userName,
+          userAvatar: avatarUrl,
+        ),
+      ),
+    );
   }
 
   void _showPostOptionsModal(PostActionsViewModel viewModel) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.whiteWhite,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-          ),
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.whiteWhite,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                margin: EdgeInsets.only(top: 16, bottom: 8),
+                margin: EdgeInsets.only(top: 12),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.grayScale2,
+                  color: AppColors.moonAsh.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              SizedBox(height: 16),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    _handleEdit(viewModel);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.papayaSensorial.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            AppIcons.edit,
-                            color: AppColors.papayaSensorial,
-                            size: 20,
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Text(
-                          'Editar',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 12),
-                height: 1,
-                color: AppColors.moonAsh.withOpacity(0.3),
-              ),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    Navigator.pop(context);
-                    _handleDelete(viewModel);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.spiced.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            AppIcons.delete,
-                            color: AppColors.spiced,
-                            size: 20,
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Text(
-                          'Excluir',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.spiced,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 24),
-                child: Text(
-                  'Cancelar',
+              SizedBox(height: 20),
+              ListTile(
+                leading: Icon(AppIcons.edit, color: AppColors.carbon),
+                title: Text(
+                  'Editar',
                   style: GoogleFonts.albertSans(
                     fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.carbon,
                   ),
                 ),
+                onTap: () {
+                  Navigator.pop(context);
+                  widget.onEdit?.call();
+                },
               ),
-              SizedBox(height: 24),
+              ListTile(
+                leading: Icon(AppIcons.delete, color: AppColors.spiced),
+                title: Text(
+                  'Excluir',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.spiced,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDelete(viewModel);
+                },
+              ),
+              SizedBox(height: 20),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  void _handleEdit(PostActionsViewModel viewModel) {
-    widget.onEdit?.call();
-  }
+  void _confirmDelete(PostActionsViewModel viewModel) async {
+    final confirmed = await DeleteConfirmationDialog.show(
+      context: context,
+      title: 'Excluir publicação',
+    );
 
-  Future<void> _handleDelete(PostActionsViewModel viewModel) async {
-    try {
-      // Primeiro, verifica se o usuário atual pode excluir este post
-      final userManager = UserManager.instance;
-      final canDelete = await FeedService.canDeletePost(widget.post.id, userManager.userEmail);
-      
-      if (!canDelete) {
-        _showErrorSnackBar('Você só pode excluir seus próprios posts');
-        return;
-      }
-
-      final confirmed = await DeleteConfirmationDialog.show(
-        context: context,
-      );
-      
-      if (confirmed == true) {
-        // Mostra loading
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              child: Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.whiteWhite,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.papayaSensorial),
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'Excluindo post...',
-                      style: GoogleFonts.albertSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-
-        try {
-          // Chama a exclusão real no Supabase
-          final success = await FeedService.deletePost(widget.post.id);
-          
-          // Remove loading
-          if (mounted) Navigator.of(context).pop();
-          
-          if (success) {
-            // Chama callback para remover o post da UI
-            widget.onDelete?.call();
-            
-            // Mostra mensagem de sucesso
-            _showSuccessSnackBar('Post excluído com sucesso');
-          } else {
-            // Mostra mensagem de erro
-            _showErrorSnackBar('Erro ao excluir post. Tente novamente.');
-          }
-          
-        } catch (e) {
-          // Remove loading se ainda estiver aberto
-          if (mounted) Navigator.of(context).pop();
-          
-          // Mostra mensagem de erro
-          _showErrorSnackBar('Erro ao excluir post: $e');
-        }
-      }
-    } catch (e) {
-      // Erro na verificação de permissão
-      _showErrorSnackBar('Erro ao verificar permissões: $e');
+    if (confirmed == true) {
+      viewModel.deletePost.execute();
+      widget.onDelete?.call();
+      _showSuccessSnackBar('Publicação excluída com sucesso');
     }
   }
 
@@ -342,11 +223,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              AppIcons.checkCircle,
-              color: AppColors.whiteWhite,
-              size: 20,
-            ),
+            Icon(AppIcons.checkCircle, color: AppColors.whiteWhite, size: 20),
             SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -362,9 +239,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
         ),
         backgroundColor: AppColors.papayaSensorial,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: EdgeInsets.all(16),
       ),
     );
@@ -375,11 +250,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
       SnackBar(
         content: Row(
           children: [
-            Icon(
-              AppIcons.warning,
-              color: AppColors.whiteWhite,
-              size: 20,
-            ),
+            Icon(AppIcons.warning, color: AppColors.whiteWhite, size: 20),
             SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -395,9 +266,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
         ),
         backgroundColor: AppColors.spiced,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: EdgeInsets.all(16),
       ),
     );
@@ -405,10 +274,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
 
   void _openCommentsModal(PostActionsViewModel viewModel) {
     widget.onComment?.call();
-    showCommentsModal(
-      context,
-      postId: widget.post.id,
-    );
+    showCommentsModal(context, postId: widget.post.id);
   }
 
   void _handleShare() {
@@ -419,9 +285,37 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
   Future<bool> _checkIfUserCanModifyPost() async {
     try {
       final userManager = UserManager.instance;
-      return await FeedService.canDeletePost(widget.post.id, userManager.userEmail);
+      return await FeedService.canDeletePost(
+        widget.post.id,
+        userManager.userEmail,
+      );
     } catch (e) {
       return false;
+    }
+  }
+
+  // FUNÇÃO PARA CALCULAR O TEMPO RELATIVO
+  String _formatRelativeTime(DateTime postDate) {
+    final now = DateTime.now();
+    final difference = now.difference(postDate);
+
+    if (difference.inSeconds < 60) {
+      return 'agora';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}min';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '${weeks}sem';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return '${months}m';
+    } else {
+      final years = (difference.inDays / 365).floor();
+      return '${years}a';
     }
   }
 
@@ -435,9 +329,10 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
             child: InkWell(
               onTap: () => _navigateToUserProfile(
                 widget.post.authorName,
-                widget.post.authorAvatar != null && widget.post.authorAvatar!.startsWith('http') 
-                  ? widget.post.authorAvatar 
-                  : null,
+                widget.post.authorAvatar != null &&
+                        widget.post.authorAvatar!.startsWith('http')
+                    ? widget.post.authorAvatar
+                    : null,
               ),
               borderRadius: BorderRadius.circular(24),
               child: Container(
@@ -448,39 +343,44 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: widget.post.authorAvatar != null && widget.post.authorAvatar!.startsWith('http')
-                    ? CachedNetworkImage(
-                        imageUrl: widget.post.authorAvatar!,
-                        imageBuilder: (context, imageProvider) => Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: imageProvider,
-                              fit: BoxFit.cover,
+                  child:
+                      widget.post.authorAvatar != null &&
+                          widget.post.authorAvatar!.startsWith('http')
+                      ? ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: widget.post.authorAvatar!,
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) =>
+                                CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    AppColors.papayaSensorial,
+                                  ),
+                                ),
+                            errorWidget: (context, url, error) => Text(
+                              widget.post.authorName.isNotEmpty
+                                  ? widget.post.authorName[0].toUpperCase()
+                                  : '?',
+                              style: GoogleFonts.albertSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
-                        ),
-                        placeholder: (context, url) => CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.papayaSensorial),
-                        ),
-                        errorWidget: (context, url, error) => Text(
-                          widget.post.authorName.isNotEmpty ? widget.post.authorName[0].toUpperCase() : '?',
+                        )
+                      : Text(
+                          widget.post.authorName.isNotEmpty
+                              ? widget.post.authorName[0].toUpperCase()
+                              : '?',
                           style: GoogleFonts.albertSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
                           ),
                         ),
-                      )
-                    : Text(
-                        widget.post.authorName.isNotEmpty ? widget.post.authorName[0].toUpperCase() : '?',
-                        style: GoogleFonts.albertSans(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
                 ),
               ),
             ),
@@ -499,7 +399,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                   ),
                 ),
                 Text(
-                  '2h', // TODO: Implementar cálculo de tempo
+                  _formatRelativeTime(widget.post.createdAt),
                   style: GoogleFonts.albertSans(
                     fontSize: 14,
                     color: AppColors.textSecondary,
@@ -514,9 +414,12 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
             builder: (context, snapshot) {
               // Enquanto carrega, não mostra o botão
               if (!snapshot.hasData || snapshot.data != true) {
-                return SizedBox(width: 40, height: 40); // Espaço vazio para manter layout
+                return SizedBox(
+                  width: 40,
+                  height: 40,
+                ); // Espaço vazio para manter layout
               }
-              
+
               // Se o usuário pode modificar, mostra o botão
               return Material(
                 color: Colors.transparent,
@@ -526,12 +429,11 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                   child: Container(
                     width: 40,
                     height: 40,
-                    child: Center(
-                      child: Icon(
-                        AppIcons.dotsThreeVertical,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      AppIcons.dotsThreeVertical,
+                      size: 24,
+                      color: AppColors.carbon,
                     ),
                   ),
                 ),
@@ -550,85 +452,63 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
 
     return GestureDetector(
       onDoubleTap: () {
-        _toggleLike(viewModel);
-        if (viewModel.isLiked) {
+        if (!viewModel.isLiked) {
+          _toggleLike(viewModel);
           _triggerHeartAnimation();
         }
       },
-      child: Container(
-        width: double.infinity,
-        height: 300,
-        child: Stack(
-          children: [
-            CachedNetworkImage(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: double.infinity,
+            constraints: BoxConstraints(maxHeight: 400, minHeight: 200),
+            child: CachedNetworkImage(
               imageUrl: widget.post.imageUrl!,
               fit: BoxFit.cover,
-              width: double.infinity,
-              height: 300,
-              placeholder: (context, url) {
-                return Container(
-                  color: AppColors.moonAsh.withOpacity(0.1),
-                  child: Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.papayaSensorial,
-                      ),
+              placeholder: (context, url) => Container(
+                height: 300,
+                color: AppColors.moonAsh.withOpacity(0.1),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.papayaSensorial,
                     ),
                   ),
-                );
-              },
-              errorWidget: (context, url, error) {
-                return SizedBox.shrink();
-              },
-              imageBuilder: (context, imageProvider) {
-                return Container(
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: imageProvider,
-                      fit: BoxFit.cover,
+                ),
+              ),
+              errorWidget: (context, url, error) => Container(
+                height: 300,
+                color: AppColors.moonAsh.withOpacity(0.1),
+                child: Icon(AppIcons.image, size: 48, color: AppColors.moonAsh),
+              ),
+            ),
+          ),
+          if (_showHeartAnimation)
+            AnimatedBuilder(
+              animation: _heartAnimationController,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _heartScaleAnimation.value,
+                  child: Opacity(
+                    opacity: _heartOpacityAnimation.value,
+                    child: Icon(
+                      AppIcons.heartFill,
+                      size: 100,
+                      color: AppColors.whiteWhite,
                     ),
                   ),
                 );
               },
             ),
-            if (_showHeartAnimation)
-              Positioned.fill(
-                child: Center(
-                  child: AnimatedBuilder(
-                    animation: _heartAnimationController,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _heartScaleAnimation.value,
-                        child: Opacity(
-                          opacity: _heartOpacityAnimation.value,
-                          child: Icon(
-                            AppIcons.heartFill,
-                            size: 100,
-                            color: AppColors.whiteWhite,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.4),
-                                blurRadius: 12,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }
 
   Widget buildCustomActions(PostActionsViewModel viewModel) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      padding: EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Row(
         children: [
           _buildActionButton(
@@ -638,18 +518,26 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
             onTap: () => _toggleLike(viewModel),
             isActive: viewModel.isLiked,
           ),
-          SizedBox(width: 0),
+          SizedBox(width: 4),
           _buildActionButton(
             icon: AppIcons.comment,
             iconColor: AppColors.carbon,
             count: viewModel.commentsCount,
             onTap: () => _openCommentsModal(viewModel),
           ),
-          Spacer(),
+          SizedBox(width: 4),
           _buildActionButton(
-            icon: AppIcons.paperPlaneTilt,
+            icon: AppIcons.share,
             iconColor: AppColors.carbon,
             onTap: _handleShare,
+          ),
+          Spacer(),
+          _buildActionButton(
+            icon: AppIcons.bookmark,
+            iconColor: AppColors.carbon,
+            onTap: () {
+              // TODO: Implementar save
+            },
           ),
         ],
       ),
@@ -673,11 +561,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                color: iconColor,
-                size: 24,
-              ),
+              Icon(icon, color: iconColor, size: 24),
               if (count != null && count > 0) ...[
                 SizedBox(width: 8),
                 Text(
@@ -729,7 +613,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
               buildPostHeader(viewModel),
               buildPostMedia(viewModel),
               buildCustomActions(viewModel),
-              if (buildAdditionalContent(viewModel) != null) 
+              if (buildAdditionalContent(viewModel) != null)
                 buildAdditionalContent(viewModel)!,
             ],
           ),
