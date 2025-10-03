@@ -6,14 +6,17 @@ import '../../../data/repositories/feed_repository.dart';
 import '../../../data/models/domain/post.dart';
 import '../../../utils/user_manager.dart';
 import '../../../services/post_creation_service.dart';
+import '../../../services/event_bus_service.dart';
 
 class CreatePostViewModel extends ChangeNotifier {
   final FeedRepository _feedRepository;
   final ImagePicker _picker = ImagePicker();
-  
-  CreatePostViewModel({
-    required FeedRepository feedRepository,
-  }) : _feedRepository = feedRepository;
+  final EventBusService _eventBus = EventBusService();
+
+  CreatePostViewModel({required FeedRepository feedRepository})
+    : _feedRepository = feedRepository {
+    print('🎯 CreatePostViewModel criado - EventBus: ${_eventBus.hashCode}');
+  }
 
   // Controllers
   final TextEditingController descriptionController = TextEditingController();
@@ -32,8 +35,9 @@ class CreatePostViewModel extends ChangeNotifier {
   bool get isVideo => _isVideo;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get hasValidContent => 
-      descriptionController.text.trim().isNotEmpty || _selectedMediaFile != null;
+  bool get hasValidContent =>
+      descriptionController.text.trim().isNotEmpty ||
+      _selectedMediaFile != null;
   bool get hasLink => linkController.text.trim().isNotEmpty;
 
   // Commands - versões melhoradas
@@ -79,16 +83,20 @@ class CreatePostViewModel extends ChangeNotifier {
       // Upload da mídia se selecionada
       if (_selectedMediaFile != null) {
         print('📤 Iniciando upload de ${_isVideo ? 'vídeo' : 'imagem'}...');
-        
+
         if (_isVideo) {
-          videoUrl = await PostCreationService.uploadVideoFromXFile(_selectedMediaFile!);
+          videoUrl = await PostCreationService.uploadVideoFromXFile(
+            _selectedMediaFile!,
+          );
           if (videoUrl == null) {
             _setError('Erro ao enviar vídeo. Tente novamente.');
             return false;
           }
           print('✅ Vídeo uploaded: $videoUrl');
         } else {
-          imageUrl = await PostCreationService.uploadImageFromXFile(_selectedMediaFile!);
+          imageUrl = await PostCreationService.uploadImageFromXFile(
+            _selectedMediaFile!,
+          );
           if (imageUrl == null) {
             _setError('Erro ao enviar imagem. Tente novamente.');
             return false;
@@ -97,18 +105,37 @@ class CreatePostViewModel extends ChangeNotifier {
         }
       }
 
-      // Cria o post no banco
+      // Criar post no Supabase
+      final description = descriptionController.text.trim();
+      final externalLink = linkController.text.trim().isNotEmpty
+          ? linkController.text.trim()
+          : null;
+
+      print('📝 Criando post no Supabase...');
       final success = await PostCreationService.createPost(
-        description: descriptionController.text.trim(),
+        description: description,
         imageUrl: imageUrl,
         videoUrl: videoUrl,
-        externalLink: linkController.text.trim().isEmpty 
-            ? null 
-            : linkController.text.trim(),
+        externalLink: externalLink,
       );
 
       if (success) {
+        print('✅ Post criado com sucesso!');
+
+        // Aguarda um pequeno delay para garantir que o post foi salvo
+        await Future.delayed(Duration(milliseconds: 300));
+
+        // IMPORTANTE: Emite evento para atualizar o feed automaticamente
+        final postId = 'new_post_${DateTime.now().millisecondsSinceEpoch}';
+        print('🚀 Emitindo evento PostCreatedEvent com ID: $postId');
+        _eventBus.emit(PostCreatedEvent(postId));
+
+        // Aguarda mais um pouco para garantir que o evento foi processado
+        await Future.delayed(Duration(milliseconds: 200));
+        print('✅ Evento PostCreatedEvent emitido com sucesso');
+
         _clearForm();
+        _setLoading(false);
         return true;
       } else {
         _setError('Erro ao publicar post. Tente novamente.');
@@ -116,78 +143,88 @@ class CreatePostViewModel extends ChangeNotifier {
       }
     } catch (e) {
       print('❌ Erro ao publicar post: $e');
-      _setError('Erro inesperado: ${e.toString()}');
+      _setError('Erro inesperado. Tente novamente.');
       return false;
     } finally {
       _setLoading(false);
     }
   }
 
-  // Método melhorado para seleção de mídia
+  // Método privado para selecionar mídia
   Future<void> _pickMedia(ImageSource source) async {
     try {
       _clearError();
-      
-      // Por padrão, seleciona imagem
-      // O tipo será definido pelo modal de seleção
-      await _pickSpecificMedia(source, isVideo: false);
+
+      // Tenta pegar mídia (imagem ou vídeo)
+      final XFile? media = await _picker.pickImage(source: source);
+
+      if (media != null) {
+        _selectedMediaFile = media;
+
+        // Para mobile, também mantemos o File
+        if (!kIsWeb) {
+          _selectedMedia = File(media.path);
+        }
+
+        // Verifica se é vídeo baseado na extensão
+        final extension = media.path.toLowerCase();
+        _isVideo =
+            extension.endsWith('.mp4') ||
+            extension.endsWith('.mov') ||
+            extension.endsWith('.avi');
+
+        print('📸 Mídia selecionada: ${_isVideo ? 'Vídeo' : 'Imagem'}');
+        notifyListeners();
+      }
     } catch (e) {
       print('❌ Erro ao selecionar mídia: $e');
-      _setError('Erro ao selecionar mídia: ${e.toString()}');
+      _setError('Erro ao selecionar mídia');
     }
   }
 
-  // Método específico para selecionar mídia com tipo definido
-  Future<void> _pickSpecificMedia(ImageSource source, {required bool isVideo}) async {
+  // Método privado para selecionar mídia específica
+  Future<void> _pickSpecificMedia(
+    ImageSource source, {
+    required bool isVideo,
+  }) async {
     try {
       _clearError();
-      
-      XFile? pickedFile;
-      
+
+      XFile? media;
+
       if (isVideo) {
-        print('🎥 Selecionando vídeo da ${source == ImageSource.camera ? 'câmera' : 'galeria'}...');
-        pickedFile = await _picker.pickVideo(
-          source: source,
-          maxDuration: Duration(minutes: 5), // Limite de 5 minutos
-        );
-        _isVideo = true;
+        media = await _picker.pickVideo(source: source);
       } else {
-        print('📷 Selecionando imagem da ${source == ImageSource.camera ? 'câmera' : 'galeria'}...');
-        pickedFile = await _picker.pickImage(
-          source: source,
-          maxWidth: 1920,
-          maxHeight: 1920,
-          imageQuality: 85,
-        );
-        _isVideo = false;
+        media = await _picker.pickImage(source: source);
       }
 
-      if (pickedFile != null) {
-        _selectedMediaFile = pickedFile;
-        
-        // Apenas no mobile, cria o File para preview
+      if (media != null) {
+        _selectedMediaFile = media;
+
+        // Para mobile, também mantemos o File
         if (!kIsWeb) {
-          _selectedMedia = File(pickedFile.path);
+          _selectedMedia = File(media.path);
         }
-        
-        print('✅ Mídia selecionada: ${pickedFile.name}');
+
+        _isVideo = isVideo;
+
+        print('📸 ${isVideo ? 'Vídeo' : 'Imagem'} selecionado(a)');
         notifyListeners();
-      } else {
-        print('ℹ️ Seleção de mídia cancelada pelo usuário');
       }
     } catch (e) {
-      print('❌ Erro ao selecionar mídia: $e');
-      _setError('Erro ao selecionar mídia: ${e.toString()}');
+      print('❌ Erro ao selecionar ${isVideo ? 'vídeo' : 'imagem'}: $e');
+      _setError('Erro ao selecionar ${isVideo ? 'vídeo' : 'imagem'}');
     }
   }
 
-  void _setLoading(bool loading) {
-    _isLoading = loading;
+  void _setLoading(bool value) {
+    _isLoading = value;
     notifyListeners();
   }
 
-  void _setError(String error) {
-    _errorMessage = error;
+  void _setError(String message) {
+    _errorMessage = message;
+    _isLoading = false;
     notifyListeners();
   }
 
@@ -202,8 +239,7 @@ class CreatePostViewModel extends ChangeNotifier {
     _selectedMedia = null;
     _selectedMediaFile = null;
     _isVideo = false;
-    _clearError();
-    notifyListeners();
+    _errorMessage = null;
   }
 
   @override

@@ -13,10 +13,7 @@ class CreatePostScreen extends StatelessWidget {
     });
 
     // Retorna uma tela transparente
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(),
-    );
+    return Scaffold(backgroundColor: Colors.transparent, body: Container());
   }
 }
 
@@ -26,8 +23,6 @@ void showCreatePostModal(BuildContext context) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => CreatePostProvider(
-      child: CreatePostModal(),
-    ),
+    builder: (context) => CreatePostProvider(child: CreatePostModal()),
   );
 }
