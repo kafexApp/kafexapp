@@ -16,38 +16,51 @@ class PostCreationService {
   }) async {
     try {
       final userManager = UserManager.instance;
-      
+
       // Buscar dados do usuário logado
       String authorName = userManager.userName;
       String? authorAvatar = userManager.userPhotoUrl;
       String userEmail = userManager.userEmail;
-      
+
       // Se os dados estão vazios, buscar do Supabase Auth
       final currentUser = SupaClient.client.auth.currentUser;
-      if (currentUser != null && (authorName == 'Usuário Kafex' || authorName.isEmpty)) {
+      if (currentUser != null &&
+          (authorName == 'Usuário Kafex' || authorName.isEmpty)) {
         final metadata = currentUser.userMetadata;
         if (metadata != null) {
-          authorName = metadata['full_name']?.toString() ?? 
-                      metadata['name']?.toString() ?? 
-                      metadata['display_name']?.toString() ??
-                      currentUser.email?.split('@')[0] ?? 
-                      'Usuário';
-                      
-          authorAvatar = metadata['avatar_url']?.toString() ?? 
-                        metadata['picture']?.toString();
+          authorName =
+              metadata['full_name']?.toString() ??
+              metadata['name']?.toString() ??
+              metadata['display_name']?.toString() ??
+              currentUser.email?.split('@')[0] ??
+              'Usuário';
+
+          authorAvatar =
+              metadata['avatar_url']?.toString() ??
+              metadata['picture']?.toString();
         }
       }
-      
-      // Primeiro, verificar se o usuário existe na tabela usuario_perfil
-      await _ensureUserProfileExists(userEmail, authorName, authorAvatar);
-      
-      // Criar o post na tabela feed (apenas com campos que existem)
+
+      // Primeiro, verificar se o usuário existe na tabela usuario_perfil e obter o user_id
+      final userId = await _ensureUserProfileExists(
+        userEmail,
+        authorName,
+        authorAvatar,
+      );
+
+      if (userId == null) {
+        print('❌ Erro: Não foi possível obter o user_id');
+        return false;
+      }
+
+      // Criar o post na tabela feed (incluindo o user_id)
       final postData = {
         'descricao': description.trim(),
         'criado_em': DateTime.now().toIso8601String(),
         'tipo': 'tradicional',
         'usuario_uid': userEmail,
-        'nome_usuario': authorName,  // Campo que existe na tabela feed
+        'nome_usuario': authorName,
+        'user_id': userId, // CAMPO CRÍTICO ADICIONADO
       };
 
       // Adiciona URL da imagem se fornecida
@@ -71,6 +84,7 @@ class PostCreationService {
       print('   Nome: $authorName');
       print('   Email: $userEmail');
       print('   Avatar: $authorAvatar');
+      print('   User ID: $userId');
 
       // Insere na tabela FEED
       final response = await SupaClient.client
@@ -91,81 +105,79 @@ class PostCreationService {
     }
   }
 
-  /// Garante que o usuário existe na tabela usuario_perfil para o JOIN funcionar
-  static Future<void> _ensureUserProfileExists(String userEmail, String userName, String? userAvatar) async {
+  /// Garante que o usuário existe na tabela usuario_perfil e retorna o user_id
+  static Future<int?> _ensureUserProfileExists(
+    String userEmail,
+    String userName,
+    String? userAvatar,
+  ) async {
     try {
       print('🔍 Verificando se usuário existe na tabela usuario_perfil...');
-      
+
       // Tentar obter foto do Firebase Auth se não tiver uma
       if (userAvatar == null || userAvatar.isEmpty) {
         final currentUser = SupaClient.client.auth.currentUser;
         if (currentUser != null) {
-          userAvatar = currentUser.userMetadata?['avatar_url']?.toString() ?? 
-                       currentUser.userMetadata?['picture']?.toString();
-          print('🔄 Obtendo foto do Firebase Auth: $userAvatar');
+          userAvatar =
+              currentUser.userMetadata?['avatar_url']?.toString() ??
+              currentUser.userMetadata?['picture']?.toString();
         }
       }
-      
-      // Primeiro, buscar se já existe um perfil para este usuário
+
+      // Verificar se usuário já existe
       final existingUser = await SupaClient.client
           .from('usuario_perfil')
-          .select('id, foto_url')
+          .select('id, nome_exibicao, foto_url')
           .eq('email', userEmail)
           .maybeSingle();
 
-      if (existingUser == null) {
-        print('👤 Criando perfil de usuário para: $userName');
-        
-        // Se não existe, criar o perfil de usuário
-        final userProfileData = {
-          'email': userEmail,
-          'nome_exibicao': userName,
-          'foto_url': userAvatar,
-          'created_at': DateTime.now().toIso8601String(),
-        };
+      if (existingUser != null) {
+        print('✅ Usuário encontrado com ID: ${existingUser['id']}');
 
-        await SupaClient.client
-            .from('usuario_perfil')
-            .insert(userProfileData);
-            
-        print('✅ Perfil de usuário criado com sucesso');
-        
-        // Atualizar UserManager com a foto se obteve uma
-        if (userAvatar != null && userAvatar.isNotEmpty) {
-          UserManager.instance.setUserData(
-            name: userName,
-            email: userEmail,
-            photoUrl: userAvatar,
-          );
-        }
-      } else {
-        print('👤 Usuário já existe na tabela usuario_perfil');
-        
-        // Se existe, atualizar apenas se tiver dados novos
-        final existingPhotoUrl = existingUser['foto_url'] as String?;
-        
+        // Verificar se precisa atualizar os dados
+        final existingName = existingUser['nome_exibicao'];
+        final existingPhotoUrl = existingUser['foto_url'];
+
         // Só atualiza se o nome mudou ou se não tinha foto antes e agora tem
-        final shouldUpdate = existingPhotoUrl != userAvatar || 
-                           (existingPhotoUrl == null && userAvatar != null);
-        
+        final shouldUpdate =
+            existingName != userName ||
+            (existingPhotoUrl == null && userAvatar != null) ||
+            (existingPhotoUrl != userAvatar && userAvatar != null);
+
         if (shouldUpdate) {
           await SupaClient.client
               .from('usuario_perfil')
-              .update({
-                'nome_exibicao': userName,
-                'foto_url': userAvatar,
-              })
+              .update({'nome_exibicao': userName, 'foto_url': userAvatar})
               .eq('email', userEmail);
-              
+
           print('✅ Dados do usuário atualizados');
         } else {
           print('ℹ️ Dados do usuário já estão atualizados');
         }
+
+        // Retorna o ID do usuário existente
+        return existingUser['id'] as int;
+      } else {
+        // Usuário não existe, criar novo
+        print('ℹ️ Usuário não encontrado, criando novo registro...');
+
+        final newUser = await SupaClient.client
+            .from('usuario_perfil')
+            .insert({
+              'email': userEmail,
+              'nome_exibicao': userName,
+              'foto_url': userAvatar,
+              'nome_usuario': userName.toLowerCase().replaceAll(' ', '_'),
+            })
+            .select('id')
+            .single();
+
+        print('✅ Novo usuário criado com ID: ${newUser['id']}');
+        return newUser['id'] as int;
       }
-      
     } catch (e) {
       print('⚠️ Erro ao verificar/criar perfil de usuário: $e');
-      // Não falha o processo de criação do post por causa disso
+      return null;
     }
   }
 
@@ -173,7 +185,9 @@ class PostCreationService {
   static Future<String?> uploadImageFromXFile(XFile imageFile) async {
     try {
       print('📷 Iniciando upload de imagem via Firebase Storage...');
-      final result = await FirebaseStorageService.uploadImageFromXFile(imageFile);
+      final result = await FirebaseStorageService.uploadImageFromXFile(
+        imageFile,
+      );
       if (result != null) {
         print('✅ Upload de imagem concluído: $result');
       } else {
@@ -190,7 +204,9 @@ class PostCreationService {
   static Future<String?> uploadVideoFromXFile(XFile videoFile) async {
     try {
       print('🎥 Iniciando upload de vídeo via Firebase Storage...');
-      final result = await FirebaseStorageService.uploadVideoFromXFile(videoFile);
+      final result = await FirebaseStorageService.uploadVideoFromXFile(
+        videoFile,
+      );
       if (result != null) {
         print('✅ Upload de vídeo concluído: $result');
       } else {
@@ -214,65 +230,36 @@ class PostCreationService {
       String? imageUrl;
       String? videoUrl;
 
-      // Upload da imagem se fornecida
+      // Upload de imagem se fornecida
       if (imageFile != null) {
-        print('📷 Fazendo upload da imagem...');
+        print('📤 Fazendo upload da imagem...');
         imageUrl = await uploadImageFromXFile(imageFile);
         if (imageUrl == null) {
-          print('❌ Falha no upload da imagem');
+          print('❌ Erro ao fazer upload da imagem');
           return false;
         }
       }
 
-      // Upload do vídeo se fornecido
+      // Upload de vídeo se fornecido
       if (videoFile != null) {
-        print('🎥 Fazendo upload do vídeo...');
+        print('📤 Fazendo upload do vídeo...');
         videoUrl = await uploadVideoFromXFile(videoFile);
         if (videoUrl == null) {
-          print('❌ Falha no upload do vídeo');
-          // Se falhou o vídeo mas tinha imagem, cleanup da imagem
-          if (imageUrl != null) {
-            await FirebaseStorageService.deleteFile(imageUrl);
-          }
+          print('❌ Erro ao fazer upload do vídeo');
           return false;
         }
       }
 
-      // Cria o post com as URLs das mídias
+      // Cria o post com as URLs
       return await createPost(
         description: description,
         imageUrl: imageUrl,
         videoUrl: videoUrl,
         externalLink: externalLink,
       );
-
     } catch (e) {
       print('❌ Erro ao criar post com mídia: $e');
       return false;
-    }
-  }
-
-  /// Métodos legados - mantidos por compatibilidade
-  static Future<String?> uploadImage(String filePath) async {
-    print('⚠️ Método uploadImage foi substituído por uploadImageFromXFile');
-    return null;
-  }
-
-  static Future<String?> uploadVideo(String filePath) async {
-    print('⚠️ Método uploadVideo foi substituído por uploadVideoFromXFile');
-    return null;
-  }
-
-  /// Utilitário para cleanup em caso de erro
-  static Future<void> cleanupFailedUpload({
-    String? imageUrl,
-    String? videoUrl,
-  }) async {
-    if (imageUrl != null) {
-      await FirebaseStorageService.deleteFile(imageUrl);
-    }
-    if (videoUrl != null) {
-      await FirebaseStorageService.deleteFile(videoUrl);
     }
   }
 }

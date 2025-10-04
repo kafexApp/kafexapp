@@ -1,4 +1,4 @@
-// lib/widgets/feed/feed_post_card.dart
+// lib/ui/posts/widgets/feed_post_widget.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +10,7 @@ import 'package:kafex/models/comment_models.dart';
 import 'package:kafex/ui/user_profile/widgets/user_profile_provider.dart';
 import 'package:kafex/services/comments_service.dart';
 import 'package:kafex/widgets/comments_bottom_sheet.dart';
+import 'package:kafex/data/repositories/likes_repository.dart';
 
 class FeedPostCard extends StatefulWidget {
   final FeedComUsuarioRow post;
@@ -37,21 +38,113 @@ class _FeedPostCardState extends State<FeedPostCard> {
   bool _isLiked = false;
   int _likesCount = 0;
   int _commentsCount = 0;
+  final LikesRepository _likesRepository = LikesRepositoryImpl();
 
   @override
   void initState() {
     super.initState();
-    _isLiked = false;
-    _likesCount = 0;
     _commentsCount = int.tryParse(widget.post.comentarios ?? '0') ?? 0;
+
+    // Carrega o estado inicial das curtidas do banco de dados
+    _loadLikesState();
   }
 
-  void _toggleLike() {
-    setState(() {
-      _isLiked = !_isLiked;
-      _likesCount += _isLiked ? 1 : -1;
-    });
-    widget.onLike?.call();
+  /// Carrega o estado das curtidas do banco de dados
+  Future<void> _loadLikesState() async {
+    try {
+      final feedId = widget.post.id;
+      if (feedId == null) return;
+
+      // Verifica se o usuário curtiu este post
+      final isLikedResult = await _likesRepository.checkIfUserLikedFeedPost(
+        feedId,
+      );
+
+      if (isLikedResult.isOk && mounted) {
+        final isLiked = isLikedResult.asOk.value;
+
+        // Busca o contador real de curtidas
+        final likesCountResult = await _likesRepository.getFeedPostLikesCount(
+          feedId,
+        );
+
+        if (likesCountResult.isOk && mounted) {
+          setState(() {
+            _isLiked = isLiked;
+            _likesCount = likesCountResult.asOk.value;
+          });
+        }
+      }
+    } catch (e) {
+      print('❌ Erro ao carregar curtidas: $e');
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    try {
+      final feedId = widget.post.id;
+      if (feedId == null) {
+        print('❌ ID do post inválido');
+        return;
+      }
+
+      // Armazena os valores anteriores para rollback em caso de erro
+      final previousIsLiked = _isLiked;
+      final previousLikesCount = _likesCount;
+
+      // Atualização otimista da UI (instant feedback)
+      setState(() {
+        _isLiked = !_isLiked;
+        _likesCount += _isLiked ? 1 : -1;
+      });
+
+      // Chama callback opcional
+      widget.onLike?.call();
+
+      // Faz a chamada real para o banco de dados
+      final result = await _likesRepository.toggleLikeFeedPost(feedId);
+
+      if (result.isError) {
+        // Se deu erro, reverte para o estado anterior
+        if (mounted) {
+          setState(() {
+            _isLiked = previousIsLiked;
+            _likesCount = previousLikesCount;
+          });
+        }
+        print('❌ Erro ao curtir: ${result.asError.error}');
+
+        // Opcional: mostrar snackbar de erro
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao curtir post. Tente novamente.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Atualiza com os valores reais do banco
+      final isNowLiked = result.asOk.value;
+      final likesCountResult = await _likesRepository.getFeedPostLikesCount(
+        feedId,
+      );
+
+      if (likesCountResult.isOk && mounted) {
+        setState(() {
+          _isLiked = isNowLiked;
+          _likesCount = likesCountResult.asOk.value;
+        });
+      }
+
+      print('✅ Curtida ${isNowLiked ? "adicionada" : "removida"} com sucesso');
+    } catch (e) {
+      print('❌ Exceção ao curtir: $e');
+      // Recarrega o estado correto do banco
+      _loadLikesState();
+    }
   }
 
   void _navigateToUserProfile(String userName, String? avatarUrl) {
@@ -89,7 +182,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
 
   Widget _buildPostHeader() {
     final authorName = _getAuthorName();
-    final userAvatarUrl = _getUserAvatarUrl(); // CORREÇÃO: usar foto_url para avatar
+    final userAvatarUrl = _getUserAvatarUrl();
 
     return Padding(
       padding: EdgeInsets.all(16),
@@ -201,7 +294,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   Widget _buildPostMedia() {
-    final postImageUrl = _getPostImageUrl(); // Usar url_foto para imagem do post
+    final postImageUrl = _getPostImageUrl();
     final videoUrl = widget.post.urlVideo;
 
     if (videoUrl != null && videoUrl.isNotEmpty) {
@@ -239,8 +332,6 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   Widget _buildVideoPlayer(String videoUrl) {
-    // Placeholder para player de vídeo
-    // TODO: Implementar player de vídeo real
     return Container(
       width: double.infinity,
       height: 250,
@@ -582,19 +673,14 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   String _getAuthorName() {
-    // Prioriza nome_exibicao, depois usuario
     return widget.post.nomeExibicao ?? widget.post.usuario ?? 'Usuário';
   }
 
-  // CORREÇÃO: Avatar do usuário vem de foto_url (campo específico do usuário)
   String? _getUserAvatarUrl() {
-    // Não usa fotoUrl, usa getField diretamente para buscar foto_url
     return widget.post.getField<String>('foto_url');
   }
 
-  // CORREÇÃO: Imagem do post vem de url_foto (campo específico do post)
   String _getPostImageUrl() {
-    // Prioriza url_foto, depois imagem_url (ambos são campos de imagem do post)
     return widget.post.urlFoto ?? widget.post.imagemUrl ?? '';
   }
 

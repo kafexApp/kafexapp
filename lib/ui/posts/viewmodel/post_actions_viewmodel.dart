@@ -1,77 +1,123 @@
 // lib/ui/posts/viewmodel/post_actions_viewmodel.dart
+
 import 'package:flutter/foundation.dart';
-import 'package:kafex/data/models/domain/post.dart';
-import 'package:kafex/utils/command.dart';
-import 'package:kafex/utils/result.dart';
-import '../../../services/post_deletion_service.dart';
-import '../../../services/event_bus_service.dart';
+import '../../../data/models/domain/post.dart';
+import '../../../utils/command.dart';
+import '../../../utils/result.dart';
 import '../../../utils/user_manager.dart';
+import '../../../services/event_bus_service.dart';
+import '../../../services/post_deletion_service.dart';
+import '../../../data/repositories/likes_repository.dart';
 
 class PostActionsViewModel extends ChangeNotifier {
   final String postId;
-  final Post initialPost;
+  Post _post;
+  final LikesRepository _likesRepository;
   final EventBusService _eventBus = EventBusService();
 
   PostActionsViewModel({
     required this.postId,
-    required this.initialPost,
-  }) {
-    _post = initialPost;
+    required Post initialPost,
+    LikesRepository? likesRepository,
+  }) : _post = initialPost,
+       _likesRepository = likesRepository ?? LikesRepositoryImpl() {
     _initializeCommands();
+
+    // Carrega o estado inicial da curtida
+    _loadLikeState();
   }
-
-  late Post _post;
-  Post get post => _post;
-
-  // Commands
-  late final Command0<void> toggleLike = Command0(_toggleLike);
-  late final Command0<void> toggleFavorite = Command0(_toggleFavorite);
-  late final Command0<void> toggleWantToVisit = Command0(_toggleWantToVisit);
-  late final Command1<void, String> addComment = Command1(_addComment);
-  late final Command0<void> sharePost = Command0(_sharePost);
-  late final Command0<void> editPost = Command0(_editPost);
-  late final Command0<void> deletePost = Command0(_deletePost);
 
   void _initializeCommands() {
-    // Inicializar commands
+    toggleLike = Command0(_toggleLike);
+    toggleFavorite = Command0(_toggleFavorite);
+    toggleWantToVisit = Command0(_toggleWantToVisit);
+    addComment = Command1(_addComment);
+    sharePost = Command0(_sharePost);
+    editPost = Command0(_editPost);
+    deletePost = Command0(_deletePost);
   }
 
-  // Getters para UI
+  late Command0<void> toggleLike;
+  late Command0<void> toggleFavorite;
+  late Command0<void> toggleWantToVisit;
+  late Command1<void, String> addComment;
+  late Command0<void> sharePost;
+  late Command0<void> editPost;
+  late Command0<void> deletePost;
+
+  Post get post => _post;
   bool get isLiked => _post.isLiked;
+  int get likes => _post.likes;
   int get likesCount => _post.likes;
-  int get commentsCount => _post.comments;
   bool get isFavorited => _post.isFavorited ?? false;
   bool get wantToVisit => _post.wantToVisit ?? false;
+  int get comments => _post.comments;
+  int get commentsCount => _post.comments;
 
-  // Dados específicos por tipo
+  // Getters específicos para diferentes tipos de posts
   String? get coffeeName => _post.coffeeName;
-  double? get rating => _post.rating;
   String? get coffeeId => _post.coffeeId;
   String? get coffeeAddress => _post.coffeeAddress;
+  double? get rating => _post.rating;
 
-  // Verificações de permissão
-  bool get canDelete => PostDeletionService.canDeletePost(_getAuthorEmail());
-  bool get canEdit => PostDeletionService.canDeletePost(_getAuthorEmail()); // Mesma lógica por enquanto
+  bool get isOwnPost {
+    final userEmail = UserManager.instance.userEmail;
+    final authorEmail = _post.authorName;
+    return authorEmail == userEmail;
+  }
 
   String _getAuthorEmail() {
-    // Por enquanto, usamos um método para extrair o email do autor
-    // Em uma implementação completa, isso viria do post
-    final userManager = UserManager.instance;
-    return userManager.userEmail;
+    return _post.authorName;
   }
 
-  // Avatar e identificação
-  String getAvatarInitial() {
-    return _post.authorName.isNotEmpty ? _post.authorName[0].toUpperCase() : 'U';
-  }
-
-  int getAvatarColorIndex() {
+  int get avatarColorIndex {
     return _post.authorName.isNotEmpty ? _post.authorName.codeUnitAt(0) % 5 : 0;
+  }
+
+  /// Carrega o estado da curtida do banco de dados
+  Future<void> _loadLikeState() async {
+    try {
+      final feedId = int.tryParse(_post.id);
+      if (feedId == null) return;
+
+      // Verifica se o usuário curtiu o post
+      final isLikedResult = await _likesRepository.checkIfUserLikedFeedPost(
+        feedId,
+      );
+
+      if (isLikedResult.isOk) {
+        final isLiked = isLikedResult.asOk.value;
+
+        // Busca o contador real de curtidas
+        final likesCountResult = await _likesRepository.getFeedPostLikesCount(
+          feedId,
+        );
+
+        if (likesCountResult.isOk) {
+          final likesCount = likesCountResult.asOk.value;
+
+          // Atualiza o estado
+          _post = _post.copyWith(isLiked: isLiked, likes: likesCount);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('❌ Erro ao carregar estado da curtida: $e');
+    }
   }
 
   // Actions
   Future<Result<void>> _toggleLike() async {
     try {
+      final feedId = int.tryParse(_post.id);
+      if (feedId == null) {
+        return Result.error(Exception('ID do post inválido'));
+      }
+
+      // Estado anterior para rollback
+      final previousIsLiked = _post.isLiked;
+      final previousLikes = _post.likes;
+
       // Atualização otimista
       _post = _post.copyWith(
         isLiked: !_post.isLiked,
@@ -79,9 +125,32 @@ class PostActionsViewModel extends ChangeNotifier {
       );
       notifyListeners();
 
-      // TODO: Chamar API real
-      await Future.delayed(Duration(milliseconds: 300));
-      
+      // Chama a API real
+      final result = await _likesRepository.toggleLikeFeedPost(feedId);
+
+      if (result.isError) {
+        // Reverter em caso de erro
+        _post = _post.copyWith(isLiked: previousIsLiked, likes: previousLikes);
+        notifyListeners();
+        return Result.error(result.asError.error);
+      }
+
+      // Atualiza com o valor real retornado
+      final isNowLiked = result.asOk.value;
+
+      // Busca o contador atualizado
+      final likesCountResult = await _likesRepository.getFeedPostLikesCount(
+        feedId,
+      );
+
+      if (likesCountResult.isOk) {
+        _post = _post.copyWith(
+          isLiked: isNowLiked,
+          likes: likesCountResult.asOk.value,
+        );
+        notifyListeners();
+      }
+
       return Result.ok(null);
     } catch (e) {
       // Reverter em caso de erro
@@ -106,7 +175,7 @@ class PostActionsViewModel extends ChangeNotifier {
 
       // TODO: Chamar API real para favoritar cafeteria
       await Future.delayed(Duration(milliseconds: 500));
-      
+
       return Result.ok(null);
     } catch (e) {
       // Reverter em caso de erro
@@ -128,7 +197,7 @@ class PostActionsViewModel extends ChangeNotifier {
 
       // TODO: Chamar API real para lista "quero visitar"
       await Future.delayed(Duration(milliseconds: 500));
-      
+
       return Result.ok(null);
     } catch (e) {
       // Reverter em caso de erro
@@ -146,7 +215,7 @@ class PostActionsViewModel extends ChangeNotifier {
 
       // TODO: Chamar API real para adicionar comentário
       await Future.delayed(Duration(milliseconds: 800));
-      
+
       return Result.ok(null);
     } catch (e) {
       // Reverter em caso de erro
@@ -179,7 +248,7 @@ class PostActionsViewModel extends ChangeNotifier {
   Future<Result<void>> _deletePost() async {
     try {
       print('🗑️ Iniciando exclusão do post: $postId');
-      
+
       final success = await PostDeletionService.deletePost(
         postId: postId,
         authorEmail: _getAuthorEmail(),
@@ -187,10 +256,10 @@ class PostActionsViewModel extends ChangeNotifier {
 
       if (success) {
         print('✅ Post excluído com sucesso');
-        
+
         // Emite evento de post excluído para atualizar o feed
         _eventBus.emit(PostDeletedEvent(postId));
-        
+
         return Result.ok(null);
       } else {
         return Result.error(Exception('Falha ao excluir post'));
