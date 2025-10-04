@@ -46,38 +46,39 @@ class CommentsService {
 
       // Buscar dados do usuário atual
       final userData = await _getUserData(user.uid);
+      print('🔍 Dados do usuário encontrados: $userData');
 
+      // CORREÇÃO: Inserir na tabela comentario (não na view)
       final response = await SupaClient.client
-          .from('comentario_com_usuario')
+          .from('comentario') // Tabela base, não a view
           .insert({
-            'feed_id': postId,
+            'feed_id': int.parse(postId),
             'user_ref': user.uid,
             'comentario': conteudo,
-            'comentario_criado_em': DateTime.now().toIso8601String(),
-            'nome_exibicao':
-                userData['nome_exibicao'] ?? user.displayName ?? 'Usuário',
-            'foto_perfil': userData['foto_perfil'] ?? user.photoURL,
-            'user_id': userData['user_id'] ?? '0',
+            'criado_em': DateTime.now().toIso8601String(),
+            'user_id': userData['user_id'],
           })
           .select()
           .single();
 
+      print('✅ Comentário inserido com sucesso: $response');
+
       // Atualizar contador no post
       await _updatePostCommentsCount(postId);
 
+      // Retornar dados do comentário combinados com dados do usuário
       return CommentData(
-        id: response['comentario_id']?.toString() ?? '',
-        userName: response['nome_exibicao'] ?? 'Usuário',
-        userAvatar: response['foto_perfil'],
+        id: response['id']?.toString() ?? '',
+        userName: userData['nome_exibicao'] ?? user.displayName ?? 'Usuário',
+        userAvatar: userData['foto_url'] ?? user.photoURL,
         content: response['comentario'] ?? '',
         timestamp:
-            DateTime.tryParse(response['comentario_criado_em'] ?? '') ??
-            DateTime.now(),
+            DateTime.tryParse(response['criado_em'] ?? '') ?? DateTime.now(),
         likes: 0,
         isLiked: false,
       );
     } catch (e) {
-      print('Erro ao adicionar comentário: $e');
+      print('❌ Erro ao adicionar comentário: $e');
       return null;
     }
   }
@@ -91,15 +92,16 @@ class CommentsService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
 
+      // CORREÇÃO: Atualizar na tabela comentario (não na view)
       await SupaClient.client
-          .from('comentario_com_usuario')
+          .from('comentario')
           .update({'comentario': novoConteudo})
-          .eq('comentario_id', commentId)
+          .eq('id', commentId)
           .eq('user_ref', user.uid);
 
       return true;
     } catch (e) {
-      print('Erro ao editar comentário: $e');
+      print('❌ Erro ao editar comentário: $e');
       return false;
     }
   }
@@ -113,10 +115,11 @@ class CommentsService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
 
+      // CORREÇÃO: Deletar da tabela comentario (não da view)
       await SupaClient.client
-          .from('comentario_com_usuario')
+          .from('comentario')
           .delete()
-          .eq('comentario_id', commentId)
+          .eq('id', commentId)
           .eq('user_ref', user.uid);
 
       // Atualizar contador no post
@@ -124,7 +127,7 @@ class CommentsService {
 
       return true;
     } catch (e) {
-      print('Erro ao excluir comentário: $e');
+      print('❌ Erro ao excluir comentário: $e');
       return false;
     }
   }
@@ -136,53 +139,97 @@ class CommentsService {
       if (user == null) return false;
 
       final response = await SupaClient.client
-          .from('comentario_com_usuario')
+          .from('comentario')
           .select('user_ref')
-          .eq('comentario_id', commentId)
+          .eq('id', commentId)
           .maybeSingle();
 
       return response?['user_ref'] == user.uid;
     } catch (e) {
-      print('Erro ao verificar propriedade do comentário: $e');
+      print('❌ Erro ao verificar propriedade do comentário: $e');
       return false;
     }
   }
 
-  /// Busca dados do usuário atual (ajustar conforme sua estrutura)
+  /// Busca dados do usuário atual
   static Future<Map<String, dynamic>> _getUserData(String userRef) async {
     try {
-      // Ajustar conforme o nome da sua tabela de usuários
+      print('🔍 Buscando dados do usuário: $userRef');
+
+      // CORREÇÃO: Buscar na tabela usuario_perfil pelo campo 'ref' (não 'user_ref')
       final response = await SupaClient.client
-          .from('users') // ou o nome correto da sua tabela
-          .select('user_id, nome_exibicao, foto_perfil')
-          .eq('user_ref', userRef)
+          .from('usuario_perfil')
+          .select('id, nome_exibicao, foto_url')
+          .eq('ref', userRef)
           .maybeSingle();
 
-      return response ?? {};
+      if (response != null) {
+        print('✅ Usuário encontrado: $response');
+        return {
+          'user_id': response['id'],
+          'nome_exibicao': response['nome_exibicao'],
+          'foto_url': response['foto_url'],
+        };
+      }
+
+      print('⚠️ Usuário não encontrado no banco pelo ref, tentando criar...');
+
+      // Se não encontrou pelo ref, criar o perfil
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final newProfile = await _createUserProfile(userRef, user);
+        return newProfile;
+      }
+
+      throw Exception('Usuário não autenticado');
     } catch (e) {
-      print('Erro ao buscar dados do usuário: $e');
-      return {};
+      print('❌ Erro ao buscar dados do usuário: $e');
+      throw e;
+    }
+  }
+
+  /// Cria perfil do usuário no Supabase se não existir
+  static Future<Map<String, dynamic>> _createUserProfile(
+    String userRef,
+    User firebaseUser,
+  ) async {
+    try {
+      print('👤 Criando perfil de usuário no Supabase...');
+
+      final profileData = {
+        'ref': userRef, // CORREÇÃO: campo correto é 'ref'
+        'nome_exibicao': firebaseUser.displayName ?? 'Usuário',
+        'email': firebaseUser.email,
+        'foto_url': firebaseUser.photoURL,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      final response = await SupaClient.client
+          .from('usuario_perfil')
+          .insert(profileData)
+          .select('id, nome_exibicao, foto_url')
+          .single();
+
+      print('✅ Perfil criado com sucesso: $response');
+
+      return {
+        'user_id': response['id'],
+        'nome_exibicao': response['nome_exibicao'],
+        'foto_url': response['foto_url'],
+      };
+    } catch (e) {
+      print('❌ Erro ao criar perfil de usuário: $e');
+      throw e;
     }
   }
 
   /// Atualiza contador de comentários no post
   static Future<void> _updatePostCommentsCount(String postId) async {
     try {
-      // Contar comentários reais
-      final response = await SupaClient.client
-          .from('comentario_com_usuario')
-          .select('comentario_id')
-          .eq('feed_id', postId);
-
-      final count = (response as List).length;
-
-      // Atualizar contador na tabela de posts
-      await SupaClient.client
-          .from('feed_com_usuario')
-          .update({'comentarios': count.toString()})
-          .eq('id', postId);
+      // O trigger já faz isso automaticamente
+      print('✅ Trigger atualizará automaticamente o contador de comentários');
     } catch (e) {
-      print('Erro ao atualizar contador de comentários: $e');
+      print('⚠️ Erro ao atualizar contador de comentários: $e');
     }
   }
 }
