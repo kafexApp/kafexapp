@@ -19,8 +19,39 @@ class FeedComUsuarioRow extends SupabaseDataRow {
   DateTime? get criadoEm {
     final value = getField<dynamic>('criado_em');
     if (value == null) return null;
-    if (value is DateTime) return value;
-    if (value is String) return DateTime.tryParse(value);
+
+    // Se já é DateTime, retorna direto
+    if (value is DateTime) {
+      print('⏰ criadoEm é DateTime: $value');
+      return value;
+    }
+
+    // Se é String, tenta fazer parse
+    if (value is String) {
+      print('⏰ criadoEm é String: $value');
+
+      // Tenta parse com timezone UTC
+      DateTime? parsed;
+
+      // Formato 1: Com timezone explícita (2025-10-03 18:52:42.315)
+      if (!value.contains('Z') && !value.contains('+')) {
+        // Adiciona 'Z' para indicar UTC se não tiver timezone
+        parsed = DateTime.tryParse(value + 'Z');
+      } else {
+        parsed = DateTime.tryParse(value);
+      }
+
+      if (parsed != null) {
+        // Converte para horário local
+        final local = parsed.toLocal();
+        print('⏰ Convertido para local: $local');
+        return local;
+      }
+    }
+
+    print(
+      '⏰ ERRO: Não conseguiu converter criado_em: $value (tipo: ${value.runtimeType})',
+    );
     return null;
   }
 
