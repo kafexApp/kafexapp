@@ -76,7 +76,7 @@ class FeedRepositoryImpl implements FeedRepository {
     }
 
     print(
-      '🔍 Post mapeado: ID=${raw.id}, Nome=$authorName, Avatar=$authorAvatar',
+      '🔍 Post mapeado: ID=${raw.id}, Nome=$authorName, Avatar=$authorAvatar, Comentários=${raw.comentarios}',
     );
 
     return Post(
@@ -87,8 +87,10 @@ class FeedRepositoryImpl implements FeedRepository {
       content: raw.descricao ?? '',
       imageUrl: raw.urlFoto,
       videoUrl: raw.urlVideo,
-      likes: _parseIntFromString(raw.comentarios) ?? 0,
-      comments: 0,
+      likes: 0, // TODO: Implementar campo de curtidas no banco
+      comments:
+          _parseIntFromString(raw.comentarios) ??
+          0, // ✅ CORRIGIDO! Agora usa o campo correto
       isLiked: false,
       type: postType,
       coffeeName: raw.nomeCafeteria,
