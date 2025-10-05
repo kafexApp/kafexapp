@@ -22,8 +22,6 @@ class PostActionsViewModel extends ChangeNotifier {
   }) : _post = initialPost,
        _likesRepository = likesRepository ?? LikesRepositoryImpl() {
     _initializeCommands();
-
-    // Carrega o estado inicial da curtida
     _loadLikeState();
   }
 
@@ -54,7 +52,6 @@ class PostActionsViewModel extends ChangeNotifier {
   int get comments => _post.comments;
   int get commentsCount => _post.comments;
 
-  // Getters específicos para diferentes tipos de posts
   String? get coffeeName => _post.coffeeName;
   String? get coffeeId => _post.coffeeId;
   String? get coffeeAddress => _post.coffeeAddress;
@@ -74,13 +71,11 @@ class PostActionsViewModel extends ChangeNotifier {
     return _post.authorName.isNotEmpty ? _post.authorName.codeUnitAt(0) % 5 : 0;
   }
 
-  /// Carrega o estado da curtida do banco de dados
   Future<void> _loadLikeState() async {
     try {
       final feedId = int.tryParse(_post.id);
       if (feedId == null) return;
 
-      // Verifica se o usuário curtiu o post
       final isLikedResult = await _likesRepository.checkIfUserLikedFeedPost(
         feedId,
       );
@@ -88,7 +83,6 @@ class PostActionsViewModel extends ChangeNotifier {
       if (isLikedResult.isOk) {
         final isLiked = isLikedResult.asOk.value;
 
-        // Busca o contador real de curtidas
         final likesCountResult = await _likesRepository.getFeedPostLikesCount(
           feedId,
         );
@@ -96,7 +90,6 @@ class PostActionsViewModel extends ChangeNotifier {
         if (likesCountResult.isOk) {
           final likesCount = likesCountResult.asOk.value;
 
-          // Atualiza o estado
           _post = _post.copyWith(isLiked: isLiked, likes: likesCount);
           notifyListeners();
         }
@@ -106,7 +99,6 @@ class PostActionsViewModel extends ChangeNotifier {
     }
   }
 
-  // Actions
   Future<Result<void>> _toggleLike() async {
     try {
       final feedId = int.tryParse(_post.id);
@@ -114,31 +106,25 @@ class PostActionsViewModel extends ChangeNotifier {
         return Result.error(Exception('ID do post inválido'));
       }
 
-      // Estado anterior para rollback
       final previousIsLiked = _post.isLiked;
       final previousLikes = _post.likes;
 
-      // Atualização otimista
       _post = _post.copyWith(
         isLiked: !_post.isLiked,
         likes: _post.isLiked ? _post.likes - 1 : _post.likes + 1,
       );
       notifyListeners();
 
-      // Chama a API real
       final result = await _likesRepository.toggleLikeFeedPost(feedId);
 
       if (result.isError) {
-        // Reverter em caso de erro
         _post = _post.copyWith(isLiked: previousIsLiked, likes: previousLikes);
         notifyListeners();
         return Result.error(result.asError.error);
       }
 
-      // Atualiza com o valor real retornado
       final isNowLiked = result.asOk.value;
 
-      // Busca o contador atualizado
       final likesCountResult = await _likesRepository.getFeedPostLikesCount(
         feedId,
       );
@@ -153,7 +139,6 @@ class PostActionsViewModel extends ChangeNotifier {
 
       return Result.ok(null);
     } catch (e) {
-      // Reverter em caso de erro
       _post = _post.copyWith(
         isLiked: !_post.isLiked,
         likes: _post.isLiked ? _post.likes + 1 : _post.likes - 1,
@@ -169,16 +154,13 @@ class PostActionsViewModel extends ChangeNotifier {
         return Result.error(Exception('Post não é de uma cafeteria'));
       }
 
-      // Atualização otimista
       _post = _post.copyWith(isFavorited: !isFavorited);
       notifyListeners();
 
-      // TODO: Chamar API real para favoritar cafeteria
       await Future.delayed(Duration(milliseconds: 500));
 
       return Result.ok(null);
     } catch (e) {
-      // Reverter em caso de erro
       _post = _post.copyWith(isFavorited: !isFavorited);
       notifyListeners();
       return Result.error(Exception('Erro ao favoritar: $e'));
@@ -191,16 +173,13 @@ class PostActionsViewModel extends ChangeNotifier {
         return Result.error(Exception('Post não é de uma cafeteria'));
       }
 
-      // Atualização otimista
       _post = _post.copyWith(wantToVisit: !wantToVisit);
       notifyListeners();
 
-      // TODO: Chamar API real para lista "quero visitar"
       await Future.delayed(Duration(milliseconds: 500));
 
       return Result.ok(null);
     } catch (e) {
-      // Reverter em caso de erro
       _post = _post.copyWith(wantToVisit: !wantToVisit);
       notifyListeners();
       return Result.error(Exception('Erro ao atualizar lista: $e'));
@@ -209,16 +188,13 @@ class PostActionsViewModel extends ChangeNotifier {
 
   Future<Result<void>> _addComment(String comment) async {
     try {
-      // Atualização otimista
       _post = _post.copyWith(comments: _post.comments + 1);
       notifyListeners();
 
-      // TODO: Chamar API real para adicionar comentário
       await Future.delayed(Duration(milliseconds: 800));
 
       return Result.ok(null);
     } catch (e) {
-      // Reverter em caso de erro
       _post = _post.copyWith(comments: _post.comments - 1);
       notifyListeners();
       return Result.error(Exception('Erro ao comentar: $e'));
@@ -227,7 +203,6 @@ class PostActionsViewModel extends ChangeNotifier {
 
   Future<Result<void>> _sharePost() async {
     try {
-      // TODO: Implementar compartilhamento
       print('Compartilhar post: $postId');
       return Result.ok(null);
     } catch (e) {
@@ -237,7 +212,6 @@ class PostActionsViewModel extends ChangeNotifier {
 
   Future<Result<void>> _editPost() async {
     try {
-      // TODO: Implementar edição
       print('Editar post: $postId');
       return Result.ok(null);
     } catch (e) {
@@ -247,30 +221,34 @@ class PostActionsViewModel extends ChangeNotifier {
 
   Future<Result<void>> _deletePost() async {
     try {
-      print('🗑️ Iniciando exclusão do post: $postId');
-
+      print('🗑️ === DEBUG EXCLUSÃO ===');
+      print('Post ID: $postId');
+      print('Author Name: ${_post.authorName}');
+      
+      final userEmail = UserManager.instance.userEmail;
+      print('User Email atual: $userEmail');
+      
       final success = await PostDeletionService.deletePost(
         postId: postId,
-        authorEmail: _getAuthorEmail(),
+        authorEmail: userEmail,
       );
 
+      print('Resultado da exclusão: $success');
+
       if (success) {
-        print('✅ Post excluído com sucesso');
-
-        // Emite evento de post excluído para atualizar o feed
+        print('✅ Post excluído - emitindo evento');
         _eventBus.emit(PostDeletedEvent(postId));
-
         return Result.ok(null);
       } else {
+        print('❌ Falha na exclusão');
         return Result.error(Exception('Falha ao excluir post'));
       }
     } catch (e) {
-      print('❌ Erro ao excluir post: $e');
+      print('❌ ERRO CRÍTICO: $e');
       return Result.error(Exception('Erro ao excluir: $e'));
     }
   }
 
-  // Formatação de data
   String getFormattedDate() {
     final Duration difference = DateTime.now().difference(_post.createdAt);
 

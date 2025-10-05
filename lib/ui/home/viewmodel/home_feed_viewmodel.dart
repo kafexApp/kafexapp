@@ -14,13 +14,13 @@ class HomeFeedViewModel extends ChangeNotifier {
     refreshFeed = Command0(_refreshFeed);
     loadMorePosts = Command0(_loadMorePosts);
 
-    // Escuta eventos de novos posts criados
     _listenToPostEvents();
   }
 
   final FeedRepository _feedRepository;
   final EventBusService _eventBus = EventBusService();
   StreamSubscription<PostCreatedEvent>? _postCreatedSubscription;
+  StreamSubscription<PostDeletedEvent>? _postDeletedSubscription;
 
   late Command0<List<Post>> loadFeed;
   late Command0<List<Post>> refreshFeed;
@@ -36,16 +36,20 @@ class HomeFeedViewModel extends ChangeNotifier {
   bool get hasMorePosts => _hasMorePosts;
   bool get isLoadingMore => _isLoadingMore;
 
-  /// Escuta eventos de posts criados para atualizar o feed automaticamente
   void _listenToPostEvents() {
     _postCreatedSubscription = _eventBus.on<PostCreatedEvent>().listen((event) {
       print('📱 Feed recebeu evento de novo post: ${event.postId}');
-      // Recarrega o feed quando um novo post é criado
       refreshFeed.execute();
+    });
+
+    _postDeletedSubscription = _eventBus.on<PostDeletedEvent>().listen((event) {
+      print('🗑️ Feed recebeu evento de post deletado: ${event.postId}');
+      _posts.removeWhere((post) => post.id == event.postId);
+      _currentOffset = _posts.length;
+      notifyListeners();
     });
   }
 
-  /// Carrega o feed inicial
   Future<Result<List<Post>>> _loadFeed() async {
     print('🔄 Carregando feed inicial...');
     _currentOffset = 0;
@@ -56,9 +60,7 @@ class HomeFeedViewModel extends ChangeNotifier {
     if (result.isOk) {
       _posts = result.asOk.value;
       _currentOffset = _posts.length;
-      _hasMorePosts =
-          _posts.length >=
-          10; // Se veio menos que o tamanho da página, não tem mais
+      _hasMorePosts = _posts.length >= 10;
       print('✅ Feed inicial carregado com ${_posts.length} posts');
     } else {
       print('❌ Erro ao carregar feed: ${result.asError.error}');
@@ -69,7 +71,6 @@ class HomeFeedViewModel extends ChangeNotifier {
     return result;
   }
 
-  /// Recarrega o feed do zero (pull to refresh)
   Future<Result<List<Post>>> _refreshFeed() async {
     print('🔄 Atualizando feed...');
     _currentOffset = 0;
@@ -90,7 +91,6 @@ class HomeFeedViewModel extends ChangeNotifier {
     return result;
   }
 
-  /// Carrega mais posts (infinite scroll)
   Future<Result<List<Post>>> _loadMorePosts() async {
     if (_isLoadingMore || !_hasMorePosts) {
       print(
@@ -144,15 +144,14 @@ class HomeFeedViewModel extends ChangeNotifier {
 
   void deletePost(String postId) {
     _posts.removeWhere((post) => post.id == postId);
+    _currentOffset = _posts.length;
     notifyListeners();
-
-    // Emite evento de post excluído
-    _eventBus.emit(PostDeletedEvent(postId));
   }
 
   @override
   void dispose() {
     _postCreatedSubscription?.cancel();
+    _postDeletedSubscription?.cancel();
     super.dispose();
   }
 }
