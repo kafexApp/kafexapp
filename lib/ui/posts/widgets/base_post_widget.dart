@@ -31,7 +31,6 @@ abstract class BasePostWidget extends StatefulWidget {
 
 abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     with SingleTickerProviderStateMixin {
-  // Animação do coração
   late AnimationController _heartAnimationController;
   late Animation<double> _heartScaleAnimation;
   late Animation<double> _heartOpacityAnimation;
@@ -277,11 +276,6 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     showCommentsModal(context, postId: widget.post.id);
   }
 
-  void _handleShare() {
-    // Implementar compartilhamento
-    _showSuccessSnackBar('Link copiado para a área de transferência');
-  }
-
   Future<bool> _checkIfUserCanModifyPost() async {
     try {
       final userManager = UserManager.instance;
@@ -294,7 +288,6 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     }
   }
 
-  // FUNÇÃO PARA CALCULAR O TEMPO RELATIVO
   String _formatRelativeTime(DateTime postDate) {
     final now = DateTime.now();
     final difference = now.difference(postDate);
@@ -408,19 +401,16 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
               ],
             ),
           ),
-          // Só mostra o botão de opções se for o post do usuário atual
           FutureBuilder<bool>(
             future: _checkIfUserCanModifyPost(),
             builder: (context, snapshot) {
-              // Enquanto carrega, não mostra o botão
               if (!snapshot.hasData || snapshot.data != true) {
                 return SizedBox(
                   width: 40,
                   height: 40,
-                ); // Espaço vazio para manter layout
+                );
               }
 
-              // Se o usuário pode modificar, mostra o botão
               return Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -525,20 +515,6 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
             count: viewModel.commentsCount,
             onTap: () => _openCommentsModal(viewModel),
           ),
-          SizedBox(width: 4),
-          _buildActionButton(
-            icon: AppIcons.share,
-            iconColor: AppColors.carbon,
-            onTap: _handleShare,
-          ),
-          Spacer(),
-          _buildActionButton(
-            icon: AppIcons.bookmark,
-            iconColor: AppColors.carbon,
-            onTap: () {
-              // TODO: Implementar save
-            },
-          ),
         ],
       ),
     );
@@ -580,7 +556,6 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     );
   }
 
-  // Método abstrato que deve ser implementado pelas classes filhas
   Widget? buildAdditionalContent(PostActionsViewModel viewModel) => null;
 
   @override
