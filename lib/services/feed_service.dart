@@ -1,3 +1,4 @@
+// lib/services/feed_service.dart
 import 'package:kafex/backend/supabase/supabase.dart';
 import '../backend/supabase/tables/feed_com_usuario.dart';
 
@@ -29,7 +30,7 @@ class FeedService {
   static Future<bool> deletePost(String postId) async {
     try {
       print('🗑️ Iniciando exclusão do post ID: $postId');
-      
+
       // Converte string para int se necessário
       final int? id = int.tryParse(postId);
       if (id == null) {
@@ -38,29 +39,22 @@ class FeedService {
       }
 
       // Exclui da tabela 'feed' (não da view 'feed_com_usuario')
-      final response = await SupaClient.client
-          .from('feed')
-          .delete()
-          .eq('id', id)
-          .select();
+      await SupaClient.client.from('feed').delete().eq('id', id);
 
-      print('🗑️ Resposta da exclusão: $response');
-      
-      // Se chegou até aqui sem erro, a exclusão foi bem-sucedida
       print('✅ Post excluído com sucesso do banco de dados');
       return true;
-      
     } catch (e) {
       print('❌ Erro ao excluir post: $e');
-      
-      // Se for erro de autenticação, não redireciona para login
-      // Apenas retorna false para mostrar mensagem de erro
       return false;
     }
   }
 
   /// Verifica se o usuário atual é dono do post
-  static Future<bool> canDeletePost(String postId, String currentUserUid) async {
+  /// IMPORTANTE: currentUserUid deve ser o Firebase UID (ref), não o email
+  static Future<bool> canDeletePost(
+    String postId,
+    String currentUserUid,
+  ) async {
     try {
       final response = await SupaClient.client
           .from('feed')
@@ -69,8 +63,9 @@ class FeedService {
           .single();
 
       final postOwnerUid = response['usuario_uid'] as String?;
+
+      // CORREÇÃO: Agora usuario_uid armazena Firebase UID, então a comparação funciona
       return postOwnerUid == currentUserUid;
-      
     } catch (e) {
       print('❌ Erro ao verificar permissão do post: $e');
       return false;

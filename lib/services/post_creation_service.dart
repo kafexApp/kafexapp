@@ -1,48 +1,43 @@
 // lib/services/post_creation_service.dart
-import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
-import 'package:kafex/backend/supabase/supabase.dart';
-import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';
-import '../utils/user_manager.dart';
-import 'firebase_storage_service.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../backend/supabase/supabase.dart';
+import 'dart:io';
 
 class PostCreationService {
-  /// Cria um novo post no feed com suporte a imagens e vídeos
-  static Future<bool> createPost({
+  /// Cria um novo post tradicional no feed
+  static Future<bool> createTraditionalPost({
     required String description,
     String? imageUrl,
     String? videoUrl,
     String? externalLink,
   }) async {
     try {
-      final userManager = UserManager.instance;
-
-      // Buscar dados do usuário logado
-      String authorName = userManager.userName;
-      String? authorAvatar = userManager.userPhotoUrl;
-      String userEmail = userManager.userEmail;
-
-      // Se os dados estão vazios, buscar do Supabase Auth
-      final currentUser = SupaClient.client.auth.currentUser;
-      if (currentUser != null &&
-          (authorName == 'Usuário Kafex' || authorName.isEmpty)) {
-        final metadata = currentUser.userMetadata;
-        if (metadata != null) {
-          authorName =
-              metadata['full_name']?.toString() ??
-              metadata['name']?.toString() ??
-              metadata['display_name']?.toString() ??
-              currentUser.email?.split('@')[0] ??
-              'Usuário';
-
-          authorAvatar =
-              metadata['avatar_url']?.toString() ??
-              metadata['picture']?.toString();
-        }
+      // CORREÇÃO: Usar Firebase Auth ao invés de Supabase Auth
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        print('❌ Erro: Usuário não autenticado');
+        return false;
       }
+
+      // CORREÇÃO: Usar o Firebase UID ao invés do email
+      final firebaseUid = currentUser.uid; // Firebase UID (ref)
+      final userEmail = currentUser.email ?? '';
+
+      String authorName = 'Usuário';
+      String? authorAvatar;
+
+      // Tentar obter nome e foto do Firebase Auth
+      authorName =
+          currentUser.displayName ??
+          currentUser.email?.split('@')[0] ??
+          'Usuário';
+      authorAvatar = currentUser.photoURL;
 
       // Primeiro, verificar se o usuário existe na tabela usuario_perfil e obter o user_id
       final userId = await _ensureUserProfileExists(
+        firebaseUid, // CORREÇÃO: Passar o UID ao invés do email
         userEmail,
         authorName,
         authorAvatar,
@@ -53,14 +48,14 @@ class PostCreationService {
         return false;
       }
 
-      // Criar o post na tabela feed (incluindo o user_id)
+      // Criar o post na tabela feed
       final postData = {
         'descricao': description.trim(),
         'criado_em': DateTime.now().toIso8601String(),
         'tipo': 'tradicional',
-        'usuario_uid': userEmail,
+        'usuario_uid': firebaseUid, // CORREÇÃO: Salvar Firebase UID (ref)
         'nome_usuario': authorName,
-        'user_id': userId, // CAMPO CRÍTICO ADICIONADO
+        'user_id': userId, // ID numérico da tabela usuario_perfil
       };
 
       // Adiciona URL da imagem se fornecida
@@ -82,6 +77,7 @@ class PostCreationService {
 
       print('📝 Criando post com dados:');
       print('   Nome: $authorName');
+      print('   Firebase UID: $firebaseUid'); // CORREÇÃO: Log do UID
       print('   Email: $userEmail');
       print('   Avatar: $authorAvatar');
       print('   User ID: $userId');
@@ -107,6 +103,7 @@ class PostCreationService {
 
   /// Garante que o usuário existe na tabela usuario_perfil e retorna o user_id
   static Future<int?> _ensureUserProfileExists(
+    String firebaseUid, // CORREÇÃO: Receber Firebase UID
     String userEmail,
     String userName,
     String? userAvatar,
@@ -116,19 +113,17 @@ class PostCreationService {
 
       // Tentar obter foto do Firebase Auth se não tiver uma
       if (userAvatar == null || userAvatar.isEmpty) {
-        final currentUser = SupaClient.client.auth.currentUser;
+        final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
-          userAvatar =
-              currentUser.userMetadata?['avatar_url']?.toString() ??
-              currentUser.userMetadata?['picture']?.toString();
+          userAvatar = currentUser.photoURL;
         }
       }
 
-      // Verificar se usuário já existe
+      // CORREÇÃO: Verificar se usuário já existe pela REF (Firebase UID)
       final existingUser = await SupaClient.client
           .from('usuario_perfil')
-          .select('id, nome_exibicao, foto_url')
-          .eq('email', userEmail)
+          .select('id, nome_exibicao, foto_url, email')
+          .eq('ref', firebaseUid) // CORREÇÃO: Buscar por ref, não por email
           .maybeSingle();
 
       if (existingUser != null) {
@@ -137,18 +132,24 @@ class PostCreationService {
         // Verificar se precisa atualizar os dados
         final existingName = existingUser['nome_exibicao'];
         final existingPhotoUrl = existingUser['foto_url'];
+        final existingEmail = existingUser['email'];
 
-        // Só atualiza se o nome mudou ou se não tinha foto antes e agora tem
+        // Atualiza se o nome, email ou foto mudaram
         final shouldUpdate =
             existingName != userName ||
+            existingEmail != userEmail ||
             (existingPhotoUrl == null && userAvatar != null) ||
             (existingPhotoUrl != userAvatar && userAvatar != null);
 
         if (shouldUpdate) {
           await SupaClient.client
               .from('usuario_perfil')
-              .update({'nome_exibicao': userName, 'foto_url': userAvatar})
-              .eq('email', userEmail);
+              .update({
+                'nome_exibicao': userName,
+                'email': userEmail,
+                'foto_url': userAvatar,
+              })
+              .eq('ref', firebaseUid); // CORREÇÃO: Atualizar por ref
 
           print('✅ Dados do usuário atualizados');
         } else {
@@ -164,6 +165,7 @@ class PostCreationService {
         final newUser = await SupaClient.client
             .from('usuario_perfil')
             .insert({
+              'ref': firebaseUid, // CORREÇÃO: Salvar Firebase UID na ref
               'email': userEmail,
               'nome_exibicao': userName,
               'foto_url': userAvatar,
@@ -185,17 +187,31 @@ class PostCreationService {
   static Future<String?> uploadImageFromXFile(XFile imageFile) async {
     try {
       print('📷 Iniciando upload de imagem via Firebase Storage...');
-      final result = await FirebaseStorageService.uploadImageFromXFile(
-        imageFile,
-      );
-      if (result != null) {
-        print('✅ Upload de imagem concluído: $result');
-      } else {
-        print('❌ Falha no upload da imagem');
+
+      // Obter referência do usuário
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('❌ Usuário não autenticado');
+        return null;
       }
-      return result;
+
+      // Criar referência única no Storage
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'posts/${user.uid}/$timestamp.jpg';
+      final storageRef = FirebaseStorage.instance.ref().child(fileName);
+
+      print('📤 Fazendo upload para: $fileName');
+
+      // Fazer upload
+      final uploadTask = await storageRef.putFile(File(imageFile.path));
+
+      // Obter URL de download
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      print('✅ Upload concluído! URL: $downloadUrl');
+      return downloadUrl;
     } catch (e) {
-      print('❌ Erro no serviço de upload de imagem: $e');
+      print('❌ Erro no upload de imagem: $e');
       return null;
     }
   }
@@ -204,62 +220,32 @@ class PostCreationService {
   static Future<String?> uploadVideoFromXFile(XFile videoFile) async {
     try {
       print('🎥 Iniciando upload de vídeo via Firebase Storage...');
-      final result = await FirebaseStorageService.uploadVideoFromXFile(
-        videoFile,
-      );
-      if (result != null) {
-        print('✅ Upload de vídeo concluído: $result');
-      } else {
-        print('❌ Falha no upload do vídeo');
+
+      // Obter referência do usuário
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print('❌ Usuário não autenticado');
+        return null;
       }
-      return result;
+
+      // Criar referência única no Storage
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'videos/${user.uid}/$timestamp.mp4';
+      final storageRef = FirebaseStorage.instance.ref().child(fileName);
+
+      print('📤 Fazendo upload de vídeo para: $fileName');
+
+      // Fazer upload
+      final uploadTask = await storageRef.putFile(File(videoFile.path));
+
+      // Obter URL de download
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      print('✅ Upload de vídeo concluído! URL: $downloadUrl');
+      return downloadUrl;
     } catch (e) {
-      print('❌ Erro no serviço de upload de vídeo: $e');
+      print('❌ Erro no upload de vídeo: $e');
       return null;
-    }
-  }
-
-  /// Cria post completo com upload de mídia
-  static Future<bool> createPostWithMedia({
-    required String description,
-    XFile? imageFile,
-    XFile? videoFile,
-    String? externalLink,
-  }) async {
-    try {
-      String? imageUrl;
-      String? videoUrl;
-
-      // Upload de imagem se fornecida
-      if (imageFile != null) {
-        print('📤 Fazendo upload da imagem...');
-        imageUrl = await uploadImageFromXFile(imageFile);
-        if (imageUrl == null) {
-          print('❌ Erro ao fazer upload da imagem');
-          return false;
-        }
-      }
-
-      // Upload de vídeo se fornecido
-      if (videoFile != null) {
-        print('📤 Fazendo upload do vídeo...');
-        videoUrl = await uploadVideoFromXFile(videoFile);
-        if (videoUrl == null) {
-          print('❌ Erro ao fazer upload do vídeo');
-          return false;
-        }
-      }
-
-      // Cria o post com as URLs
-      return await createPost(
-        description: description,
-        imageUrl: imageUrl,
-        videoUrl: videoUrl,
-        externalLink: externalLink,
-      );
-    } catch (e) {
-      print('❌ Erro ao criar post com mídia: $e');
-      return false;
     }
   }
 }

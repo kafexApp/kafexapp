@@ -48,7 +48,10 @@ class UserProfileService {
           photoUrl: profile.fotoUrl ?? firebaseUser.photoURL,
         );
 
-        print('✅ Perfil carregado do Supabase: ${profile.nomeExibicao}');
+        print('✅ Perfil carregado do Supabase:');
+        print('   ID: ${profile.id}');
+        print('   Nome: ${profile.nomeExibicao}');
+        print('   Email: ${profile.email}');
       } else {
         // Se não encontrou no Supabase, usar dados do Firebase
         UserManager.instance.setUserData(
@@ -77,27 +80,66 @@ class UserProfileService {
     String? cep,
   }) async {
     try {
-      final updates = <String, dynamic>{};
+      final Map<String, dynamic> updateData = {};
 
-      if (nomeExibicao != null) updates['nome_exibicao'] = nomeExibicao;
-      if (telefone != null) updates['telefone'] = telefone;
-      if (fotoUrl != null) updates['foto_url'] = fotoUrl;
-      if (endereco != null) updates['endereco'] = endereco;
-      if (cidade != null) updates['cidade'] = cidade;
-      if (estado != null) updates['estado'] = estado;
-      if (bairro != null) updates['bairro'] = bairro;
-      if (cep != null) updates['cep'] = cep;
+      if (nomeExibicao != null) updateData['nome_exibicao'] = nomeExibicao;
+      if (telefone != null) updateData['telefone'] = telefone;
+      if (fotoUrl != null) updateData['foto_url'] = fotoUrl;
+      if (endereco != null) updateData['endereco'] = endereco;
+      if (cidade != null) updateData['cidade'] = cidade;
+      if (estado != null) updateData['estado'] = estado;
+      if (bairro != null) updateData['bairro'] = bairro;
+      if (cep != null) updateData['cep'] = cep;
+
+      if (updateData.isEmpty) {
+        print('⚠️ Nenhum dado para atualizar');
+        return false;
+      }
 
       await _supabase
           .from('usuario_perfil')
-          .update(updates)
+          .update(updateData)
           .eq('ref', firebaseUid);
 
       print('✅ Perfil atualizado no Supabase');
+
+      // Recarregar perfil para atualizar UserManager com dados atualizados
+      await loadAndSyncUserProfile();
+
       return true;
     } catch (e) {
       print('❌ Erro ao atualizar perfil: $e');
       return false;
     }
+  }
+
+  /// Busca o user_id (ID numérico) do usuário no Supabase pelo Firebase UID
+  static Future<int?> getUserId(String firebaseUid) async {
+    try {
+      final response = await _supabase
+          .from('usuario_perfil')
+          .select('id')
+          .eq('ref', firebaseUid)
+          .maybeSingle();
+
+      if (response != null) {
+        return response['id'] as int?;
+      }
+      return null;
+    } catch (e) {
+      print('❌ Erro ao buscar user_id: $e');
+      return null;
+    }
+  }
+
+  /// Busca o user_id do usuário atualmente logado
+  static Future<int?> getCurrentUserId() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) {
+      print('❌ Nenhum usuário logado no Firebase');
+      return null;
+    }
+
+    return await getUserId(firebaseUser.uid);
   }
 }

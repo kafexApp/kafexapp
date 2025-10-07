@@ -1,3 +1,4 @@
+// lib/ui/posts/viewmodel/create_post_viewmodel.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -112,7 +113,9 @@ class CreatePostViewModel extends ChangeNotifier {
           : null;
 
       print('📝 Criando post no Supabase...');
-      final success = await PostCreationService.createPost(
+
+      // CORREÇÃO: Usar createTraditionalPost ao invés de createPost
+      final success = await PostCreationService.createTraditionalPost(
         description: description,
         imageUrl: imageUrl,
         videoUrl: videoUrl,
@@ -156,33 +159,29 @@ class CreatePostViewModel extends ChangeNotifier {
       _clearError();
 
       // Tenta pegar mídia (imagem ou vídeo)
-      final XFile? media = await _picker.pickImage(source: source);
+      final XFile? pickedFile = await _picker.pickImage(source: source);
 
-      if (media != null) {
-        _selectedMediaFile = media;
+      if (pickedFile != null) {
+        _selectedMediaFile = pickedFile;
 
-        // Para mobile, também mantemos o File
+        // Apenas no mobile, converte XFile para File
         if (!kIsWeb) {
-          _selectedMedia = File(media.path);
+          _selectedMedia = File(pickedFile.path);
         }
 
-        // Verifica se é vídeo baseado na extensão
-        final extension = media.path.toLowerCase();
+        // Detecta se é vídeo baseado na extensão
         _isVideo =
-            extension.endsWith('.mp4') ||
-            extension.endsWith('.mov') ||
-            extension.endsWith('.avi');
+            pickedFile.path.toLowerCase().endsWith('.mp4') ||
+            pickedFile.path.toLowerCase().endsWith('.mov');
 
-        print('📸 Mídia selecionada: ${_isVideo ? 'Vídeo' : 'Imagem'}');
         notifyListeners();
       }
     } catch (e) {
-      print('❌ Erro ao selecionar mídia: $e');
-      _setError('Erro ao selecionar mídia');
+      _setError('Erro ao selecionar mídia: $e');
     }
   }
 
-  // Método privado para selecionar mídia específica
+  // Método para selecionar mídia específica (imagem ou vídeo)
   Future<void> _pickSpecificMedia(
     ImageSource source, {
     required bool isVideo,
@@ -190,31 +189,38 @@ class CreatePostViewModel extends ChangeNotifier {
     try {
       _clearError();
 
-      XFile? media;
+      XFile? pickedFile;
 
       if (isVideo) {
-        media = await _picker.pickVideo(source: source);
+        pickedFile = await _picker.pickVideo(source: source);
       } else {
-        media = await _picker.pickImage(source: source);
+        pickedFile = await _picker.pickImage(source: source);
       }
 
-      if (media != null) {
-        _selectedMediaFile = media;
+      if (pickedFile != null) {
+        _selectedMediaFile = pickedFile;
 
-        // Para mobile, também mantemos o File
+        // Apenas no mobile, converte XFile para File
         if (!kIsWeb) {
-          _selectedMedia = File(media.path);
+          _selectedMedia = File(pickedFile.path);
         }
 
         _isVideo = isVideo;
-
-        print('📸 ${isVideo ? 'Vídeo' : 'Imagem'} selecionado(a)');
         notifyListeners();
       }
     } catch (e) {
-      print('❌ Erro ao selecionar ${isVideo ? 'vídeo' : 'imagem'}: $e');
-      _setError('Erro ao selecionar ${isVideo ? 'vídeo' : 'imagem'}');
+      _setError('Erro ao selecionar mídia: $e');
     }
+  }
+
+  void _clearForm() {
+    descriptionController.clear();
+    linkController.clear();
+    _selectedMedia = null;
+    _selectedMediaFile = null;
+    _isVideo = false;
+    _clearError();
+    notifyListeners();
   }
 
   void _setLoading(bool value) {
@@ -224,22 +230,12 @@ class CreatePostViewModel extends ChangeNotifier {
 
   void _setError(String message) {
     _errorMessage = message;
-    _isLoading = false;
     notifyListeners();
   }
 
   void _clearError() {
     _errorMessage = null;
     notifyListeners();
-  }
-
-  void _clearForm() {
-    descriptionController.clear();
-    linkController.clear();
-    _selectedMedia = null;
-    _selectedMediaFile = null;
-    _isVideo = false;
-    _errorMessage = null;
   }
 
   @override
