@@ -5,11 +5,9 @@ import 'package:kafex/data/models/domain/post.dart';
 import 'package:kafex/ui/posts/viewmodel/post_actions_viewmodel.dart';
 import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/utils/app_icons.dart';
-import 'package:kafex/utils/user_manager.dart';
 import 'package:kafex/widgets/comments_bottom_sheet.dart';
 import 'package:kafex/widgets/delete_confirmation_dialog.dart';
 import 'package:kafex/ui/user_profile/widgets/user_profile_provider.dart';
-import 'package:kafex/services/feed_service.dart';
 import 'package:provider/provider.dart';
 
 abstract class BasePostWidget extends StatefulWidget {
@@ -31,79 +29,37 @@ abstract class BasePostWidget extends StatefulWidget {
 
 abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     with SingleTickerProviderStateMixin {
+  bool _showHeartAnimation = false;
   late AnimationController _heartAnimationController;
   late Animation<double> _heartScaleAnimation;
   late Animation<double> _heartOpacityAnimation;
-  bool _showHeartAnimation = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeHeartAnimation();
-  }
-
-  void _initializeHeartAnimation() {
     _heartAnimationController = AnimationController(
       duration: Duration(milliseconds: 400),
       vsync: this,
     );
 
-    _heartScaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.0,
-          end: 1.2,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30,
+    _heartScaleAnimation = Tween<double>(begin: 0.0, end: 1.2).animate(
+      CurvedAnimation(
+        parent: _heartAnimationController,
+        curve: Curves.easeOut,
       ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1.2,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 20,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1.0,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 50,
-      ),
-    ]).animate(_heartAnimationController);
+    );
 
-    _heartOpacityAnimation = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 0.0,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 20,
+    _heartOpacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _heartAnimationController,
+        curve: Interval(0.5, 1.0, curve: Curves.easeIn),
       ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1.0,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.linear)),
-        weight: 30,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(
-          begin: 1.0,
-          end: 0.0,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 50,
-      ),
-    ]).animate(_heartAnimationController);
+    );
 
     _heartAnimationController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        if (mounted) {
-          setState(() {
-            _showHeartAnimation = false;
-          });
-          _heartAnimationController.reset();
-        }
+        setState(() => _showHeartAnimation = false);
+        _heartAnimationController.reset();
       }
     });
   }
@@ -114,18 +70,14 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     super.dispose();
   }
 
+  void _triggerHeartAnimation() {
+    setState(() => _showHeartAnimation = true);
+    _heartAnimationController.forward();
+  }
+
   void _toggleLike(PostActionsViewModel viewModel) {
     viewModel.toggleLike.execute();
     widget.onLike?.call();
-  }
-
-  void _triggerHeartAnimation() {
-    if (mounted) {
-      setState(() {
-        _showHeartAnimation = true;
-      });
-      _heartAnimationController.forward(from: 0.0);
-    }
   }
 
   void _navigateToUserProfile(String userName, String? avatarUrl) {
@@ -276,18 +228,6 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     showCommentsModal(context, postId: widget.post.id);
   }
 
-  Future<bool> _checkIfUserCanModifyPost() async {
-    try {
-      final userManager = UserManager.instance;
-      return await FeedService.canDeletePost(
-        widget.post.id,
-        userManager.userEmail,
-      );
-    } catch (e) {
-      return false;
-    }
-  }
-
   String _formatRelativeTime(DateTime postDate) {
     final now = DateTime.now();
     final difference = now.difference(postDate);
@@ -313,6 +253,9 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
   }
 
   Widget buildPostHeader(PostActionsViewModel viewModel) {
+    // ✅ LOG ADICIONADO
+    print('🏗️ buildPostHeader - Post ID: ${widget.post.id}, isOwnPost: ${viewModel.isOwnPost}');
+    
     return Container(
       padding: EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
@@ -336,8 +279,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child:
-                      widget.post.authorAvatar != null &&
+                  child: widget.post.authorAvatar != null &&
                           widget.post.authorAvatar!.startsWith('http')
                       ? ClipOval(
                           child: CachedNetworkImage(
@@ -345,13 +287,11 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                             width: 44,
                             height: 44,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.papayaSensorial,
-                                  ),
-                                ),
+                            placeholder: (context, url) => Icon(
+                              AppIcons.user,
+                              color: AppColors.grayScale2,
+                              size: 24,
+                            ),
                             errorWidget: (context, url, error) => Text(
                               widget.post.authorName.isNotEmpty
                                   ? widget.post.authorName[0].toUpperCase()
@@ -401,35 +341,25 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
               ],
             ),
           ),
-          FutureBuilder<bool>(
-            future: _checkIfUserCanModifyPost(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData || snapshot.data != true) {
-                return SizedBox(
+          // ✅ CORRIGIDO: Usa isOwnPost do viewModel diretamente
+          if (viewModel.isOwnPost)
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _showPostOptionsModal(viewModel),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
                   width: 40,
                   height: 40,
-                );
-              }
-
-              return Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => _showPostOptionsModal(viewModel),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    child: Icon(
-                      AppIcons.dotsThreeVertical,
-                      size: 24,
-                      color: AppColors.carbon,
-                    ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    AppIcons.dotsThreeVertical,
+                    size: 24,
+                    color: AppColors.carbon,
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            ),
         ],
       ),
     );

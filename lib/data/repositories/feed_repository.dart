@@ -75,14 +75,21 @@ class FeedRepositoryImpl implements FeedRepository {
       authorAvatar = raw.urlFoto!;
     }
 
+    // ✅ NOVO: Busca o usuario_uid do banco (Firebase UID do autor)
+    String? authorUid = raw.usuarioUid;
+
     print(
-      '🔍 Post mapeado: ID=${raw.id}, Nome=$authorName, Avatar=$authorAvatar, Comentários=${raw.comentarios}',
+      '🔍 Post mapeado: ID=${raw.id}, Nome=$authorName, Avatar=$authorAvatar, AuthorUID=$authorUid, Comentários=${raw.comentarios}',
     );
 
     return Post(
       id: raw.id?.toString() ?? '0',
       authorName: authorName,
       authorAvatar: authorAvatar,
+      
+      // ✅ NOVO: Passa o Firebase UID do autor para o modelo Post
+      authorUid: authorUid,
+      
       createdAt: raw.criadoEm ?? DateTime.now(),
       content: raw.descricao ?? '',
       imageUrl: raw.urlFoto,

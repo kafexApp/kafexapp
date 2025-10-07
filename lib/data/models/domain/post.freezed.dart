@@ -25,7 +25,9 @@ mixin _$Post {
   String get authorName => throw _privateConstructorUsedError;
   String get authorAvatar => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
-  String get content => throw _privateConstructorUsedError;
+  String get content =>
+      throw _privateConstructorUsedError; // ✅ NOVO CAMPO: Firebase UID do autor
+  String? get authorUid => throw _privateConstructorUsedError;
   String? get imageUrl => throw _privateConstructorUsedError;
   String? get videoUrl => throw _privateConstructorUsedError;
   int get likes => throw _privateConstructorUsedError;
@@ -59,6 +61,7 @@ abstract class $PostCopyWith<$Res> {
     String authorAvatar,
     DateTime createdAt,
     String content,
+    String? authorUid,
     String? imageUrl,
     String? videoUrl,
     int likes,
@@ -94,6 +97,7 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
     Object? authorAvatar = null,
     Object? createdAt = null,
     Object? content = null,
+    Object? authorUid = freezed,
     Object? imageUrl = freezed,
     Object? videoUrl = freezed,
     Object? likes = null,
@@ -129,6 +133,10 @@ class _$PostCopyWithImpl<$Res, $Val extends Post>
                 ? _value.content
                 : content // ignore: cast_nullable_to_non_nullable
                       as String,
+            authorUid: freezed == authorUid
+                ? _value.authorUid
+                : authorUid // ignore: cast_nullable_to_non_nullable
+                      as String?,
             imageUrl: freezed == imageUrl
                 ? _value.imageUrl
                 : imageUrl // ignore: cast_nullable_to_non_nullable
@@ -197,6 +205,7 @@ abstract class _$$PostImplCopyWith<$Res> implements $PostCopyWith<$Res> {
     String authorAvatar,
     DateTime createdAt,
     String content,
+    String? authorUid,
     String? imageUrl,
     String? videoUrl,
     int likes,
@@ -229,6 +238,7 @@ class __$$PostImplCopyWithImpl<$Res>
     Object? authorAvatar = null,
     Object? createdAt = null,
     Object? content = null,
+    Object? authorUid = freezed,
     Object? imageUrl = freezed,
     Object? videoUrl = freezed,
     Object? likes = null,
@@ -264,6 +274,10 @@ class __$$PostImplCopyWithImpl<$Res>
             ? _value.content
             : content // ignore: cast_nullable_to_non_nullable
                   as String,
+        authorUid: freezed == authorUid
+            ? _value.authorUid
+            : authorUid // ignore: cast_nullable_to_non_nullable
+                  as String?,
         imageUrl: freezed == imageUrl
             ? _value.imageUrl
             : imageUrl // ignore: cast_nullable_to_non_nullable
@@ -326,6 +340,7 @@ class _$PostImpl implements _Post {
     required this.authorAvatar,
     required this.createdAt,
     required this.content,
+    this.authorUid,
     this.imageUrl,
     this.videoUrl,
     required this.likes,
@@ -353,6 +368,9 @@ class _$PostImpl implements _Post {
   final DateTime createdAt;
   @override
   final String content;
+  // ✅ NOVO CAMPO: Firebase UID do autor
+  @override
+  final String? authorUid;
   @override
   final String? imageUrl;
   @override
@@ -380,7 +398,7 @@ class _$PostImpl implements _Post {
 
   @override
   String toString() {
-    return 'Post(id: $id, authorName: $authorName, authorAvatar: $authorAvatar, createdAt: $createdAt, content: $content, imageUrl: $imageUrl, videoUrl: $videoUrl, likes: $likes, comments: $comments, isLiked: $isLiked, type: $type, coffeeName: $coffeeName, rating: $rating, coffeeId: $coffeeId, isFavorited: $isFavorited, wantToVisit: $wantToVisit, coffeeAddress: $coffeeAddress)';
+    return 'Post(id: $id, authorName: $authorName, authorAvatar: $authorAvatar, createdAt: $createdAt, content: $content, authorUid: $authorUid, imageUrl: $imageUrl, videoUrl: $videoUrl, likes: $likes, comments: $comments, isLiked: $isLiked, type: $type, coffeeName: $coffeeName, rating: $rating, coffeeId: $coffeeId, isFavorited: $isFavorited, wantToVisit: $wantToVisit, coffeeAddress: $coffeeAddress)';
   }
 
   @override
@@ -396,6 +414,8 @@ class _$PostImpl implements _Post {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.content, content) || other.content == content) &&
+            (identical(other.authorUid, authorUid) ||
+                other.authorUid == authorUid) &&
             (identical(other.imageUrl, imageUrl) ||
                 other.imageUrl == imageUrl) &&
             (identical(other.videoUrl, videoUrl) ||
@@ -427,6 +447,7 @@ class _$PostImpl implements _Post {
     authorAvatar,
     createdAt,
     content,
+    authorUid,
     imageUrl,
     videoUrl,
     likes,
@@ -462,6 +483,7 @@ abstract class _Post implements Post {
     required final String authorAvatar,
     required final DateTime createdAt,
     required final String content,
+    final String? authorUid,
     final String? imageUrl,
     final String? videoUrl,
     required final int likes,
@@ -487,7 +509,9 @@ abstract class _Post implements Post {
   @override
   DateTime get createdAt;
   @override
-  String get content;
+  String get content; // ✅ NOVO CAMPO: Firebase UID do autor
+  @override
+  String? get authorUid;
   @override
   String? get imageUrl;
   @override

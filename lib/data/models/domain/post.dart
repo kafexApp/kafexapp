@@ -17,6 +17,10 @@ class Post with _$Post {
     required String authorAvatar,
     required DateTime createdAt,
     required String content,
+    
+    // ✅ NOVO CAMPO: Firebase UID do autor
+    String? authorUid,
+    
     String? imageUrl,
     String? videoUrl,
     required int likes,

@@ -16,6 +16,10 @@ class FeedComUsuarioRow extends SupabaseDataRow {
   int? get id => getField<int>('id');
   set id(int? value) => setField<int>('id', value);
 
+  /// ✅ NOVO: Getter para usuario_uid (Firebase UID do autor)
+  String? get usuarioUid => getField<String>('usuario_uid');
+  set usuarioUid(String? value) => setField<String>('usuario_uid', value);
+
   DateTime? get criadoEm {
     final value = getField<dynamic>('criado_em');
     if (value == null) return null;
@@ -89,8 +93,9 @@ class FeedComUsuarioRow extends SupabaseDataRow {
   String? get nomeCafeteria => getField<String>('nome_cafeteria');
   set nomeCafeteria(String? value) => setField<String>('nome_cafeteria', value);
 
-  String? get nome => getField<String>('nome');
-  set nome(String? value) => setField<String>('nome', value);
+  /// ✅ COMPATIBILIDADE: Alias para nomeCafeteria
+  String? get nome => nomeCafeteria;
+  set nome(String? value) => nomeCafeteria = value;
 
   String? get endereco => getField<String>('endereco');
   set endereco(String? value) => setField<String>('endereco', value);
@@ -106,15 +111,15 @@ class FeedComUsuarioRow extends SupabaseDataRow {
 
   set pontuacao(double? value) => setField<double>('pontuacao', value);
 
-  String? get nomeExibicao => getField<String>('nome_exibicao');
-  set nomeExibicao(String? value) => setField<String>('nome_exibicao', value);
-
-  String? get fotoUrl => getField<String>('foto_url');
-  set fotoUrl(String? value) => setField<String>('foto_url', value);
-
   String? get urlFoto => getField<String>('url_foto');
   set urlFoto(String? value) => setField<String>('url_foto', value);
 
   String? get urlVideo => getField<String>('url_video');
   set urlVideo(String? value) => setField<String>('url_video', value);
+
+  String? get nomeExibicao => getField<String>('nome_exibicao');
+  set nomeExibicao(String? value) => setField<String>('nome_exibicao', value);
+
+  String? get fotoUrl => getField<String>('foto_url');
+  set fotoUrl(String? value) => setField<String>('foto_url', value);
 }

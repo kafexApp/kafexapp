@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../data/models/domain/post.dart';
 import '../../../utils/command.dart';
 import '../../../utils/result.dart';
-import '../../../utils/user_manager.dart';
 import '../../../services/event_bus_service.dart';
 import '../../../services/post_deletion_service.dart';
 import '../../../data/repositories/likes_repository.dart';
@@ -58,20 +57,41 @@ class PostActionsViewModel extends ChangeNotifier {
   String? get coffeeAddress => _post.coffeeAddress;
   double? get rating => _post.rating;
 
-  /// CORREÇÃO: Verifica se o post pertence ao usuário logado
+  /// ✅ CORRIGIDO: Compara Firebase UID do usuário atual com o authorUid do post
   bool get isOwnPost {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) return false;
-
-    // TODO: Buscar do banco se o usuario_uid do post corresponde ao UID atual
-    // Por enquanto, usa canDeletePost de forma assíncrona
-    return false; // Será verificado no momento da exclusão
+  final currentUser = FirebaseAuth.instance.currentUser;
+  
+  print('🔍 === DEBUG isOwnPost ===');
+  print('Post ID: ${_post.id}');
+  print('Post Author Name: ${_post.authorName}');
+  print('Post Author UID: ${_post.authorUid}');
+  print('Current User: ${currentUser?.uid}');
+  print('Current User Email: ${currentUser?.email}');
+  
+  if (currentUser == null) {
+    print('❌ Nenhum usuário logado');
+    return false;
   }
-
-  String _getAuthorUid() {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    return currentUser?.uid ?? '';
+  
+  final currentUserUid = currentUser.uid;
+  final postAuthorUid = _post.authorUid;
+  
+  print('Comparando UIDs:');
+  print('  Current: $currentUserUid');
+  print('  Author:  $postAuthorUid');
+  
+  // Se o post não tem authorUid, retorna false (segurança)
+  if (postAuthorUid == null || postAuthorUid.isEmpty) {
+    print('❌ Post não tem authorUid');
+    return false;
   }
+  
+  final result = currentUserUid == postAuthorUid;
+  print('Resultado: ${result ? "✅ É SEU POST" : "❌ NÃO é seu post"}');
+  print('=========================\n');
+  
+  return result;
+}
 
   int get avatarColorIndex {
     return _post.authorName.isNotEmpty ? _post.authorName.codeUnitAt(0) % 5 : 0;
@@ -79,7 +99,7 @@ class PostActionsViewModel extends ChangeNotifier {
 
   Future<void> _loadLikeState() async {
     try {
-      final feedId = int.tryParse(postId);
+      final feedId = int.tryParse(_post.id);
       if (feedId == null) return;
 
       final isLikedResult = await _likesRepository.checkIfUserLikedFeedPost(
@@ -101,18 +121,18 @@ class PostActionsViewModel extends ChangeNotifier {
         }
       }
     } catch (e) {
-      print('❌ Erro ao carregar estado do like: $e');
+      print('❌ Erro ao carregar estado da curtida: $e');
     }
   }
 
   Future<Result<void>> _toggleLike() async {
     try {
-      final feedId = int.tryParse(postId);
+      final feedId = int.tryParse(_post.id);
       if (feedId == null) {
         return Result.error(Exception('ID do post inválido'));
       }
 
-      final previousState = _post.isLiked;
+      final previousIsLiked = _post.isLiked;
       final previousLikes = _post.likes;
 
       _post = _post.copyWith(
@@ -124,7 +144,7 @@ class PostActionsViewModel extends ChangeNotifier {
       final result = await _likesRepository.toggleLikeFeedPost(feedId);
 
       if (result.isError) {
-        _post = _post.copyWith(isLiked: previousState, likes: previousLikes);
+        _post = _post.copyWith(isLiked: previousIsLiked, likes: previousLikes);
         notifyListeners();
         return Result.error(result.asError.error);
       }
@@ -225,22 +245,21 @@ class PostActionsViewModel extends ChangeNotifier {
     }
   }
 
-  /// CORREÇÃO: Método de exclusão - busca usuario_uid do banco
   Future<Result<void>> _deletePost() async {
     try {
       print('🗑️ === DEBUG EXCLUSÃO ===');
       print('Post ID: $postId');
-
+      print('Author UID: ${_post.authorUid}');
+      
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        print('❌ Usuário não autenticado');
         return Result.error(Exception('Usuário não autenticado'));
       }
-
+      
       print('Current User UID: ${currentUser.uid}');
-
-      // CORREÇÃO: Apenas passar postId - o service verifica internamente
-      final success = await PostDeletionService.deletePost(postId: postId);
+      
+      // Passa apenas o postId - o service fará a verificação internamente
+      final success = await PostDeletionService.deletePost(postId);
 
       print('Resultado da exclusão: $success');
 
@@ -249,10 +268,8 @@ class PostActionsViewModel extends ChangeNotifier {
         _eventBus.emit(PostDeletedEvent(postId));
         return Result.ok(null);
       } else {
-        print('❌ Falha na exclusão - usuário não autorizado ou erro');
-        return Result.error(
-          Exception('Você não tem permissão para excluir este post'),
-        );
+        print('❌ Falha na exclusão');
+        return Result.error(Exception('Você não tem permissão para excluir este post'));
       }
     } catch (e) {
       print('❌ ERRO CRÍTICO: $e');
