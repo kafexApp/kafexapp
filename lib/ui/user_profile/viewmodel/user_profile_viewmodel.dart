@@ -1,10 +1,14 @@
+// lib/ui/user_profile/viewmodel/user_profile_viewmodel.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kafex/data/models/domain/user_profile.dart';
 import 'package:kafex/data/models/domain/profile_tab_data.dart';
 import 'package:kafex/data/repositories/user_profile_repository.dart';
 import 'package:kafex/models/cafe_model.dart';
 import 'package:kafex/utils/command.dart';
 import 'package:kafex/utils/result.dart';
+import 'package:kafex/services/user_profile_service.dart';
+import 'package:kafex/backend/supabase/supabase.dart';
 
 class UserProfileViewModel extends ChangeNotifier {
   final UserProfileRepository _repository;
@@ -36,29 +40,172 @@ class UserProfileViewModel extends ChangeNotifier {
   late final Command1<void, String> likePost = Command1(_likePost);
   late final Command1<void, String> openComments = Command1(_openComments);
 
-  // Métodos dos Commands
+  // Método para carregar perfil do usuário do Supabase
   Future<Result<void>> _loadUserProfile() async {
-    final result = await _repository.getUserProfile(userId);
-    
-    if (result.isOk) {
-      _userProfile = result.asOk.value;
-      notifyListeners();
-      return Result.ok(null);
+    try {
+      print('🔍 Carregando perfil do usuário: $userId');
+
+      // Buscar perfil no Supabase usando o email como identificador
+      final profile = await _getUserFromSupabase(userId);
+
+      if (profile != null) {
+        _userProfile = profile;
+        notifyListeners();
+        print('✅ Perfil carregado do Supabase: ${profile.name}');
+        return Result.ok(null);
+      }
+
+      // Fallback: usar repository mock se não encontrar no Supabase
+      final result = await _repository.getUserProfile(userId);
+      
+      if (result.isOk) {
+        _userProfile = result.asOk.value;
+        notifyListeners();
+        print('⚠️ Perfil carregado do repository mock');
+        return Result.ok(null);
+      }
+      
+      return Result.error(result.asError.error);
+    } catch (e) {
+      print('❌ Erro ao carregar perfil: $e');
+      return Result.error(Exception('Erro ao carregar perfil: $e'));
     }
-    
-    return Result.error(result.asError.error);
   }
 
-  Future<Result<void>> _loadTabData() async {
-    final result = await _repository.getProfileTabData(userId);
-    
-    if (result.isOk) {
-      _tabData = result.asOk.value;
-      notifyListeners();
-      return Result.ok(null);
+  // Busca perfil do usuário no Supabase
+  Future<UserProfile?> _getUserFromSupabase(String userEmail) async {
+    try {
+      // Buscar na tabela usuario_perfil pelo email
+      final response = await SupaClient.client
+          .from('usuario_perfil')
+          .select('id, ref, nome_exibicao, foto_url, email')
+          .eq('email', userEmail)
+          .maybeSingle();
+
+      if (response != null) {
+        // Contar posts do usuário
+        final postsCount = await _countUserPosts(response['id']);
+
+        // Criar objeto UserProfile
+        return UserProfile(
+          id: response['id'].toString(),
+          name: response['nome_exibicao'] ?? 'Usuário',
+          avatar: response['foto_url'],
+          bio: 'Coffeelover ☕️', // TODO: Adicionar campo bio na tabela
+          postsCount: postsCount,
+          favoritesCount: 0, // TODO: Implementar contagem de favoritos
+          wantToVisitCount: 0, // TODO: Implementar contagem de lugares para visitar
+        );
+      }
+
+      return null;
+    } catch (e) {
+      print('❌ Erro ao buscar usuário no Supabase: $e');
+      return null;
     }
-    
-    return Result.error(result.asError.error);
+  }
+
+  // Conta posts do usuário
+  Future<int> _countUserPosts(int userId) async {
+    try {
+      final response = await SupaClient.client
+          .from('feed')
+          .select('id')
+          .eq('user_id', userId);
+
+      // Contar manualmente os posts
+      if (response is List) {
+        return response.length;
+      }
+
+      return 0;
+    } catch (e) {
+      print('❌ Erro ao contar posts: $e');
+      return 0;
+    }
+  }
+
+  // Método para carregar dados das tabs
+  Future<Result<void>> _loadTabData() async {
+    try {
+      print('🔍 Carregando dados das tabs para usuário: $userId');
+
+      // Carregar posts do usuário do Supabase
+      final posts = await _getUserPostsFromSupabase();
+
+      _tabData = _tabData.copyWith(
+        userPosts: posts,
+        favoriteCafes: [], // TODO: Implementar busca de cafés favoritos
+        wantToVisitCafes: [], // TODO: Implementar busca de cafés para visitar
+      );
+
+      notifyListeners();
+      print('✅ Dados das tabs carregados');
+      return Result.ok(null);
+    } catch (e) {
+      print('❌ Erro ao carregar dados das tabs: $e');
+      
+      // Fallback para repository mock
+      final result = await _repository.getProfileTabData(userId);
+      
+      if (result.isOk) {
+        _tabData = result.asOk.value;
+        notifyListeners();
+        return Result.ok(null);
+      }
+      
+      return Result.error(Exception('Erro ao carregar dados das tabs: $e'));
+    }
+  }
+
+  // Busca posts do usuário no Supabase
+  Future<List<Post>> _getUserPostsFromSupabase() async {
+    try {
+      // Buscar user_id primeiro
+      final userResponse = await SupaClient.client
+          .from('usuario_perfil')
+          .select('id')
+          .eq('email', userId)
+          .maybeSingle();
+
+      if (userResponse == null) {
+        return [];
+      }
+
+      final userIdInt = userResponse['id'];
+
+      // Buscar posts do usuário
+      final response = await SupaClient.client
+          .from('feed_com_usuario')
+          .select()
+          .eq('user_id', userIdInt)
+          .order('criado_em', ascending: false);
+
+      if (response == null) {
+        return [];
+      }
+
+      // Converter para lista de Posts
+      final posts = <Post>[];
+      for (var postData in response) {
+        posts.add(Post(
+          id: postData['id'].toString(),
+          authorName: postData['nome_exibicao'] ?? 'Usuário',
+          authorAvatar: postData['foto_perfil'],
+          content: postData['descricao'] ?? '',
+          imageUrl: postData['url_foto'],
+          createdAt: DateTime.parse(postData['criado_em']),
+          likes: postData['curtidas'] ?? 0,
+          commentsCount: postData['comentarios'] ?? 0,
+          isLiked: false, // TODO: Verificar se usuário atual curtiu
+        ));
+      }
+
+      return posts;
+    } catch (e) {
+      print('❌ Erro ao buscar posts do usuário: $e');
+      return [];
+    }
   }
 
   Future<Result<void>> _changeTab(int tabIndex) async {
@@ -91,7 +238,6 @@ class UserProfileViewModel extends ChangeNotifier {
   }
 
   Future<Result<void>> _openComments(String postId) async {
-    // Aqui você pode implementar navegação para comentários
     print('Abrir comentários do post: $postId');
     return Result.ok(null);
   }
