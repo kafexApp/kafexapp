@@ -314,12 +314,14 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      if (result.isSuccess) {
+      if (result.isSuccess && result.user != null) {
+        String uid = result.user!.uid;  // ← ADICIONADO
         String email = _emailController.text.trim();
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
         
         UserManager.instance.setUserData(
+          uid: uid,  // ← ADICIONADO
           name: name,
           email: email,
           photoUrl: result.user?.photoURL,
@@ -351,12 +353,14 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final result = await _authService.signInWithGoogle();
 
-      if (result.isSuccess) {
+      if (result.isSuccess && result.user != null) {
+        String uid = result.user!.uid;  // ← ADICIONADO
         String email = result.user?.email ?? 'usuario@gmail.com';
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
         
         UserManager.instance.setUserData(
+          uid: uid,  // ← ADICIONADO
           name: name,
           email: email,
           photoUrl: result.user?.photoURL,
@@ -388,12 +392,14 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final result = await _authService.signInWithApple();
 
-      if (result.isSuccess) {
+      if (result.isSuccess && result.user != null) {
+        String uid = result.user!.uid;  // ← ADICIONADO
         String email = result.user?.email ?? 'usuario@icloud.com';
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
         
         UserManager.instance.setUserData(
+          uid: uid,  // ← ADICIONADO
           name: name,
           email: email,
           photoUrl: result.user?.photoURL,

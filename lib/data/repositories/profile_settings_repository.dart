@@ -60,6 +60,7 @@ class ProfileSettingsRepositoryImpl implements ProfileSettingsRepository {
       
       // Atualizar UserManager apenas com dados válidos de perfil
       userManager.setUserData(
+        uid: FirebaseAuth.instance.currentUser?.uid ?? '',
         name: settings.name,
         email: settings.email,
         photoUrl: newPhotoUrl,

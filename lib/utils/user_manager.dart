@@ -16,12 +16,14 @@ class UserManager extends ChangeNotifier {
   }
 
   // Dados do usuário atual
+  String? _userUid;        // ← ADICIONADO
   String? _userName;
   String? _userEmail;
   String? _userPhotoUrl;
   UserLocation? _userLocation;
 
   // Getters
+  String get userUid => _userUid ?? '';  // ← ADICIONADO
   String get userName => _userName ?? 'Usuário Kafex';
   String get userEmail => _userEmail ?? 'usuario@kafex.com';
   String? get userPhotoUrl => _userPhotoUrl;
@@ -29,10 +31,12 @@ class UserManager extends ChangeNotifier {
 
   // Setter para salvar dados do usuário
   void setUserData({
+    required String uid,      // ← ADICIONADO (parâmetro obrigatório)
     required String name,
     required String email,
     String? photoUrl,
   }) {
+    _userUid = uid;          // ← ADICIONADO
     _userName = name;
     _userEmail = email;
     _userPhotoUrl = photoUrl;
@@ -40,7 +44,10 @@ class UserManager extends ChangeNotifier {
     _saveUserToPrefs();
     notifyListeners();
     
-    print('✅ Dados do usuário salvos: $name - $email');
+    print('✅ Dados do usuário salvos:');
+    print('   UID: $uid');
+    print('   Nome: $name');
+    print('   Email: $email');
     if (photoUrl != null) {
       print('📷 Foto do usuário: ${photoUrl.substring(0, photoUrl.length > 50 ? 50 : photoUrl.length)}...');
     }
@@ -58,6 +65,7 @@ class UserManager extends ChangeNotifier {
   // Carregar dados do usuário
   Future<void> loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
+    _userUid = prefs.getString('user_uid');       // ← ADICIONADO
     _userName = prefs.getString('user_name');
     _userEmail = prefs.getString('user_email');
     _userPhotoUrl = prefs.getString('user_photo_url');
@@ -86,6 +94,7 @@ class UserManager extends ChangeNotifier {
   // Salvar dados do usuário no SharedPreferences
   Future<void> _saveUserToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_userUid != null) await prefs.setString('user_uid', _userUid!);  // ← ADICIONADO
     if (_userName != null) await prefs.setString('user_name', _userName!);
     if (_userEmail != null) await prefs.setString('user_email', _userEmail!);
     if (_userPhotoUrl != null) await prefs.setString('user_photo_url', _userPhotoUrl!);
@@ -100,6 +109,7 @@ class UserManager extends ChangeNotifier {
   // Remover dados do usuário do SharedPreferences
   Future<void> _removeUserFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_uid');        // ← ADICIONADO
     await prefs.remove('user_name');
     await prefs.remove('user_email');
     await prefs.remove('user_photo_url');
@@ -138,6 +148,7 @@ class UserManager extends ChangeNotifier {
 
   // Limpar dados do usuário (logout)
   void clearUserData() {
+    _userUid = null;        // ← ADICIONADO
     _userName = null;
     _userEmail = null;
     _userPhotoUrl = null;

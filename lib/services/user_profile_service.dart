@@ -49,6 +49,7 @@ class UserProfileService {
       if (profile != null) {
         // Atualizar UserManager com dados do Supabase
         UserManager.instance.setUserData(
+          uid: FirebaseAuth.instance.currentUser?.uid ?? '',
           name: profile.nomeExibicao ?? firebaseUser.displayName ?? 'Usuário Kafex',
           email: profile.email ?? firebaseUser.email ?? '',
           photoUrl: profile.fotoUrl ?? firebaseUser.photoURL,
@@ -66,6 +67,7 @@ class UserProfileService {
         } else {
           // Usar dados do Firebase como fallback
           UserManager.instance.setUserData(
+            uid: FirebaseAuth.instance.currentUser?.uid ?? '',
             name: firebaseUser.displayName ?? 'Usuário Kafex',
             email: firebaseUser.email ?? '',
             photoUrl: firebaseUser.photoURL,

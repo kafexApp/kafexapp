@@ -206,7 +206,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             onTap: () {
                               final userManager = UserManager.instance;
                               _pushToScreen(UserProfileProvider(
-                                userId: userManager.userEmail,
+                                userId: userManager.userUid,
                                 userName: userManager.userName,
                                 userAvatar: userManager.userPhotoUrl,
                               ));

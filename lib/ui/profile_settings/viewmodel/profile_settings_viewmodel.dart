@@ -170,6 +170,7 @@ class ProfileSettingsViewModel extends ChangeNotifier {
       if (success) {
         // Atualizar UserManager
         UserManager.instance.setUserData(
+          uid: FirebaseAuth.instance.currentUser?.uid ?? '',
           name: settings.name,
           email: settings.email,
           photoUrl: settings.profileImagePath,

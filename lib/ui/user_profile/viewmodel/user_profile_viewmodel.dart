@@ -1,18 +1,21 @@
 // lib/ui/user_profile/viewmodel/user_profile_viewmodel.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:kafex/data/models/domain/user_profile.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:kafex/data/models/domain/user_profile.dart'; // ✅ Post vem daqui
 import 'package:kafex/data/models/domain/profile_tab_data.dart';
 import 'package:kafex/data/repositories/user_profile_repository.dart';
 import 'package:kafex/models/cafe_model.dart';
 import 'package:kafex/utils/command.dart';
 import 'package:kafex/utils/result.dart';
 import 'package:kafex/services/user_profile_service.dart';
+import 'package:kafex/services/quero_visitar_service.dart';
 import 'package:kafex/backend/supabase/supabase.dart';
 
 class UserProfileViewModel extends ChangeNotifier {
   final UserProfileRepository _repository;
   final String userId;
+  final QueroVisitarService _queroVisitarService = QueroVisitarService(); // ✅ ADICIONADO
 
   UserProfileViewModel({
     required UserProfileRepository repository,
@@ -72,7 +75,7 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // ✅ CORRIGIDO: Busca perfil do usuário no Supabase usando Firebase UID
+  // ✅ ATUALIZADO: Busca perfil do usuário no Supabase e conta "Quero Visitar"
   Future<UserProfile?> _getUserFromSupabase(String firebaseUid) async {
     try {
       print('🔍 Buscando usuário no Supabase por Firebase UID: $firebaseUid');
@@ -90,6 +93,10 @@ class UserProfileViewModel extends ChangeNotifier {
         // Contar posts do usuário
         final postsCount = await _countUserPosts(response['id']);
 
+        // ✅ NOVO: Contar "Quero Visitar"
+        final wantToVisitCount = await _queroVisitarService.countQueroVisitar(firebaseUid);
+        print('📍 Usuário tem $wantToVisitCount cafés em "Quero Visitar"');
+
         // Criar objeto UserProfile
         return UserProfile(
           id: response['id'].toString(),
@@ -98,8 +105,7 @@ class UserProfileViewModel extends ChangeNotifier {
           bio: 'Coffeelover ☕️', // TODO: Adicionar campo bio na tabela
           postsCount: postsCount,
           favoritesCount: 0, // TODO: Implementar contagem de favoritos
-          wantToVisitCount:
-              0, // TODO: Implementar contagem de lugares para visitar
+          wantToVisitCount: wantToVisitCount, // ✅ ATUALIZADO
         );
       }
 
@@ -134,7 +140,7 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // Método para carregar dados das tabs
+  // ✅ ATUALIZADO: Método para carregar dados das tabs com "Quero Visitar"
   Future<Result<void>> _loadTabData() async {
     try {
       print(
@@ -144,10 +150,14 @@ class UserProfileViewModel extends ChangeNotifier {
       // Carregar posts do usuário do Supabase
       final posts = await _getUserPostsFromSupabase();
 
+      // ✅ NOVO: Carregar lista "Quero Visitar"
+      final wantToVisitCafes = await _getWantToVisitCafes();
+      print('📍 ${wantToVisitCafes.length} cafés carregados em "Quero Visitar"');
+
       _tabData = _tabData.copyWith(
         userPosts: posts,
         favoriteCafes: [], // TODO: Implementar busca de cafés favoritos
-        wantToVisitCafes: [], // TODO: Implementar busca de cafés para visitar
+        wantToVisitCafes: wantToVisitCafes, // ✅ ATUALIZADO
       );
 
       notifyListeners();
@@ -166,6 +176,57 @@ class UserProfileViewModel extends ChangeNotifier {
       }
 
       return Result.error(Exception('Erro ao carregar dados das tabs: $e'));
+    }
+  }
+
+  // ✅ NOVO: Método para buscar cafés "Quero Visitar"
+  Future<List<CafeModel>> _getWantToVisitCafes() async {
+    try {
+      print('🔍 Buscando cafés "Quero Visitar"');
+      
+      final queroVisitarList = await _queroVisitarService.getUserQueroVisitarList(userId);
+      
+      if (queroVisitarList.isEmpty) {
+        print('⚠️ Lista "Quero Visitar" vazia');
+        return [];
+      }
+      
+      final cafes = <CafeModel>[];
+      
+      for (var item in queroVisitarList) {
+        final cafeteriaId = item['cafeteria_id'];
+        if (cafeteriaId == null) continue;
+        
+        final cafeData = await SupaClient.client
+            .from('cafeteria')
+            .select('*')
+            .eq('id', cafeteriaId)
+            .maybeSingle();
+        
+        if (cafeData == null) continue;
+        
+        cafes.add(CafeModel(
+          id: cafeData['id'].toString(),
+          name: cafeData['nome'] ?? '',
+          address: '${cafeData['endereco'] ?? ''}, ${cafeData['cidade'] ?? ''}',
+          rating: (cafeData['pontuacao'] as num?)?.toDouble() ?? 0.0,
+          distance: '0 km',
+          imageUrl: cafeData['url_foto'] ?? '',
+          isOpen: true,
+          position: LatLng(
+            (cafeData['latitude'] as num?)?.toDouble() ?? 0.0,
+            (cafeData['longitude'] as num?)?.toDouble() ?? 0.0,
+          ),
+          price: '\$\$',
+          specialties: [],
+        ));
+      }
+      
+      print('✅ ${cafes.length} cafés carregados');
+      return cafes;
+    } catch (e) {
+      print('❌ Erro ao buscar cafés "Quero Visitar": $e');
+      return [];
     }
   }
 

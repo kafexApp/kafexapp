@@ -1,3 +1,5 @@
+// lib/screens/create_account_screen.dart
+
 import '../ui/home/widgets/home_screen_provider.dart';
 import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
 import 'package:flutter/material.dart';
@@ -7,8 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_buttons.dart';
 import '../services/auth_service.dart';
+import '../utils/user_manager.dart'; // ✅ ADICIONADO
 import 'login_screen.dart';
-
 
 class CreateAccountScreen extends StatefulWidget {
   @override
@@ -188,7 +190,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                                 child: Text(
                                   'Aceito os termos de uso e política de privacidade.',
                                   style: GoogleFonts.albertSans(
-                                    fontSize: 14,
+                                    fontSize: 13,
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
@@ -196,37 +198,40 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                             ],
                           ),
                           
-                          SizedBox(height: 24),
+                          SizedBox(height: 32),
                           
-                          Container(
-                            padding: EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.grayScale2.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
+                          Expanded(
+                            child: Column(
                               children: [
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: AppColors.grayScale1,
-                                  size: 24,
+                                PrimaryButton(
+                                  text: 'Criar conta',
+                                  onPressed: _isLoading ? null : _handleCreateAccount,
+                                  isLoading: _isLoading,
                                 ),
-                                SizedBox(width: 12),
-                                Expanded(
+                                
+                                SizedBox(height: 16),
+                                
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => LoginScreen()),
+                                    );
+                                  },
                                   child: RichText(
                                     text: TextSpan(
-                                      style: GoogleFonts.albertSans(
-                                        fontSize: 13,
-                                        color: AppColors.textSecondary,
-                                        height: 1.4,
-                                      ),
                                       children: [
                                         TextSpan(
-                                          text: 'Após a criação da conta, você poderá excluir sua conta,se desejar, à qualquer momento acessando Minha conta em seguida clique em ',
+                                          text: 'Já tem uma conta? ',
+                                          style: GoogleFonts.albertSans(
+                                            fontSize: 14,
+                                            color: AppColors.textSecondary,
+                                          ),
                                         ),
                                         TextSpan(
-                                          text: 'Deletar conta',
+                                          text: 'Faça login',
                                           style: GoogleFonts.albertSans(
+                                            fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                             color: AppColors.textPrimary,
                                           ),
@@ -282,75 +287,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                             ],
                           ),
                           
-                          Spacer(),
-                          
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    side: BorderSide(
-                                      color: AppColors.papayaSensorial,
-                                      width: 2,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-                                  ),
-                                  child: Text(
-                                    'Voltar',
-                                    style: GoogleFonts.albertSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.papayaSensorial,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: (_acceptTerms && !_isLoading) ? () {
-                                    _handleCreateAccount();
-                                  } : null,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.papayaSensorial,
-                                    disabledBackgroundColor: AppColors.grayScale2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: EdgeInsets.symmetric(vertical: 16),
-                                    elevation: 0,
-                                  ),
-                                  child: _isLoading
-                                      ? SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              AppColors.whiteWhite,
-                                            ),
-                                          ),
-                                        )
-                                      : Text(
-                                          'Criar conta',
-                                          style: GoogleFonts.albertSans(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.whiteWhite,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          
                           SizedBox(height: 40),
                         ],
                       ),
@@ -369,19 +305,16 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     required TextEditingController controller,
     required FocusNode focusNode,
     required String hintText,
-    required TextInputType keyboardType,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.whiteWhite,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        border: Border.all(
+          color: focusNode.hasFocus ? AppColors.papayaSensorial : AppColors.moonAsh.withOpacity(0.2),
+          width: 1.5,
+        ),
       ),
       child: TextField(
         controller: controller,
@@ -395,15 +328,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           hintText: hintText,
           hintStyle: GoogleFonts.albertSans(
             fontSize: 16,
-            color: AppColors.grayScale2,
+            color: AppColors.textSecondary,
           ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          filled: true,
-          fillColor: AppColors.whiteWhite,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );
@@ -420,13 +348,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       decoration: BoxDecoration(
         color: AppColors.whiteWhite,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        border: Border.all(
+          color: focusNode.hasFocus ? AppColors.papayaSensorial : AppColors.moonAsh.withOpacity(0.2),
+          width: 1.5,
+        ),
       ),
       child: TextField(
         controller: controller,
@@ -440,24 +365,16 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
           hintText: hintText,
           hintStyle: GoogleFonts.albertSans(
             fontSize: 16,
-            color: AppColors.grayScale2,
+            color: AppColors.textSecondary,
           ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          filled: true,
-          fillColor: AppColors.whiteWhite,
-          suffixIcon: GestureDetector(
-            onTap: onToggleVisibility,
-            child: Container(
-              padding: EdgeInsets.all(12),
-              child: Icon(
-                isVisible ? Icons.visibility_off : Icons.visibility,
-                color: AppColors.grayScale2,
-                size: 20,
-              ),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          suffixIcon: IconButton(
+            onPressed: onToggleVisibility,
+            icon: Icon(
+              isVisible ? Icons.visibility_off : Icons.visibility,
+              color: AppColors.grayScale2,
+              size: 20,
             ),
           ),
         ),
@@ -465,6 +382,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     );
   }
 
+  // ✅ CORRIGIDO: Adicionar uid ao UserManager
   void _handleCreateAccount() async {
     if (_nameController.text.isEmpty) {
       _showErrorMessage('Por favor, digite seu nome');
@@ -509,6 +427,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       if (result.user != null) {
         await result.user!.updateDisplayName(_nameController.text.trim());
         await result.user!.reload();
+        
+        // ✅ CORREÇÃO: Salvar uid no UserManager
+        String uid = result.user!.uid;
+        String email = _emailController.text.trim();
+        String name = _nameController.text.trim();
+        
+        UserManager.instance.setUserData(
+          uid: uid, // ✅ ADICIONADO
+          name: name,
+          email: email,
+          photoUrl: result.user?.photoURL,
+        );
+        
+        print('✅ Conta criada: $name (UID: $uid)');
       }
 
       _showSuccessMessage('Conta criada com sucesso!');
@@ -527,6 +459,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     }
   }
 
+  // ✅ CORRIGIDO: Adicionar uid ao UserManager
   void _handleGoogleSignIn() async {
     setState(() {
       _isLoading = true;
@@ -536,6 +469,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       final result = await _authService.signInWithGoogle();
 
       if (result.isSuccess) {
+        // ✅ CORREÇÃO: Salvar uid no UserManager
+        String uid = result.user!.uid;
+        String email = result.user?.email ?? 'usuario@gmail.com';
+        String name = result.user?.displayName ?? 
+                     UserManager.instance.extractNameFromEmail(email);
+        
+        UserManager.instance.setUserData(
+          uid: uid, // ✅ ADICIONADO
+          name: name,
+          email: email,
+          photoUrl: result.user?.photoURL,
+        );
+        
+        print('✅ Login Google: $name (UID: $uid)');
+
         _showSuccessMessage('Login com Google realizado com sucesso!');
         Navigator.pushReplacement(
           context,
@@ -553,6 +501,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     }
   }
 
+  // ✅ CORRIGIDO: Adicionar uid ao UserManager
   void _handleAppleSignIn() async {
     setState(() {
       _isLoading = true;
@@ -562,6 +511,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       final result = await _authService.signInWithApple();
 
       if (result.isSuccess) {
+        // ✅ CORREÇÃO: Salvar uid no UserManager
+        String uid = result.user!.uid;
+        String email = result.user?.email ?? 'usuario@icloud.com';
+        String name = result.user?.displayName ?? 
+                     UserManager.instance.extractNameFromEmail(email);
+        
+        UserManager.instance.setUserData(
+          uid: uid, // ✅ ADICIONADO
+          name: name,
+          email: email,
+          photoUrl: result.user?.photoURL,
+        );
+        
+        print('✅ Login Apple: $name (UID: $uid)');
+
         _showSuccessMessage('Login com Apple realizado com sucesso!');
         Navigator.pushReplacement(
           context,
