@@ -116,6 +116,12 @@ class _NewCoffeePostWidgetState
     print('🔍 DEBUG: coffeeId = ${viewModel.coffeeId}');
     print('🔍 DEBUG: coffeeName = ${viewModel.coffeeName}');
     print('🔍 DEBUG: rating = ${viewModel.rating}');
+    print('🔍 DEBUG POST COMPLETO:');
+    print('   widget.post.id = ${widget.post.id}');
+    print('   widget.post.coffeeId = ${widget.post.coffeeId}');
+    print('   widget.post.coffeeName = ${widget.post.coffeeName}');
+    print('   widget.post.rating = ${widget.post.rating}');
+    print('   widget.post.type = ${widget.post.type}');
 
     final mockCafeModel = MockCafeModel(
       id: viewModel.coffeeId ?? '',

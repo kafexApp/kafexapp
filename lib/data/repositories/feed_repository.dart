@@ -20,6 +20,8 @@ class FeedRepositoryImpl implements FeedRepository {
   Future<Result<List<Post>>> getFeed({int offset = 0}) async {
     try {
       print('📥 Carregando feed - offset: $offset, limit: $_pageSize');
+      print('🔥🔥🔥 FEED REPOSITORY - getFeed CHAMADO! offset: $offset');
+      print('📥 Carregando feed - offset: $offset, limit: $_pageSize');
       final rawPosts = await FeedService.getFeed(
         limit: _pageSize,
         offset: offset,
@@ -87,13 +89,20 @@ class FeedRepositoryImpl implements FeedRepository {
       print('✅ Post com cafeteria_id correto: $coffeeId');
     }
 
-    print('🔍 DEBUG REPOSITORY: raw.cafeteriaId = ${raw.cafeteriaId}');
-    print('🔍 DEBUG REPOSITORY: coffeeId final = $coffeeId');
-    print('🔍 DEBUG REPOSITORY: raw.nomeCafeteria = ${raw.nomeCafeteria}');
+    print('🔥🔥🔥 _convertToPost DEBUG:');
+    print('   raw.id = ${raw.id}');
+    print('   raw.cafeteriaId = ${raw.cafeteriaId}');
+    print('   raw.nomeCafeteria = ${raw.nomeCafeteria}');
+    print('   raw.pontuacao = ${raw.pontuacao}');
+    print('   coffeeId final = $coffeeId');
 
     print(
       '🔍 Post mapeado: ID=${raw.id}, CafeteriaID=$coffeeId, Nome=$authorName, Avatar=$authorAvatar, AuthorUID=$authorUid, Comentários=${raw.comentarios}',
     );
+
+    print('🔥🔥🔥 POST CRIADO COM:');
+    print('   coffeeId: $coffeeId');
+    print('   coffeeName: ${raw.nomeCafeteria}');
 
     return Post(
       id: raw.id?.toString() ?? '0',

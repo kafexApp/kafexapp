@@ -20,9 +20,9 @@ class FeedComUsuarioRow extends SupabaseDataRow {
   String? get usuarioUid => getField<String>('usuario_uid');
   set usuarioUid(String? value) => setField<String>('usuario_uid', value);
 
-  /// ✅ NOVO: Getter para cafeteria_id (ID da cafeteria na tabela)
-  int? get cafeteriaId => getField<int>('cafeteria_id');
-  set cafeteriaId(int? value) => setField<int>('cafeteria_id', value);
+  /// ✅ NOVO: Getter para id_cafeteria (ID da cafeteria na view)
+  int? get cafeteriaId => getField<int>('id_cafeteria');
+  set cafeteriaId(int? value) => setField<int>('id_cafeteria', value);
 
   DateTime? get criadoEm {
     final value = getField<dynamic>('criado_em');
