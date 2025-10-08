@@ -21,6 +21,8 @@ class HomeFeedViewModel extends ChangeNotifier {
   final EventBusService _eventBus = EventBusService();
   StreamSubscription<PostCreatedEvent>? _postCreatedSubscription;
   StreamSubscription<PostDeletedEvent>? _postDeletedSubscription;
+  StreamSubscription<FavoriteChangedEvent>? _favoriteChangedSubscription;
+  StreamSubscription<WantToVisitChangedEvent>? _wantToVisitChangedSubscription;
 
   late Command0<List<Post>> loadFeed;
   late Command0<List<Post>> refreshFeed;
@@ -32,6 +34,7 @@ class HomeFeedViewModel extends ChangeNotifier {
   int _currentOffset = 0;
   bool _hasMorePosts = true;
   bool _isLoadingMore = false;
+  bool _isDisposed = false;
 
   bool get hasMorePosts => _hasMorePosts;
   bool get isLoadingMore => _isLoadingMore;
@@ -47,6 +50,44 @@ class HomeFeedViewModel extends ChangeNotifier {
       _posts.removeWhere((post) => post.id == event.postId);
       _currentOffset = _posts.length;
       notifyListeners();
+    });
+
+    // ✅ NOVO: Escuta eventos de favorito
+    _favoriteChangedSubscription = _eventBus.on<FavoriteChangedEvent>().listen((event) {
+      print('⭐ Feed recebeu evento de favorito: coffeeId=${event.coffeeId}, isFavorited=${event.isFavorited}');
+      
+      // Atualiza todos os posts dessa cafeteria
+      bool updated = false;
+      for (int i = 0; i < _posts.length; i++) {
+        if (_posts[i].coffeeId == event.coffeeId) {
+          _posts[i] = _posts[i].copyWith(isFavorited: event.isFavorited);
+          updated = true;
+        }
+      }
+      
+      // ✅ Verifica se não foi disposed antes de notificar
+      if (updated && !_isDisposed) {
+        notifyListeners();
+      }
+    });
+
+    // ✅ NOVO: Escuta eventos de "Quero Visitar"
+    _wantToVisitChangedSubscription = _eventBus.on<WantToVisitChangedEvent>().listen((event) {
+      print('🏷️ Feed recebeu evento de quero visitar: coffeeId=${event.coffeeId}, wantToVisit=${event.wantToVisit}');
+      
+      // Atualiza todos os posts dessa cafeteria
+      bool updated = false;
+      for (int i = 0; i < _posts.length; i++) {
+        if (_posts[i].coffeeId == event.coffeeId) {
+          _posts[i] = _posts[i].copyWith(wantToVisit: event.wantToVisit);
+          updated = true;
+        }
+      }
+      
+      // ✅ Verifica se não foi disposed antes de notificar
+      if (updated && !_isDisposed) {
+        notifyListeners();
+      }
     });
   }
 
@@ -150,8 +191,11 @@ class HomeFeedViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _postCreatedSubscription?.cancel();
     _postDeletedSubscription?.cancel();
+    _favoriteChangedSubscription?.cancel();
+    _wantToVisitChangedSubscription?.cancel();
     super.dispose();
   }
 }

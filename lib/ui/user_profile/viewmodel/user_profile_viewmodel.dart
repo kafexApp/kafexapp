@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:kafex/data/models/domain/user_profile.dart'; // ✅ Post vem daqui
+import 'package:kafex/data/models/domain/user_profile.dart';
 import 'package:kafex/data/models/domain/profile_tab_data.dart';
 import 'package:kafex/data/repositories/user_profile_repository.dart';
 import 'package:kafex/models/cafe_model.dart';
@@ -10,12 +10,14 @@ import 'package:kafex/utils/command.dart';
 import 'package:kafex/utils/result.dart';
 import 'package:kafex/services/user_profile_service.dart';
 import 'package:kafex/services/quero_visitar_service.dart';
+import 'package:kafex/services/favorito_service.dart'; // ✅ ADICIONADO
 import 'package:kafex/backend/supabase/supabase.dart';
 
 class UserProfileViewModel extends ChangeNotifier {
   final UserProfileRepository _repository;
   final String userId;
-  final QueroVisitarService _queroVisitarService = QueroVisitarService(); // ✅ ADICIONADO
+  final QueroVisitarService _queroVisitarService = QueroVisitarService();
+  final FavoritoService _favoritoService = FavoritoService(); // ✅ ADICIONADO
 
   UserProfileViewModel({
     required UserProfileRepository repository,
@@ -48,7 +50,6 @@ class UserProfileViewModel extends ChangeNotifier {
     try {
       print('🔍 Carregando perfil do usuário (Firebase UID): $userId');
 
-      // ✅ CORREÇÃO: Buscar perfil no Supabase usando Firebase UID
       final profile = await _getUserFromSupabase(userId);
 
       if (profile != null) {
@@ -75,16 +76,15 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // ✅ ATUALIZADO: Busca perfil do usuário no Supabase e conta "Quero Visitar"
+  // ✅ ATUALIZADO: Busca perfil do usuário no Supabase e conta Favoritos e Quero Visitar
   Future<UserProfile?> _getUserFromSupabase(String firebaseUid) async {
     try {
       print('🔍 Buscando usuário no Supabase por Firebase UID: $firebaseUid');
 
-      // ✅ CORREÇÃO: Buscar na tabela usuario_perfil pelo campo 'ref' (Firebase UID)
       final response = await SupaClient.client
           .from('usuario_perfil')
           .select('id, ref, nome_exibicao, foto_url, email')
-          .eq('ref', firebaseUid) // ✅ Busca pelo Firebase UID
+          .eq('ref', firebaseUid)
           .maybeSingle();
 
       if (response != null) {
@@ -93,7 +93,11 @@ class UserProfileViewModel extends ChangeNotifier {
         // Contar posts do usuário
         final postsCount = await _countUserPosts(response['id']);
 
-        // ✅ NOVO: Contar "Quero Visitar"
+        // ✅ NOVO: Contar Favoritos
+        final favoritesCount = await _favoritoService.countUserFavoritos(firebaseUid);
+        print('⭐ Usuário tem $favoritesCount favoritos');
+
+        // Contar "Quero Visitar"
         final wantToVisitCount = await _queroVisitarService.countQueroVisitar(firebaseUid);
         print('📍 Usuário tem $wantToVisitCount cafés em "Quero Visitar"');
 
@@ -102,10 +106,10 @@ class UserProfileViewModel extends ChangeNotifier {
           id: response['id'].toString(),
           name: response['nome_exibicao'] ?? 'Usuário',
           avatar: response['foto_url'],
-          bio: 'Coffeelover ☕️', // TODO: Adicionar campo bio na tabela
+          bio: 'Coffeelover ☕️',
           postsCount: postsCount,
-          favoritesCount: 0, // TODO: Implementar contagem de favoritos
-          wantToVisitCount: wantToVisitCount, // ✅ ATUALIZADO
+          favoritesCount: favoritesCount, // ✅ ATUALIZADO
+          wantToVisitCount: wantToVisitCount,
         );
       }
 
@@ -123,11 +127,10 @@ class UserProfileViewModel extends ChangeNotifier {
   Future<int> _countUserPosts(int userId) async {
     try {
       final response = await SupaClient.client
-          .from('feed')
+          .from('feed_com_usuario')
           .select('id')
           .eq('user_id', userId);
 
-      // Contar manualmente os posts
       if (response is List) {
         print('✅ Usuário tem ${response.length} posts');
         return response.length;
@@ -140,7 +143,7 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // ✅ ATUALIZADO: Método para carregar dados das tabs com "Quero Visitar"
+  // ✅ ATUALIZADO: Método para carregar dados das tabs com Favoritos e Quero Visitar
   Future<Result<void>> _loadTabData() async {
     try {
       print(
@@ -150,18 +153,22 @@ class UserProfileViewModel extends ChangeNotifier {
       // Carregar posts do usuário do Supabase
       final posts = await _getUserPostsFromSupabase();
 
-      // ✅ NOVO: Carregar lista "Quero Visitar"
+      // ✅ NOVO: Carregar lista de Favoritos
+      final favoriteCafes = await _getFavoriteCafes();
+      print('⭐ ${favoriteCafes.length} cafés favoritos carregados');
+
+      // Carregar lista "Quero Visitar"
       final wantToVisitCafes = await _getWantToVisitCafes();
       print('📍 ${wantToVisitCafes.length} cafés carregados em "Quero Visitar"');
 
       _tabData = _tabData.copyWith(
         userPosts: posts,
-        favoriteCafes: [], // TODO: Implementar busca de cafés favoritos
-        wantToVisitCafes: wantToVisitCafes, // ✅ ATUALIZADO
+        favoriteCafes: favoriteCafes, // ✅ ATUALIZADO
+        wantToVisitCafes: wantToVisitCafes,
       );
 
       notifyListeners();
-      print('✅ Dados das tabs carregados - ${posts.length} posts');
+      print('✅ Dados das tabs carregados - ${posts.length} posts, ${favoriteCafes.length} favoritos, ${wantToVisitCafes.length} quero visitar');
       return Result.ok(null);
     } catch (e) {
       print('❌ Erro ao carregar dados das tabs: $e');
@@ -179,7 +186,58 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // ✅ NOVO: Método para buscar cafés "Quero Visitar"
+  // ✅ NOVO: Método para buscar cafés Favoritos
+  Future<List<CafeModel>> _getFavoriteCafes() async {
+    try {
+      print('🔍 Buscando cafés Favoritos');
+      
+      final favoritosList = await _favoritoService.getUserFavoritosList(userId);
+      
+      if (favoritosList.isEmpty) {
+        print('⚠️ Lista de Favoritos vazia');
+        return [];
+      }
+      
+      final cafes = <CafeModel>[];
+      
+      for (var item in favoritosList) {
+        final cafeteriaId = item['cafeteria_id'];
+        if (cafeteriaId == null) continue;
+        
+        final cafeData = await SupaClient.client
+            .from('cafeteria')
+            .select('*')
+            .eq('id', cafeteriaId)
+            .maybeSingle();
+        
+        if (cafeData == null) continue;
+        
+        cafes.add(CafeModel(
+          id: cafeData['id'].toString(),
+          name: cafeData['nome'] ?? '',
+          address: '${cafeData['endereco'] ?? ''}, ${cafeData['cidade'] ?? ''}',
+          rating: (cafeData['pontuacao'] as num?)?.toDouble() ?? 0.0,
+          distance: '0 km',
+          imageUrl: cafeData['url_foto'] ?? '',
+          isOpen: true,
+          position: LatLng(
+            (cafeData['latitude'] as num?)?.toDouble() ?? 0.0,
+            (cafeData['longitude'] as num?)?.toDouble() ?? 0.0,
+          ),
+          price: '\$\$',
+          specialties: [],
+        ));
+      }
+      
+      print('✅ ${cafes.length} cafés favoritos carregados');
+      return cafes;
+    } catch (e) {
+      print('❌ Erro ao buscar cafés Favoritos: $e');
+      return [];
+    }
+  }
+
+  // Método para buscar cafés "Quero Visitar"
   Future<List<CafeModel>> _getWantToVisitCafes() async {
     try {
       print('🔍 Buscando cafés "Quero Visitar"');
@@ -222,7 +280,7 @@ class UserProfileViewModel extends ChangeNotifier {
         ));
       }
       
-      print('✅ ${cafes.length} cafés carregados');
+      print('✅ ${cafes.length} cafés "Quero Visitar" carregados');
       return cafes;
     } catch (e) {
       print('❌ Erro ao buscar cafés "Quero Visitar": $e');
@@ -230,16 +288,15 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // ✅ CORRIGIDO: Busca posts do usuário no Supabase usando Firebase UID
+  // Busca posts do usuário no Supabase usando Firebase UID
   Future<List<Post>> _getUserPostsFromSupabase() async {
     try {
       print('🔍 Buscando posts do usuário (Firebase UID): $userId');
 
-      // ✅ CORREÇÃO: Buscar user_id pelo Firebase UID (campo 'ref')
       final userResponse = await SupaClient.client
           .from('usuario_perfil')
           .select('id')
-          .eq('ref', userId) // ✅ Busca pelo Firebase UID
+          .eq('ref', userId)
           .maybeSingle();
 
       if (userResponse == null) {
@@ -250,7 +307,6 @@ class UserProfileViewModel extends ChangeNotifier {
       final userIdInt = userResponse['id'];
       print('✅ ID do usuário encontrado: $userIdInt');
 
-      // Buscar posts do usuário
       final response = await SupaClient.client
           .from('feed_com_usuario')
           .select()
@@ -264,7 +320,6 @@ class UserProfileViewModel extends ChangeNotifier {
 
       print('✅ ${response.length} posts encontrados');
 
-      // Converter para lista de Posts
       final posts = <Post>[];
       for (var postData in response) {
         posts.add(
@@ -275,9 +330,9 @@ class UserProfileViewModel extends ChangeNotifier {
             content: postData['descricao'] ?? '',
             imageUrl: postData['url_foto'],
             createdAt: DateTime.parse(postData['criado_em']),
-            likes: 0, // TODO: Implementar contagem de curtidas
+            likes: 0,
             commentsCount: postData['comentarios'] ?? 0,
-            isLiked: false, // TODO: Verificar se usuário atual curtiu
+            isLiked: false,
           ),
         );
       }
@@ -331,11 +386,11 @@ class UserProfileViewModel extends ChangeNotifier {
 
   Color getAvatarColor(String userName) {
     const avatarColors = [
-      Color(0xFFE57373), // vermelho claro
-      Color(0xFF81C784), // verde claro
-      Color(0xFF64B5F6), // azul claro
-      Color(0xFFFFB74D), // laranja claro
-      Color(0xFFBA68C8), // roxo claro
+      Color(0xFFE57373),
+      Color(0xFF81C784),
+      Color(0xFF64B5F6),
+      Color(0xFFFFB74D),
+      Color(0xFFBA68C8),
     ];
 
     final colorIndex = userName.isNotEmpty ? userName.codeUnitAt(0) % 5 : 0;

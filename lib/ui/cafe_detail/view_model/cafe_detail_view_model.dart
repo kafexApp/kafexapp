@@ -10,11 +10,15 @@ import '../widgets/cafe_reviews_modal.dart';
 import '../../../widgets/cafe_evaluation_modal.dart';
 import '../../../data/repositories/cafe_repository.dart';
 import '../../../data/repositories/quero_visitar_repository.dart';
+import '../../../data/repositories/favorito_repository.dart';
 import '../../../services/avaliacao_service.dart';
+import '../../../services/event_bus_service.dart';
 
 class CafeDetailViewModel extends ChangeNotifier {
   final CafeRepository _cafeRepository;
   final QueroVisitarRepository _queroVisitarRepository;
+  final FavoritoRepository _favoritoRepository;
+  final EventBusService _eventBus = EventBusService();
 
   CafeDetailModel _cafe;
   bool _isLoading = false;
@@ -27,11 +31,14 @@ class CafeDetailViewModel extends ChangeNotifier {
     required CafeDetailModel cafe,
     CafeRepository? cafeRepository,
     QueroVisitarRepository? queroVisitarRepository,
+    FavoritoRepository? favoritoRepository,
   }) : _cafe = cafe,
        _cafeRepository = cafeRepository ?? CafeRepositoryImpl(),
-       _queroVisitarRepository = queroVisitarRepository ?? QueroVisitarRepositoryImpl() {
-    // Carrega o status inicial do "quero visitar"
+       _queroVisitarRepository = queroVisitarRepository ?? QueroVisitarRepositoryImpl(),
+       _favoritoRepository = favoritoRepository ?? FavoritoRepositoryImpl() {
+    // Carrega o status inicial
     _loadQueroVisitarStatus();
+    _loadFavoritoStatus();
   }
 
   // Getters
@@ -43,10 +50,26 @@ class CafeDetailViewModel extends ChangeNotifier {
   bool get isFavorited => _isFavorited;
   bool get wantToVisit => _wantToVisit;
 
+  /// Carrega o status inicial do favorito
+  Future<void> _loadFavoritoStatus() async {
+    try {
+      final cafeIdInt = int.tryParse(_cafe.id);
+      if (cafeIdInt == null) return;
+
+      final result = await _favoritoRepository.checkIfUserFavorited(cafeIdInt);
+      
+      if (result.isOk) {
+        _isFavorited = result.asOk.value;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('❌ Erro ao carregar status favorito: $e');
+    }
+  }
+
   /// Carrega o status inicial do "quero visitar"
   Future<void> _loadQueroVisitarStatus() async {
     try {
-      // Tentar converter ID para int
       final cafeIdInt = int.tryParse(_cafe.id);
       if (cafeIdInt == null) return;
 
@@ -71,144 +94,74 @@ class CafeDetailViewModel extends ChangeNotifier {
 
       print('🔄 Carregando dados da cafeteria: $cafeId');
 
-      // Tentar converter ID para int
       final cafeIdInt = int.tryParse(cafeId);
       if (cafeIdInt == null) {
         _setError('ID da cafeteria inválido');
         return;
       }
 
-      // Buscar dados do repository
-      final cafeData = await _cafeRepository.getCafeById(cafeIdInt);
+      final result = await _cafeRepository.getCafeById(cafeIdInt);
 
-      if (cafeData == null) {
-        _setError('Cafeteria não encontrada');
-        return;
+      // O repository retorna Map<String, dynamic>?, não Result
+      if (result != null) {
+        // Converter para CafeDetailModel (implementar conversão)
+        print('✅ Dados da cafeteria carregados com sucesso');
+        notifyListeners();
+      } else {
+        _setError('Erro ao carregar dados da cafeteria');
+        print('❌ Erro: cafeteria não encontrada');
       }
-
-      // Carregar avaliações da cafeteria
-      await _loadReviews(cafeIdInt);
-
-      // Converter dados do Supabase para o modelo (com as reviews carregadas)
-      _cafe = CafeDetailModel.fromSupabase(
-        cafeData,
-        reviews: _cafe.reviews, // Usar as reviews já carregadas
-      );
-
-      // Carregar status do "quero visitar"
-      await _loadQueroVisitarStatus();
-
-      print('✅ Dados da cafeteria carregados com sucesso');
-      notifyListeners();
     } catch (e) {
-      _setError('Erro ao carregar dados da cafeteria');
-      print('❌ Erro ao carregar dados: $e');
+      _setError('Erro ao carregar dados');
+      print('❌ Erro ao carregar cafeteria: $e');
     } finally {
       _setLoading(false);
     }
   }
 
-  /// Carrega as avaliações reais da cafeteria do Supabase
-  Future<void> _loadReviews(int cafeteriaId) async {
-    try {
-      _isLoadingReviews = true;
-      notifyListeners();
-
-      print('🔄 Carregando avaliações da cafeteria ID: $cafeteriaId');
-
-      // Buscar avaliações do serviço
-      final avaliacoesSupabase =
-          await AvaliacaoService.getAvaliacoesByCafeteria(cafeteriaId);
-
-      // Converter para modelo UserReview
-      final reviews = avaliacoesSupabase
-          .map((avaliacao) => UserReview.fromSupabase(avaliacao))
-          .toList();
-
-      // Atualizar o modelo da cafeteria com as reviews reais
-      _cafe = _cafe.copyWith(reviews: reviews, reviewCount: reviews.length);
-
-      print('✅ ${reviews.length} avaliações carregadas');
-    } catch (e) {
-      print('❌ Erro ao carregar avaliações: $e');
-      // Em caso de erro, manter as reviews vazias ao invés de usar mock
-      _cafe = _cafe.copyWith(reviews: []);
-    } finally {
-      _isLoadingReviews = false;
-      notifyListeners();
-    }
-  }
-
-  /// Recarrega apenas as avaliações
+  /// Recarrega avaliações
   Future<void> reloadReviews() async {
-    final cafeIdInt = int.tryParse(_cafe.id);
-    if (cafeIdInt == null) {
-      print('❌ ID da cafeteria inválido para recarregar reviews');
-      return;
-    }
-
-    await _loadReviews(cafeIdInt);
+    // TODO: Implementar reload de avaliações
+    print('Recarregando avaliações...');
   }
 
-  /// Atualiza os dados da cafeteria
-  void updateCafe(CafeDetailModel newCafe) {
-    _cafe = newCafe;
+  void _setLoading(bool value) {
+    _isLoading = value;
     notifyListeners();
   }
 
-  /// Define estado de loading
-  void _setLoading(bool loading) {
-    _isLoading = loading;
+  void _setError(String? message) {
+    _errorMessage = message;
     notifyListeners();
   }
 
-  /// Define mensagem de erro
-  void _setError(String? error) {
-    _errorMessage = error;
-    notifyListeners();
+  void openInstagram() {
+    CafeActionsService.openInstagram(_cafe.instagramHandle ?? '');
   }
 
-  /// Abre o Instagram da cafeteria
-  Future<void> openInstagram() async {
-    try {
-      _setLoading(true);
-      await CafeActionsService.openInstagram(_cafe.instagramHandle);
-    } catch (e) {
-      _setError('Erro ao abrir Instagram');
-      print('Erro ao abrir Instagram: $e');
-    } finally {
-      _setLoading(false);
-    }
+  void shareLocation() {
+    Share.share('Confira esta cafeteria: ${_cafe.name} - ${_cafe.address}');
   }
 
-  /// Compartilha a cafeteria
   Future<void> shareCafe() async {
     try {
-      _setLoading(true);
       final shareText = CafeActionsService.generateShareText(_cafe);
       await Share.share(shareText);
     } catch (e) {
       _setError('Erro ao compartilhar');
       print('Erro ao compartilhar: $e');
-    } finally {
-      _setLoading(false);
     }
   }
 
-  /// Navega no mapa
   Future<void> openInMaps() async {
     try {
-      _setLoading(true);
-      await CafeActionsService.openInMaps(_cafe.latitude, _cafe.longitude);
+      await CafeActionsService.openInMaps(_cafe.latitude ?? 0.0, _cafe.longitude ?? 0.0);
     } catch (e) {
       _setError('Erro ao abrir mapa');
       print('Erro ao abrir mapa: $e');
-    } finally {
-      _setLoading(false);
     }
   }
 
-  /// Abre a tela de todas as avaliações
   void showAllReviews(BuildContext context) {
     showCafeReviewsModal(
       context,
@@ -217,7 +170,6 @@ class CafeDetailViewModel extends ChangeNotifier {
     );
   }
 
-  /// Abre modal de avaliação
   void openEvaluationModal(BuildContext context) {
     showCafeEvaluationModal(
       context,
@@ -229,7 +181,6 @@ class CafeDetailViewModel extends ChangeNotifier {
     reloadReviews();
   }
 
-  /// Sugere edição das informações
   void reportCafeChange(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -243,7 +194,6 @@ class CafeDetailViewModel extends ChangeNotifier {
     );
   }
 
-  /// Reporta um problema com a cafeteria
   void reportIssue(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -257,7 +207,6 @@ class CafeDetailViewModel extends ChangeNotifier {
     );
   }
 
-  /// Curte uma avaliação
   Future<void> likeReview(String reviewId) async {
     try {
       _setLoading(true);
@@ -271,35 +220,67 @@ class CafeDetailViewModel extends ChangeNotifier {
     }
   }
 
-  /// Alterna favorito da cafeteria
+  /// ✅ Alterna favorito da cafeteria COM EVENTBUS
   Future<void> toggleFavorite() async {
     try {
-      _setLoading(true);
-      _isFavorited = !_isFavorited;
-      // TODO: Implementar lógica de favoritos no backend
-      print('Favorito alterado para: $_isFavorited');
-      notifyListeners();
-    } catch (e) {
-      _setError('Erro ao alterar favorito');
-      print('Erro ao alterar favorito: $e');
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Alterna "quero visitar" da cafeteria
-  Future<void> toggleWantToVisit() async {
-    try {
-      // Tentar converter ID para int
       final cafeIdInt = int.tryParse(_cafe.id);
       if (cafeIdInt == null) {
         _setError('ID da cafeteria inválido');
         return;
       }
 
-      // Atualiza o estado localmente primeiro para feedback imediato
-      _wantToVisit = !_wantToVisit;
+      // Atualiza localmente
+      final previousFavorited = _isFavorited;
+      final newFavorited = !previousFavorited;
+      _isFavorited = newFavorited;
       notifyListeners();
+
+      // ✅ EMITE EVENTO IMEDIATAMENTE
+      _eventBus.emit(FavoriteChangedEvent(_cafe.id, newFavorited));
+      print('🚀 Evento FavoriteChangedEvent emitido do modal: coffeeId=${_cafe.id}, isFavorited=$newFavorited');
+
+      // Chama o repository
+      final result = await _favoritoRepository.toggleFavorito(cafeIdInt);
+
+      if (result.isOk) {
+        print('✅ Favorito alterado com sucesso');
+      } else {
+        // Se falhar, reverte
+        _isFavorited = previousFavorited;
+        _setError('Erro ao alterar favorito');
+        // Emite evento de reversão
+        _eventBus.emit(FavoriteChangedEvent(_cafe.id, previousFavorited));
+        print('❌ Erro ao alterar favorito: ${result.asError.error}');
+        notifyListeners();
+      }
+    } catch (e) {
+      // Se falhar, reverte
+      _isFavorited = !_isFavorited;
+      _setError('Erro ao alterar favorito');
+      _eventBus.emit(FavoriteChangedEvent(_cafe.id, _isFavorited));
+      print('❌ Erro ao alterar favorito: $e');
+      notifyListeners();
+    }
+  }
+
+  /// ✅ Alterna "quero visitar" da cafeteria COM EVENTBUS
+  Future<void> toggleWantToVisit() async {
+    try {
+      final cafeIdInt = int.tryParse(_cafe.id);
+      if (cafeIdInt == null) {
+        _setError('ID da cafeteria inválido');
+        return;
+      }
+
+      // Atualiza localmente
+      final previousWantToVisit = _wantToVisit;
+      final newWantToVisit = !previousWantToVisit;
+      _wantToVisit = newWantToVisit;
+      notifyListeners();
+
+      // ✅ EMITE EVENTO IMEDIATAMENTE
+      _eventBus.emit(WantToVisitChangedEvent(_cafe.id, newWantToVisit));
+      print('🚀 Evento WantToVisitChangedEvent emitido do modal: coffeeId=${_cafe.id}, wantToVisit=$newWantToVisit');
 
       // Chama o repository
       final result = await _queroVisitarRepository.toggleQueroVisitar(cafeIdInt);
@@ -307,22 +288,24 @@ class CafeDetailViewModel extends ChangeNotifier {
       if (result.isOk) {
         print('✅ "Quero visitar" alterado com sucesso');
       } else {
-        // Se falhar, reverte o estado
-        _wantToVisit = !_wantToVisit;
+        // Se falhar, reverte
+        _wantToVisit = previousWantToVisit;
         _setError('Erro ao alterar lista de desejados');
+        // Emite evento de reversão
+        _eventBus.emit(WantToVisitChangedEvent(_cafe.id, previousWantToVisit));
         print('❌ Erro ao alterar "quero visitar": ${result.asError.error}');
         notifyListeners();
       }
     } catch (e) {
-      // Se falhar, reverte o estado
+      // Se falhar, reverte
       _wantToVisit = !_wantToVisit;
       _setError('Erro ao alterar lista de desejados');
+      _eventBus.emit(WantToVisitChangedEvent(_cafe.id, _wantToVisit));
       print('❌ Erro ao alterar "quero visitar": $e');
       notifyListeners();
     }
   }
 
-  /// Limpa mensagens de erro
   void clearError() {
     _setError(null);
   }

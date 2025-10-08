@@ -18,6 +18,22 @@ class PostDeletedEvent extends AppEvent {
   PostDeletedEvent(this.postId);
 }
 
+/// Evento disparado quando uma cafeteria é favoritada/desfavoritada
+class FavoriteChangedEvent extends AppEvent {
+  final String coffeeId;
+  final bool isFavorited;
+  
+  FavoriteChangedEvent(this.coffeeId, this.isFavorited);
+}
+
+/// Evento disparado quando marca/desmarca "Quero Visitar"
+class WantToVisitChangedEvent extends AppEvent {
+  final String coffeeId;
+  final bool wantToVisit;
+  
+  WantToVisitChangedEvent(this.coffeeId, this.wantToVisit);
+}
+
 /// Service para comunicação entre ViewModels através de eventos
 class EventBusService {
   static final EventBusService _instance = EventBusService._internal();

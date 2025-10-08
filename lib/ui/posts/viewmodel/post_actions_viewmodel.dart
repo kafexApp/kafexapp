@@ -2,27 +2,62 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import '../../../data/models/domain/post.dart';
 import '../../../utils/command.dart';
 import '../../../utils/result.dart';
 import '../../../services/event_bus_service.dart';
 import '../../../services/post_deletion_service.dart';
 import '../../../data/repositories/likes_repository.dart';
+import '../../../data/repositories/favorito_repository.dart';
+import '../../../data/repositories/quero_visitar_repository.dart';
 
 class PostActionsViewModel extends ChangeNotifier {
   final String postId;
   Post _post;
   final LikesRepository _likesRepository;
+  final FavoritoRepository _favoritoRepository;
+  final QueroVisitarRepository _queroVisitarRepository;
   final EventBusService _eventBus = EventBusService();
+
+  StreamSubscription<FavoriteChangedEvent>? _favoriteChangedSubscription;
+  StreamSubscription<WantToVisitChangedEvent>? _wantToVisitChangedSubscription;
 
   PostActionsViewModel({
     required this.postId,
     required Post initialPost,
     LikesRepository? likesRepository,
+    FavoritoRepository? favoritoRepository,
+    QueroVisitarRepository? queroVisitarRepository,
   }) : _post = initialPost,
-       _likesRepository = likesRepository ?? LikesRepositoryImpl() {
+       _likesRepository = likesRepository ?? LikesRepositoryImpl(),
+       _favoritoRepository = favoritoRepository ?? FavoritoRepositoryImpl(),
+       _queroVisitarRepository = queroVisitarRepository ?? QueroVisitarRepositoryImpl() {
     _initializeCommands();
     _loadLikeState();
+    _loadFavoritoState();
+    _loadQueroVisitarState();
+    _listenToEvents();
+  }
+
+  void _listenToEvents() {
+    // Escuta eventos de favorito de OUTRAS instâncias
+    _favoriteChangedSubscription = _eventBus.on<FavoriteChangedEvent>().listen((event) {
+      if (_post.coffeeId == event.coffeeId) {
+        print('⭐ PostActions recebeu evento de favorito: coffeeId=${event.coffeeId}, isFavorited=${event.isFavorited}');
+        _post = _post.copyWith(isFavorited: event.isFavorited);
+        notifyListeners();
+      }
+    });
+
+    // Escuta eventos de "Quero Visitar" de OUTRAS instâncias
+    _wantToVisitChangedSubscription = _eventBus.on<WantToVisitChangedEvent>().listen((event) {
+      if (_post.coffeeId == event.coffeeId) {
+        print('🏷️ PostActions recebeu evento de quero visitar: coffeeId=${event.coffeeId}, wantToVisit=${event.wantToVisit}');
+        _post = _post.copyWith(wantToVisit: event.wantToVisit);
+        notifyListeners();
+      }
+    });
   }
 
   void _initializeCommands() {
@@ -57,44 +92,57 @@ class PostActionsViewModel extends ChangeNotifier {
   String? get coffeeAddress => _post.coffeeAddress;
   double? get rating => _post.rating;
 
-  /// ✅ CORRIGIDO: Compara Firebase UID do usuário atual com o authorUid do post
   bool get isOwnPost {
-  final currentUser = FirebaseAuth.instance.currentUser;
-  
-  print('🔍 === DEBUG isOwnPost ===');
-  print('Post ID: ${_post.id}');
-  print('Post Author Name: ${_post.authorName}');
-  print('Post Author UID: ${_post.authorUid}');
-  print('Current User: ${currentUser?.uid}');
-  print('Current User Email: ${currentUser?.email}');
-  
-  if (currentUser == null) {
-    print('❌ Nenhum usuário logado');
-    return false;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    
+    if (currentUser == null) {
+      return false;
+    }
+    
+    final currentUserUid = currentUser.uid;
+    final postAuthorUid = _post.authorUid;
+    
+    if (postAuthorUid == null || postAuthorUid.isEmpty) {
+      return false;
+    }
+    
+    return currentUserUid == postAuthorUid;
   }
-  
-  final currentUserUid = currentUser.uid;
-  final postAuthorUid = _post.authorUid;
-  
-  print('Comparando UIDs:');
-  print('  Current: $currentUserUid');
-  print('  Author:  $postAuthorUid');
-  
-  // Se o post não tem authorUid, retorna false (segurança)
-  if (postAuthorUid == null || postAuthorUid.isEmpty) {
-    print('❌ Post não tem authorUid');
-    return false;
-  }
-  
-  final result = currentUserUid == postAuthorUid;
-  print('Resultado: ${result ? "✅ É SEU POST" : "❌ NÃO é seu post"}');
-  print('=========================\n');
-  
-  return result;
-}
 
   int get avatarColorIndex {
     return _post.authorName.isNotEmpty ? _post.authorName.codeUnitAt(0) % 5 : 0;
+  }
+
+  Future<void> _loadFavoritoState() async {
+    try {
+      final cafeteriaId = int.tryParse(_post.coffeeId ?? '');
+      if (cafeteriaId == null) return;
+
+      final result = await _favoritoRepository.checkIfUserFavorited(cafeteriaId);
+      
+      if (result.isOk) {
+        _post = _post.copyWith(isFavorited: result.asOk.value);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('❌ Erro ao carregar estado do favorito: $e');
+    }
+  }
+
+  Future<void> _loadQueroVisitarState() async {
+    try {
+      final cafeteriaId = int.tryParse(_post.coffeeId ?? '');
+      if (cafeteriaId == null) return;
+
+      final result = await _queroVisitarRepository.checkIfUserWantsToVisit(cafeteriaId);
+      
+      if (result.isOk) {
+        _post = _post.copyWith(wantToVisit: result.asOk.value);
+        notifyListeners();
+      }
+    } catch (e) {
+      print('❌ Erro ao carregar estado do "quero visitar": $e');
+    }
   }
 
   Future<void> _loadLikeState() async {
@@ -180,14 +228,35 @@ class PostActionsViewModel extends ChangeNotifier {
         return Result.error(Exception('Post não é de uma cafeteria'));
       }
 
-      _post = _post.copyWith(isFavorited: !isFavorited);
+      final cafeteriaId = int.tryParse(_post.coffeeId!);
+      if (cafeteriaId == null) {
+        return Result.error(Exception('ID da cafeteria inválido'));
+      }
+
+      // Atualiza UI imediatamente
+      final previousFavorited = _post.isFavorited ?? false;
+      _post = _post.copyWith(isFavorited: !previousFavorited);
       notifyListeners();
 
-      await Future.delayed(Duration(milliseconds: 500));
+      // Chama o repository
+      final result = await _favoritoRepository.toggleFavorito(cafeteriaId);
 
+      if (result.isError) {
+        // Reverte se falhar
+        _post = _post.copyWith(isFavorited: previousFavorited);
+        notifyListeners();
+        return Result.error(result.asError.error);
+      }
+
+      // ✅ EMITE EVENTO após sucesso no banco
+      _eventBus.emit(FavoriteChangedEvent(_post.coffeeId!, !previousFavorited));
+      print('🚀 Evento FavoriteChangedEvent emitido: coffeeId=${_post.coffeeId}, isFavorited=${!previousFavorited}');
+
+      print('✅ Favorito alterado com sucesso no post');
       return Result.ok(null);
     } catch (e) {
-      _post = _post.copyWith(isFavorited: !isFavorited);
+      // Reverte se falhar
+      _post = _post.copyWith(isFavorited: !(_post.isFavorited ?? false));
       notifyListeners();
       return Result.error(Exception('Erro ao favoritar: $e'));
     }
@@ -199,14 +268,35 @@ class PostActionsViewModel extends ChangeNotifier {
         return Result.error(Exception('Post não é de uma cafeteria'));
       }
 
-      _post = _post.copyWith(wantToVisit: !wantToVisit);
+      final cafeteriaId = int.tryParse(_post.coffeeId!);
+      if (cafeteriaId == null) {
+        return Result.error(Exception('ID da cafeteria inválido'));
+      }
+
+      // Atualiza UI imediatamente
+      final previousWantToVisit = _post.wantToVisit ?? false;
+      _post = _post.copyWith(wantToVisit: !previousWantToVisit);
       notifyListeners();
 
-      await Future.delayed(Duration(milliseconds: 500));
+      // Chama o repository
+      final result = await _queroVisitarRepository.toggleQueroVisitar(cafeteriaId);
 
+      if (result.isError) {
+        // Reverte se falhar
+        _post = _post.copyWith(wantToVisit: previousWantToVisit);
+        notifyListeners();
+        return Result.error(result.asError.error);
+      }
+
+      // ✅ EMITE EVENTO após sucesso no banco
+      _eventBus.emit(WantToVisitChangedEvent(_post.coffeeId!, !previousWantToVisit));
+      print('🚀 Evento WantToVisitChangedEvent emitido: coffeeId=${_post.coffeeId}, wantToVisit=${!previousWantToVisit}');
+
+      print('✅ "Quero visitar" alterado com sucesso no post');
       return Result.ok(null);
     } catch (e) {
-      _post = _post.copyWith(wantToVisit: !wantToVisit);
+      // Reverte se falhar
+      _post = _post.copyWith(wantToVisit: !(_post.wantToVisit ?? false));
       notifyListeners();
       return Result.error(Exception('Erro ao atualizar lista: $e'));
     }
@@ -247,55 +337,28 @@ class PostActionsViewModel extends ChangeNotifier {
 
   Future<Result<void>> _deletePost() async {
     try {
-      print('🗑️ === DEBUG EXCLUSÃO ===');
-      print('Post ID: $postId');
-      print('Author UID: ${_post.authorUid}');
+      print('🗑️ Deletando post: $postId');
       
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         return Result.error(Exception('Usuário não autenticado'));
       }
-      
-      print('Current User UID: ${currentUser.uid}');
-      
-      // Passa apenas o postId - o service fará a verificação internamente
-      final success = await PostDeletionService.deletePost(postId);
 
-      print('Resultado da exclusão: $success');
-
-      if (success) {
-        print('✅ Post excluído - emitindo evento');
-        _eventBus.emit(PostDeletedEvent(postId));
-        return Result.ok(null);
-      } else {
-        print('❌ Falha na exclusão');
-        return Result.error(Exception('Você não tem permissão para excluir este post'));
-      }
+      await PostDeletionService.deletePost(_post.id);
+      
+      print('✅ Post deletado com sucesso');
+      
+      return Result.ok(null);
     } catch (e) {
-      print('❌ ERRO CRÍTICO: $e');
-      return Result.error(Exception('Erro ao excluir: $e'));
-    }
-  }
-
-  String getFormattedDate() {
-    final Duration difference = DateTime.now().difference(_post.createdAt);
-
-    if (difference.inMinutes < 1) {
-      return 'agora';
-    } else if (difference.inMinutes < 60) {
-      return 'há ${difference.inMinutes} min';
-    } else if (difference.inHours < 24) {
-      return 'há ${difference.inHours} hora${difference.inHours > 1 ? 's' : ''}';
-    } else if (difference.inDays < 7) {
-      return 'há ${difference.inDays} dia${difference.inDays > 1 ? 's' : ''}';
-    } else {
-      final weeks = (difference.inDays / 7).floor();
-      return 'há $weeks semana${weeks > 1 ? 's' : ''}';
+      print('❌ Erro ao deletar post: $e');
+      return Result.error(Exception('Erro ao deletar post: $e'));
     }
   }
 
   @override
   void dispose() {
+    _favoriteChangedSubscription?.cancel();
+    _wantToVisitChangedSubscription?.cancel();
     toggleLike.dispose();
     toggleFavorite.dispose();
     toggleWantToVisit.dispose();
