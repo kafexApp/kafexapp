@@ -28,7 +28,7 @@ class UserProfileViewModel extends ChangeNotifier {
   UserProfile? get userProfile => _userProfile;
   ProfileTabData get tabData => _tabData;
   int get currentTabIndex => _currentTabIndex;
-  
+
   List<Post> get userPosts => _tabData.userPosts;
   List<CafeModel> get favoriteCafes => _tabData.favoriteCafes;
   List<CafeModel> get wantToVisitCafes => _tabData.wantToVisitCafes;
@@ -43,9 +43,9 @@ class UserProfileViewModel extends ChangeNotifier {
   // Método para carregar perfil do usuário do Supabase
   Future<Result<void>> _loadUserProfile() async {
     try {
-      print('🔍 Carregando perfil do usuário: $userId');
+      print('🔍 Carregando perfil do usuário (Firebase UID): $userId');
 
-      // Buscar perfil no Supabase usando o email como identificador
+      // ✅ CORREÇÃO: Buscar perfil no Supabase usando Firebase UID
       final profile = await _getUserFromSupabase(userId);
 
       if (profile != null) {
@@ -57,14 +57,14 @@ class UserProfileViewModel extends ChangeNotifier {
 
       // Fallback: usar repository mock se não encontrar no Supabase
       final result = await _repository.getUserProfile(userId);
-      
+
       if (result.isOk) {
         _userProfile = result.asOk.value;
         notifyListeners();
         print('⚠️ Perfil carregado do repository mock');
         return Result.ok(null);
       }
-      
+
       return Result.error(result.asError.error);
     } catch (e) {
       print('❌ Erro ao carregar perfil: $e');
@@ -72,17 +72,21 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // Busca perfil do usuário no Supabase
-  Future<UserProfile?> _getUserFromSupabase(String userEmail) async {
+  // ✅ CORRIGIDO: Busca perfil do usuário no Supabase usando Firebase UID
+  Future<UserProfile?> _getUserFromSupabase(String firebaseUid) async {
     try {
-      // Buscar na tabela usuario_perfil pelo email
+      print('🔍 Buscando usuário no Supabase por Firebase UID: $firebaseUid');
+
+      // ✅ CORREÇÃO: Buscar na tabela usuario_perfil pelo campo 'ref' (Firebase UID)
       final response = await SupaClient.client
           .from('usuario_perfil')
           .select('id, ref, nome_exibicao, foto_url, email')
-          .eq('email', userEmail)
+          .eq('ref', firebaseUid) // ✅ Busca pelo Firebase UID
           .maybeSingle();
 
       if (response != null) {
+        print('✅ Usuário encontrado no Supabase: ${response['nome_exibicao']}');
+
         // Contar posts do usuário
         final postsCount = await _countUserPosts(response['id']);
 
@@ -94,10 +98,14 @@ class UserProfileViewModel extends ChangeNotifier {
           bio: 'Coffeelover ☕️', // TODO: Adicionar campo bio na tabela
           postsCount: postsCount,
           favoritesCount: 0, // TODO: Implementar contagem de favoritos
-          wantToVisitCount: 0, // TODO: Implementar contagem de lugares para visitar
+          wantToVisitCount:
+              0, // TODO: Implementar contagem de lugares para visitar
         );
       }
 
+      print(
+        '⚠️ Usuário não encontrado no Supabase pelo Firebase UID: $firebaseUid',
+      );
       return null;
     } catch (e) {
       print('❌ Erro ao buscar usuário no Supabase: $e');
@@ -115,6 +123,7 @@ class UserProfileViewModel extends ChangeNotifier {
 
       // Contar manualmente os posts
       if (response is List) {
+        print('✅ Usuário tem ${response.length} posts');
         return response.length;
       }
 
@@ -128,7 +137,9 @@ class UserProfileViewModel extends ChangeNotifier {
   // Método para carregar dados das tabs
   Future<Result<void>> _loadTabData() async {
     try {
-      print('🔍 Carregando dados das tabs para usuário: $userId');
+      print(
+        '🔍 Carregando dados das tabs para usuário (Firebase UID): $userId',
+      );
 
       // Carregar posts do usuário do Supabase
       final posts = await _getUserPostsFromSupabase();
@@ -140,39 +151,43 @@ class UserProfileViewModel extends ChangeNotifier {
       );
 
       notifyListeners();
-      print('✅ Dados das tabs carregados');
+      print('✅ Dados das tabs carregados - ${posts.length} posts');
       return Result.ok(null);
     } catch (e) {
       print('❌ Erro ao carregar dados das tabs: $e');
-      
+
       // Fallback para repository mock
       final result = await _repository.getProfileTabData(userId);
-      
+
       if (result.isOk) {
         _tabData = result.asOk.value;
         notifyListeners();
         return Result.ok(null);
       }
-      
+
       return Result.error(Exception('Erro ao carregar dados das tabs: $e'));
     }
   }
 
-  // Busca posts do usuário no Supabase
+  // ✅ CORRIGIDO: Busca posts do usuário no Supabase usando Firebase UID
   Future<List<Post>> _getUserPostsFromSupabase() async {
     try {
-      // Buscar user_id primeiro
+      print('🔍 Buscando posts do usuário (Firebase UID): $userId');
+
+      // ✅ CORREÇÃO: Buscar user_id pelo Firebase UID (campo 'ref')
       final userResponse = await SupaClient.client
           .from('usuario_perfil')
           .select('id')
-          .eq('email', userId)
+          .eq('ref', userId) // ✅ Busca pelo Firebase UID
           .maybeSingle();
 
       if (userResponse == null) {
+        print('⚠️ Usuário não encontrado para buscar posts');
         return [];
       }
 
       final userIdInt = userResponse['id'];
+      print('✅ ID do usuário encontrado: $userIdInt');
 
       // Buscar posts do usuário
       final response = await SupaClient.client
@@ -182,23 +197,28 @@ class UserProfileViewModel extends ChangeNotifier {
           .order('criado_em', ascending: false);
 
       if (response == null) {
+        print('⚠️ Nenhum post encontrado');
         return [];
       }
+
+      print('✅ ${response.length} posts encontrados');
 
       // Converter para lista de Posts
       final posts = <Post>[];
       for (var postData in response) {
-        posts.add(Post(
-          id: postData['id'].toString(),
-          authorName: postData['nome_exibicao'] ?? 'Usuário',
-          authorAvatar: postData['foto_perfil'],
-          content: postData['descricao'] ?? '',
-          imageUrl: postData['url_foto'],
-          createdAt: DateTime.parse(postData['criado_em']),
-          likes: postData['curtidas'] ?? 0,
-          commentsCount: postData['comentarios'] ?? 0,
-          isLiked: false, // TODO: Verificar se usuário atual curtiu
-        ));
+        posts.add(
+          Post(
+            id: postData['id'].toString(),
+            authorName: postData['nome_exibicao'] ?? 'Usuário',
+            authorAvatar: postData['foto_url'],
+            content: postData['descricao'] ?? '',
+            imageUrl: postData['url_foto'],
+            createdAt: DateTime.parse(postData['criado_em']),
+            likes: 0, // TODO: Implementar contagem de curtidas
+            commentsCount: postData['comentarios'] ?? 0,
+            isLiked: false, // TODO: Verificar se usuário atual curtiu
+          ),
+        );
       }
 
       return posts;
@@ -217,7 +237,7 @@ class UserProfileViewModel extends ChangeNotifier {
   Future<Result<void>> _likePost(String postId) async {
     try {
       await Future.delayed(Duration(milliseconds: 300));
-      
+
       final updatedPosts = _tabData.userPosts.map((post) {
         if (post.id == postId) {
           return post.copyWith(
@@ -227,10 +247,10 @@ class UserProfileViewModel extends ChangeNotifier {
         }
         return post;
       }).toList();
-      
+
       _tabData = _tabData.copyWith(userPosts: updatedPosts);
       notifyListeners();
-      
+
       return Result.ok(null);
     } catch (e) {
       return Result.error(Exception('Erro ao curtir post: $e'));
@@ -251,12 +271,12 @@ class UserProfileViewModel extends ChangeNotifier {
   Color getAvatarColor(String userName) {
     const avatarColors = [
       Color(0xFFE57373), // vermelho claro
-      Color(0xFF81C784), // verde claro  
+      Color(0xFF81C784), // verde claro
       Color(0xFF64B5F6), // azul claro
       Color(0xFFFFB74D), // laranja claro
       Color(0xFFBA68C8), // roxo claro
     ];
-    
+
     final colorIndex = userName.isNotEmpty ? userName.codeUnitAt(0) % 5 : 0;
     return avatarColors[colorIndex];
   }

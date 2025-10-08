@@ -43,10 +43,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     );
 
     _heartScaleAnimation = Tween<double>(begin: 0.0, end: 1.2).animate(
-      CurvedAnimation(
-        parent: _heartAnimationController,
-        curve: Curves.easeOut,
-      ),
+      CurvedAnimation(parent: _heartAnimationController, curve: Curves.easeOut),
     );
 
     _heartOpacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
@@ -80,14 +77,31 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     widget.onLike?.call();
   }
 
+  /// ✅ CORRIGIDO: Agora usa o Firebase UID do post
   void _navigateToUserProfile(String userName, String? avatarUrl) {
-    print('🔍 Navegando para perfil de: $userName');
+    // Busca o Firebase UID do autor do post
+    final String? authorUid = widget.post.authorUid;
+
+    if (authorUid == null || authorUid.isEmpty) {
+      print('❌ Firebase UID do autor não encontrado');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível carregar o perfil do usuário'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    print('🔍 Navegando para perfil do usuário:');
+    print('   Nome: $userName');
+    print('   Firebase UID: $authorUid');
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => UserProfileProvider(
-          userId: 'user_${userName.toLowerCase().replaceAll(' ', '_')}',
+          userId: authorUid, // ✅ Passa o Firebase UID real
           userName: userName,
           userAvatar: avatarUrl,
         ),
@@ -254,8 +268,10 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
 
   Widget buildPostHeader(PostActionsViewModel viewModel) {
     // ✅ LOG ADICIONADO
-    print('🏗️ buildPostHeader - Post ID: ${widget.post.id}, isOwnPost: ${viewModel.isOwnPost}');
-    
+    print(
+      '🏗️ buildPostHeader - Post ID: ${widget.post.id}, isOwnPost: ${viewModel.isOwnPost}',
+    );
+
     return Container(
       padding: EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Row(
@@ -279,7 +295,8 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
                   shape: BoxShape.circle,
                 ),
                 child: Center(
-                  child: widget.post.authorAvatar != null &&
+                  child:
+                      widget.post.authorAvatar != null &&
                           widget.post.authorAvatar!.startsWith('http')
                       ? ClipOval(
                           child: CachedNetworkImage(

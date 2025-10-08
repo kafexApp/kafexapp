@@ -21,10 +21,12 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
-        context.read<UserProfileViewModel>().changeTab.execute(_tabController.index);
+        context.read<UserProfileViewModel>().changeTab.execute(
+          _tabController.index,
+        );
       }
     });
 
@@ -260,9 +262,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildStatItem(
-              'Posts', 
-              (viewModel.userProfile?.postsCount ?? 0).toString(), 
-              AppIcons.heart
+              'Posts',
+              (viewModel.userProfile?.postsCount ?? 0).toString(),
+              AppIcons.heart,
             ),
             Container(height: 40, width: 1, color: AppColors.moonAsh),
             _buildStatItem(
@@ -368,7 +370,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       itemCount: viewModel.userPosts.length,
       itemBuilder: (context, index) {
         final post = viewModel.userPosts[index];
-        
+
         // Convertendo Post para FeedComUsuarioRow (compatibilidade)
         final feedPost = FeedComUsuarioRow({
           'id': int.tryParse(post.id) ?? index,

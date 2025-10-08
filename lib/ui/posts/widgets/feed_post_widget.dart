@@ -147,14 +147,37 @@ class _FeedPostCardState extends State<FeedPostCard> {
     }
   }
 
+  /// ✅ CORRIGIDO: Agora passa o Firebase UID real do usuário
   void _navigateToUserProfile(String userName, String? avatarUrl) {
-    print('🔍 Navegando para perfil de: $userName');
+    // 🔍 DEBUG: Ver o que está vindo do post
+    print('🔍 DEBUG - Dados do post:');
+    print('   Nome: $userName');
+    print('   Avatar: $avatarUrl');
+    print('   usuario_uid: ${widget.post.usuarioUid}');
+
+    // Busca o Firebase UID do autor do post
+    final String? authorUid = widget.post.usuarioUid;
+
+    if (authorUid == null || authorUid.isEmpty) {
+      print('❌ Firebase UID do autor não encontrado');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível carregar o perfil do usuário'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    print('🔍 Navegando para perfil do usuário:');
+    print('   Nome: $userName');
+    print('   Firebase UID: $authorUid');
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => UserProfileProvider(
-          userId: 'user_${userName.toLowerCase().replaceAll(' ', '_')}',
+          userId: authorUid, // ✅ Passa o Firebase UID real
           userName: userName,
           userAvatar: avatarUrl,
         ),
