@@ -47,34 +47,39 @@ class ReviewPostWidget extends BasePostWidget {
     VoidCallback? onEdit,
     VoidCallback? onDelete,
   }) : super(
-          key: key,
-          post: post,
-          onLike: onLike,
-          onComment: onComment,
-          onEdit: onEdit,
-          onDelete: onDelete,
-        );
+         key: key,
+         post: post,
+         onLike: onLike,
+         onComment: onComment,
+         onEdit: onEdit,
+         onDelete: onDelete,
+       );
 
   @override
   State<ReviewPostWidget> createState() => _ReviewPostWidgetState();
 }
 
 class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
-  
   void _toggleFavorite(PostActionsViewModel viewModel) {
     viewModel.toggleFavorite.execute();
-    
+
     if (viewModel.isFavorited) {
       CustomToast.show(
         context,
-        message: 'Essa cafeteria foi adicionada em sua lista de cafeterias favoritas.',
+        message:
+            'Essa cafeteria foi adicionada em sua lista de cafeterias favoritas.',
         type: ToastType.success,
-        customIcon: Icon(AppIcons.starFill, color: AppColors.cyberLime, size: 20),
+        customIcon: Icon(
+          AppIcons.starFill,
+          color: AppColors.cyberLime,
+          size: 20,
+        ),
       );
     } else {
       CustomToast.show(
         context,
-        message: 'Essa cafeteria foi removida da sua lista de cafeterias favoritas.',
+        message:
+            'Essa cafeteria foi removida da sua lista de cafeterias favoritas.',
         type: ToastType.info,
         customIcon: Icon(AppIcons.star, color: AppColors.cyberLime, size: 20),
       );
@@ -83,18 +88,24 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
 
   void _toggleWantToVisit(PostActionsViewModel viewModel) {
     viewModel.toggleWantToVisit.execute();
-    
+
     if (viewModel.wantToVisit) {
       CustomToast.show(
         context,
-        message: 'Essa cafeteria foi adicionada em sua lista de cafeterias que gostaria de visitar.',
+        message:
+            'Essa cafeteria foi adicionada em sua lista de cafeterias que gostaria de visitar.',
         type: ToastType.success,
-        customIcon: Icon(AppIcons.tagFill, color: AppColors.cyberLime, size: 20),
+        customIcon: Icon(
+          AppIcons.tagFill,
+          color: AppColors.cyberLime,
+          size: 20,
+        ),
       );
     } else {
       CustomToast.show(
         context,
-        message: 'Essa cafeteria foi removida da sua lista de cafeterias que gostaria de visitar.',
+        message:
+            'Essa cafeteria foi removida da sua lista de cafeterias que gostaria de visitar.',
         type: ToastType.info,
         customIcon: Icon(AppIcons.tag, color: AppColors.cyberLime, size: 20),
       );
@@ -102,12 +113,18 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
   }
 
   void _openCafeModal(PostActionsViewModel viewModel) {
+    print('🔍 DEBUG: coffeeId = ${viewModel.coffeeId}');
+    print('🔍 DEBUG: coffeeName = ${viewModel.coffeeName}');
+    print('🔍 DEBUG: rating = ${viewModel.rating}');
+
     final mockCafeModel = MockCafeModel(
       id: viewModel.coffeeId ?? '',
       name: viewModel.coffeeName ?? '',
       address: 'Endereço da cafeteria',
       rating: viewModel.rating ?? 0.0,
-      imageUrl: widget.post.imageUrl ?? 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb',
+      imageUrl:
+          widget.post.imageUrl ??
+          'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb',
       isOpen: true,
       position: MockLatLng(-23.5505, -46.6333),
     );
@@ -137,15 +154,15 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
                 ),
                 TextSpan(text: ' '),
                 TextSpan(
-                  text: widget.post.content.isNotEmpty 
-                    ? widget.post.content 
-                    : 'avaliou a cafeteria ${viewModel.coffeeName}',
+                  text: widget.post.content.isNotEmpty
+                      ? widget.post.content
+                      : 'avaliou a cafeteria ${viewModel.coffeeName}',
                 ),
               ],
             ),
           ),
         ),
-        
+
         // BOX COM INFORMAÇÕES DA CAFETERIA AVALIADA
         Container(
           margin: EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -181,9 +198,9 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
                   ),
                 ],
               ),
-              
+
               SizedBox(height: 12),
-              
+
               // Avaliação com grãos de café
               Row(
                 children: [
@@ -195,9 +212,9 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
                         width: 20,
                         height: 20,
                         colorFilter: ColorFilter.mode(
-                          index < (viewModel.rating ?? 0).floor() 
-                            ? AppColors.papayaSensorial 
-                            : AppColors.grayScale2,
+                          index < (viewModel.rating ?? 0).floor()
+                              ? AppColors.papayaSensorial
+                              : AppColors.grayScale2,
                           BlendMode.srcIn,
                         ),
                       ),
@@ -217,7 +234,7 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
             ],
           ),
         ),
-        
+
         // BOTÃO AVALIAR CAFETERIA
         Padding(
           padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -249,7 +266,7 @@ class _ReviewPostWidgetState extends BasePostWidgetState<ReviewPostWidget> {
             ),
           ),
         ),
-        
+
         // CONTADOR DE COMENTÁRIOS
         if (widget.post.comments > 0)
           Padding(

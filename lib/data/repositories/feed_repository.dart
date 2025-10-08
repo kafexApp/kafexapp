@@ -75,42 +75,43 @@ class FeedRepositoryImpl implements FeedRepository {
       authorAvatar = raw.urlFoto!;
     }
 
-    // ✅ NOVO: Busca o usuario_uid do banco (Firebase UID do autor)
+    // ✅ Busca o usuario_uid do banco (Firebase UID do autor)
     String? authorUid = raw.usuarioUid;
 
+    // ✅ CORREÇÃO CRÍTICA: Usar cafeteriaId ao invés de id
+    // O campo 'id' é o ID da linha do feed, não da cafeteria
+    // O campo 'cafeteriaId' (cafeteria_id no banco) é o ID correto da cafeteria
+    String? coffeeId;
+    if (raw.cafeteriaId != null) {
+      coffeeId = raw.cafeteriaId.toString();
+      print('✅ Post com cafeteria_id correto: $coffeeId');
+    }
+
+    print('🔍 DEBUG REPOSITORY: raw.cafeteriaId = ${raw.cafeteriaId}');
+    print('🔍 DEBUG REPOSITORY: coffeeId final = $coffeeId');
+    print('🔍 DEBUG REPOSITORY: raw.nomeCafeteria = ${raw.nomeCafeteria}');
+
     print(
-      '🔍 Post mapeado: ID=${raw.id}, Nome=$authorName, Avatar=$authorAvatar, AuthorUID=$authorUid, Comentários=${raw.comentarios}',
+      '🔍 Post mapeado: ID=${raw.id}, CafeteriaID=$coffeeId, Nome=$authorName, Avatar=$authorAvatar, AuthorUID=$authorUid, Comentários=${raw.comentarios}',
     );
 
     return Post(
       id: raw.id?.toString() ?? '0',
       authorName: authorName,
       authorAvatar: authorAvatar,
-      
-      // ✅ NOVO: Passa o Firebase UID do autor para o modelo Post
-      authorUid: authorUid,
-      
       createdAt: raw.criadoEm ?? DateTime.now(),
       content: raw.descricao ?? '',
+      authorUid: authorUid,
       imageUrl: raw.urlFoto,
       videoUrl: raw.urlVideo,
-      likes: 0, // TODO: Implementar campo de curtidas no banco
-      comments:
-          _parseIntFromString(raw.comentarios) ??
-          0, // ✅ CORRIGIDO! Agora usa o campo correto
+      likes: 0,
+      comments: int.tryParse(raw.comentarios ?? '0') ?? 0,
       isLiked: false,
       type: postType,
       coffeeName: raw.nomeCafeteria,
       rating: raw.pontuacao,
-      coffeeId: raw.id?.toString(),
-      isFavorited: false,
-      wantToVisit: false,
+      coffeeId: coffeeId, // ✅ Agora usa o cafeteriaId correto
       coffeeAddress: raw.endereco,
     );
-  }
-
-  int? _parseIntFromString(String? value) {
-    if (value == null) return null;
-    return int.tryParse(value);
   }
 }

@@ -46,34 +46,40 @@ class NewCoffeePostWidget extends BasePostWidget {
     VoidCallback? onEdit,
     VoidCallback? onDelete,
   }) : super(
-          key: key,
-          post: post,
-          onLike: onLike,
-          onComment: onComment,
-          onEdit: onEdit,
-          onDelete: onDelete,
-        );
+         key: key,
+         post: post,
+         onLike: onLike,
+         onComment: onComment,
+         onEdit: onEdit,
+         onDelete: onDelete,
+       );
 
   @override
   State<NewCoffeePostWidget> createState() => _NewCoffeePostWidgetState();
 }
 
-class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget> {
-  
+class _NewCoffeePostWidgetState
+    extends BasePostWidgetState<NewCoffeePostWidget> {
   void _toggleFavorite(PostActionsViewModel viewModel) {
     viewModel.toggleFavorite.execute();
-    
+
     if (viewModel.isFavorited) {
       CustomToast.show(
         context,
-        message: 'Essa cafeteria foi adicionada em sua lista de cafeterias favoritas.',
+        message:
+            'Essa cafeteria foi adicionada em sua lista de cafeterias favoritas.',
         type: ToastType.success,
-        customIcon: Icon(AppIcons.starFill, color: AppColors.cyberLime, size: 20),
+        customIcon: Icon(
+          AppIcons.starFill,
+          color: AppColors.cyberLime,
+          size: 20,
+        ),
       );
     } else {
       CustomToast.show(
         context,
-        message: 'Essa cafeteria foi removida da sua lista de cafeterias favoritas.',
+        message:
+            'Essa cafeteria foi removida da sua lista de cafeterias favoritas.',
         type: ToastType.info,
         customIcon: Icon(AppIcons.star, color: AppColors.cyberLime, size: 20),
       );
@@ -82,18 +88,24 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
 
   void _toggleWantToVisit(PostActionsViewModel viewModel) {
     viewModel.toggleWantToVisit.execute();
-    
+
     if (viewModel.wantToVisit) {
       CustomToast.show(
         context,
-        message: 'Essa cafeteria foi adicionada em sua lista de cafeterias que gostaria de visitar.',
+        message:
+            'Essa cafeteria foi adicionada em sua lista de cafeterias que gostaria de visitar.',
         type: ToastType.success,
-        customIcon: Icon(AppIcons.tagFill, color: AppColors.cyberLime, size: 20),
+        customIcon: Icon(
+          AppIcons.tagFill,
+          color: AppColors.cyberLime,
+          size: 20,
+        ),
       );
     } else {
       CustomToast.show(
         context,
-        message: 'Essa cafeteria foi removida da sua lista de cafeterias que gostaria de visitar.',
+        message:
+            'Essa cafeteria foi removida da sua lista de cafeterias que gostaria de visitar.',
         type: ToastType.info,
         customIcon: Icon(AppIcons.tag, color: AppColors.cyberLime, size: 20),
       );
@@ -101,12 +113,18 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
   }
 
   void _openCafeModal(PostActionsViewModel viewModel) {
+    print('🔍 DEBUG: coffeeId = ${viewModel.coffeeId}');
+    print('🔍 DEBUG: coffeeName = ${viewModel.coffeeName}');
+    print('🔍 DEBUG: rating = ${viewModel.rating}');
+
     final mockCafeModel = MockCafeModel(
       id: viewModel.coffeeId ?? '',
       name: viewModel.coffeeName ?? '',
       address: viewModel.coffeeAddress ?? '',
       rating: 4.5,
-      imageUrl: widget.post.imageUrl ?? 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb',
+      imageUrl:
+          widget.post.imageUrl ??
+          'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb',
       isOpen: true,
       position: MockLatLng(-23.5505, -46.6333),
     );
@@ -124,10 +142,11 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
 
   @override
   Widget buildPostMedia(PostActionsViewModel viewModel) {
-    final hasValidImage = widget.post.imageUrl != null && 
-                         widget.post.imageUrl!.isNotEmpty && 
-                         widget.post.imageUrl!.startsWith('http');
-    
+    final hasValidImage =
+        widget.post.imageUrl != null &&
+        widget.post.imageUrl!.isNotEmpty &&
+        widget.post.imageUrl!.startsWith('http');
+
     if (!hasValidImage) {
       return SizedBox.shrink();
     }
@@ -135,7 +154,7 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
     return Stack(
       children: [
         super.buildPostMedia(viewModel),
-        
+
         // Tag "NOVA CAFETERIA"
         Positioned(
           top: 16,
@@ -156,11 +175,7 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  AppIcons.fire,
-                  color: AppColors.carbon,
-                  size: 14,
-                ),
+                Icon(AppIcons.fire, color: AppColors.carbon, size: 14),
                 SizedBox(width: 6),
                 Text(
                   'NOVA CAFETERIA',
@@ -205,7 +220,7 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
             ),
           ),
         ),
-        
+
         // INFORMAÇÕES DA NOVA CAFETERIA
         Container(
           margin: EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -233,11 +248,7 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          AppIcons.star,
-                          color: AppColors.carbon,
-                          size: 12,
-                        ),
+                        Icon(AppIcons.star, color: AppColors.carbon, size: 12),
                         SizedBox(width: 4),
                         Text(
                           'NOVA',
@@ -267,7 +278,7 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                   ),
                 ],
               ),
-              
+
               if (viewModel.coffeeAddress?.isNotEmpty == true) ...[
                 SizedBox(height: 8),
                 Text(
@@ -281,7 +292,7 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
             ],
           ),
         ),
-        
+
         // BOTÕES DE AÇÃO (FAVORITO E QUERO VISITAR)
         Padding(
           padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -294,18 +305,27 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                   child: Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: viewModel.isFavorited ? AppColors.papayaSensorial : AppColors.moonAsh,
+                      color: viewModel.isFavorited
+                          ? AppColors.papayaSensorial
+                          : AppColors.moonAsh,
                       borderRadius: BorderRadius.circular(12),
-                      border: viewModel.isFavorited 
-                        ? Border.all(color: AppColors.papayaSensorial, width: 1)
-                        : null,
+                      border: viewModel.isFavorited
+                          ? Border.all(
+                              color: AppColors.papayaSensorial,
+                              width: 1,
+                            )
+                          : null,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          viewModel.isFavorited ? AppIcons.starFill : AppIcons.star,
-                          color: viewModel.isFavorited ? AppColors.whiteWhite : AppColors.carbon,
+                          viewModel.isFavorited
+                              ? AppIcons.starFill
+                              : AppIcons.star,
+                          color: viewModel.isFavorited
+                              ? AppColors.whiteWhite
+                              : AppColors.carbon,
                           size: 18,
                         ),
                         SizedBox(width: 6),
@@ -314,7 +334,9 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                           style: GoogleFonts.albertSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: viewModel.isFavorited ? AppColors.whiteWhite : AppColors.carbon,
+                            color: viewModel.isFavorited
+                                ? AppColors.whiteWhite
+                                : AppColors.carbon,
                           ),
                         ),
                       ],
@@ -322,9 +344,9 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                   ),
                 ),
               ),
-              
+
               SizedBox(width: 12),
-              
+
               // Botão Quero Visitar
               Expanded(
                 child: GestureDetector(
@@ -332,18 +354,24 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                   child: Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: viewModel.wantToVisit ? AppColors.pear : AppColors.moonAsh,
+                      color: viewModel.wantToVisit
+                          ? AppColors.pear
+                          : AppColors.moonAsh,
                       borderRadius: BorderRadius.circular(12),
-                      border: viewModel.wantToVisit 
-                        ? Border.all(color: AppColors.pear, width: 1)
-                        : null,
+                      border: viewModel.wantToVisit
+                          ? Border.all(color: AppColors.pear, width: 1)
+                          : null,
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          viewModel.wantToVisit ? AppIcons.tagFill : AppIcons.tag,
-                          color: viewModel.wantToVisit ? AppColors.velvetMerlot : AppColors.carbon,
+                          viewModel.wantToVisit
+                              ? AppIcons.tagFill
+                              : AppIcons.tag,
+                          color: viewModel.wantToVisit
+                              ? AppColors.velvetMerlot
+                              : AppColors.carbon,
                           size: 18,
                         ),
                         SizedBox(width: 6),
@@ -352,7 +380,9 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
                           style: GoogleFonts.albertSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: viewModel.wantToVisit ? AppColors.velvetMerlot : AppColors.carbon,
+                            color: viewModel.wantToVisit
+                                ? AppColors.velvetMerlot
+                                : AppColors.carbon,
                           ),
                         ),
                       ],
@@ -363,7 +393,7 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
             ],
           ),
         ),
-        
+
         // BOTÃO AVALIAR CAFETERIA
         Padding(
           padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -389,7 +419,7 @@ class _NewCoffeePostWidgetState extends BasePostWidgetState<NewCoffeePostWidget>
             ),
           ),
         ),
-        
+
         // CONTADOR DE COMENTÁRIOS
         if (widget.post.comments > 0)
           Padding(
