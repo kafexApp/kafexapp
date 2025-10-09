@@ -13,6 +13,7 @@ import '../../../widgets/custom_bottom_navbar.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/custom_boxcafe_minicard.dart';
 import '../../../widgets/side_menu_overlay.dart';
+import '../../../widgets/location_permission_dialog.dart';
 import '../../../models/cafe_model.dart';
 import '../../../data/services/clustering_service.dart';
 import '../../../data/models/domain/cafe.dart';
@@ -28,17 +29,18 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   Set<Marker> _markers = {};
   BitmapDescriptor? _customPin;
   List<Widget> _pinLabels = [];
-  
+
   TextEditingController _searchController = TextEditingController();
   FocusNode _searchFocusNode = FocusNode();
-  
+
   PageController _pageController = PageController();
   ScrollController _horizontalScrollController = ScrollController();
-  
+
   Timer? _labelTimer;
   Timer? _clusterIconTimer;
   Map<String, BitmapDescriptor> _clusterIconCache = {};
   bool _isMapMoving = false;
+  bool _hasCheckedLocationDialog = false;
 
   @override
   void initState() {
@@ -46,6 +48,94 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     _loadCustomPin();
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onFocusChanged);
+
+    // Aguardar o próximo frame para ter certeza que o Provider está disponível
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = context.read<CafeExplorerViewModel>();
+
+      // Escutar mudanças no ViewModel
+      void locationListener() {
+        if (!_hasCheckedLocationDialog && viewModel.shouldShowLocationDialog) {
+          debugPrint('🎧 Listener detectou shouldShowLocationDialog = true');
+          _hasCheckedLocationDialog = true;
+
+          // Remover listener após primeira detecção
+          viewModel.removeListener(locationListener);
+
+          // Mostrar diálogo após pequeno delay
+          Future.delayed(Duration(milliseconds: 300), () {
+            if (mounted) {
+              _showLocationPermissionDialog();
+            }
+          });
+        }
+      }
+
+      viewModel.addListener(locationListener);
+
+      // Verificar imediatamente também (caso já esteja true)
+      if (viewModel.shouldShowLocationDialog && !_hasCheckedLocationDialog) {
+        debugPrint('✅ shouldShowLocationDialog já é true');
+        locationListener();
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    debugPrint('🔵 didChangeDependencies chamado');
+  }
+
+  void _showLocationPermissionDialog() {
+    // IMPORTANTE: Capturar o ViewModel ANTES do showDialog
+    final viewModel = context.read<CafeExplorerViewModel>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => LocationPermissionDialog(
+        onLocationResult: (location) async {
+          // Usar o viewModel capturado, NÃO o dialogContext
+
+          if (location != null) {
+            debugPrint(
+              '✅ Localização recebida no explorador: ${location.displayLocation}',
+            );
+            debugPrint(
+              '📍 Lat: ${location.latitude}, Lng: ${location.longitude}',
+            );
+
+            // Atualizar o ViewModel com a nova localização
+            debugPrint('💾 Chamando acceptLocationRequest...');
+            await viewModel.acceptLocationRequest(
+              LatLng(location.latitude, location.longitude),
+            );
+            debugPrint('✅ acceptLocationRequest concluído');
+
+            // Animar o mapa para a nova posição
+            if (_mapController != null) {
+              debugPrint('🗺️ Animando câmera para nova localização');
+              await _mapController!.animateCamera(
+                CameraUpdate.newLatLngZoom(
+                  LatLng(location.latitude, location.longitude),
+                  15.0,
+                ),
+              );
+              debugPrint('✅ Câmera animada com sucesso');
+            } else {
+              debugPrint(
+                '⚠️ MapController ainda é null, mas a posição foi salva no ViewModel',
+              );
+            }
+          } else {
+            debugPrint('⏭️ Usuário optou por não compartilhar localização');
+            await viewModel.skipLocationRequest();
+          }
+        },
+      ),
+    );
   }
 
   @override
@@ -70,7 +160,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   void _onSearchChanged() {
     final viewModel = context.read<CafeExplorerViewModel>();
     final query = _searchController.text.trim();
-    
+
     if (query.isNotEmpty) {
       viewModel.searchPlaces.execute(query);
     } else {
@@ -86,20 +176,20 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     if (_customPin == null) return;
 
     final viewModel = context.read<CafeExplorerViewModel>();
-    
+
     final groups = _getOptimizedPinGroups(
-      viewModel.visibleCafes, 
-      viewModel.currentZoom
+      viewModel.visibleCafes,
+      viewModel.currentZoom,
     );
-    
+
     Set<Marker> newMarkers = {};
 
     for (int i = 0; i < groups.length; i++) {
       PinGroup group = groups[i];
-      
+
       if (group.isCluster) {
         BitmapDescriptor clusterIcon = await _getClusterIconCached(group.count);
-        
+
         newMarkers.add(
           Marker(
             markerId: MarkerId('cluster_$i'),
@@ -110,8 +200,10 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
         );
       } else {
         final cafe = group.cafes.first;
-        int cafeIndex = viewModel.visibleCafes.indexWhere((c) => c.id == cafe.id);
-        
+        int cafeIndex = viewModel.visibleCafes.indexWhere(
+          (c) => c.id == cafe.id,
+        );
+
         newMarkers.add(
           Marker(
             markerId: MarkerId(cafe.id),
@@ -132,34 +224,34 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
   Future<BitmapDescriptor> _getClusterIconCached(int count) async {
     String cacheKey = 'cluster_$count';
-    
+
     if (_clusterIconCache.containsKey(cacheKey)) {
       return _clusterIconCache[cacheKey]!;
     }
-    
+
     BitmapDescriptor icon = await _createClusterIcon(count);
     _clusterIconCache[cacheKey] = icon;
-    
+
     return icon;
   }
 
   Future<BitmapDescriptor> _createClusterIcon(int count) async {
     final String clusterText = count > 99 ? "99+" : count.toString();
-    
+
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
-    
+
     final Paint outerCirclePaint = Paint()
       ..color = AppColors.papayaSensorial.withOpacity(0.2)
       ..style = PaintingStyle.fill;
-    
+
     final Paint innerCirclePaint = Paint()
       ..color = AppColors.papayaSensorial
       ..style = PaintingStyle.fill;
-    
+
     canvas.drawCircle(Offset(30, 30), 30, outerCirclePaint);
     canvas.drawCircle(Offset(30, 30), 18, innerCirclePaint);
-    
+
     final TextPainter textPainter = TextPainter(
       text: TextSpan(
         text: clusterText,
@@ -171,19 +263,19 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
       ),
       textDirection: TextDirection.ltr,
     );
-    
+
     textPainter.layout();
     textPainter.paint(
       canvas,
       Offset(30 - textPainter.width / 2, 30 - textPainter.height / 2),
     );
-    
+
     final ui.Picture picture = pictureRecorder.endRecording();
     final ui.Image img = await picture.toImage(60, 60);
     final ByteData? byteData = await img.toByteData(
       format: ui.ImageByteFormat.png,
     );
-    
+
     return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
 
@@ -208,29 +300,29 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   }
 
   List<PinGroup> _performSpatialClustering(
-    List<Cafe> cafes, 
-    double clusterDistanceKm
+    List<Cafe> cafes,
+    double clusterDistanceKm,
   ) {
     if (cafes.isEmpty) return [];
-    
+
     List<PinGroup> groups = [];
     List<bool> processed = List.filled(cafes.length, false);
 
     for (int i = 0; i < cafes.length; i++) {
       if (processed[i]) continue;
-      
+
       Cafe center = cafes[i];
       List<Cafe> cluster = [center];
       processed[i] = true;
 
       for (int j = i + 1; j < cafes.length; j++) {
         if (processed[j]) continue;
-        
+
         double distance = _calculateDistanceKm(
-          center.position, 
-          cafes[j].position
+          center.position,
+          cafes[j].position,
         );
-        
+
         if (distance <= clusterDistanceKm) {
           cluster.add(cafes[j]);
           processed[j] = true;
@@ -252,7 +344,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     double dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
     double dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
 
-    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_degreesToRadians(pos1.latitude)) *
             math.cos(_degreesToRadians(pos2.latitude)) *
             math.sin(dLng / 2) *
@@ -281,12 +374,14 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     if (_mapController == null) return;
 
     final viewModel = context.read<CafeExplorerViewModel>();
-    
+
     print('🏷️ _updatePinLabels chamado - Zoom: ${viewModel.currentZoom}');
-    
+
     // Apenas em zoom alto
     if (viewModel.currentZoom < 14.0) {
-      print('🏷️ Zoom muito baixo (${viewModel.currentZoom}), não mostrar labels');
+      print(
+        '🏷️ Zoom muito baixo (${viewModel.currentZoom}), não mostrar labels',
+      );
       if (_pinLabels.isNotEmpty) {
         setState(() {
           _pinLabels = [];
@@ -294,28 +389,30 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
       }
       return;
     }
-    
+
     print('🏷️ Zoom OK, processando labels...');
     print('🏷️ Total de cafés visíveis: ${viewModel.visibleCafes.length}');
-    
+
     List<Widget> newLabels = [];
     int labelCount = 0;
     const int maxLabels = 20;
-    
+
     // Mostrar labels para TODOS os cafés visíveis, não apenas os não-clusterizados
     for (var cafe in viewModel.visibleCafes) {
       if (labelCount >= maxLabels) break;
-      
+
       try {
         ScreenCoordinate screenCoord = await _mapController!
             .getScreenCoordinate(cafe.position);
-        
-        String displayName = cafe.name.length > 14 
-            ? '${cafe.name.substring(0, 14)}...' 
+
+        String displayName = cafe.name.length > 14
+            ? '${cafe.name.substring(0, 14)}...'
             : cafe.name;
-        
-        print('🏷️ Criando label para: $displayName em (${screenCoord.x}, ${screenCoord.y})');
-        
+
+        print(
+          '🏷️ Criando label para: $displayName em (${screenCoord.x}, ${screenCoord.y})',
+        );
+
         newLabels.add(
           Positioned(
             left: screenCoord.x.toDouble(),
@@ -341,7 +438,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             ),
           ),
         );
-        
+
         labelCount++;
       } catch (e) {
         print('🏷️ Erro ao criar label: $e');
@@ -361,52 +458,52 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
   void _onClusterTapped(PinGroup cluster) {
     if (_mapController == null) return;
-    
+
     if (cluster.cafes.length == 1) {
       return;
     }
-    
+
     double minLat = cluster.cafes.first.position.latitude;
     double maxLat = cluster.cafes.first.position.latitude;
     double minLng = cluster.cafes.first.position.longitude;
     double maxLng = cluster.cafes.first.position.longitude;
-    
+
     for (var cafe in cluster.cafes) {
       minLat = math.min(minLat, cafe.position.latitude);
       maxLat = math.max(maxLat, cafe.position.latitude);
       minLng = math.min(minLng, cafe.position.longitude);
       maxLng = math.max(maxLng, cafe.position.longitude);
     }
-    
+
     double maxDistance = 0;
     for (int i = 0; i < cluster.cafes.length; i++) {
       for (int j = i + 1; j < cluster.cafes.length; j++) {
         double distance = _calculateDistance(
-          cluster.cafes[i].position, 
-          cluster.cafes[j].position
+          cluster.cafes[i].position,
+          cluster.cafes[j].position,
         );
         maxDistance = math.max(maxDistance, distance);
       }
     }
-    
+
     if (maxDistance < 50) {
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(cluster.position, 19.0),
       );
       return;
     }
-    
+
     if (maxDistance < 200) {
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(cluster.position, 18.0),
       );
       return;
     }
-    
+
     try {
       double latPadding = (maxLat - minLat) * 0.5;
       double lngPadding = (maxLng - minLng) * 0.5;
-      
+
       _mapController!.animateCamera(
         CameraUpdate.newLatLngBounds(
           LatLngBounds(
@@ -428,7 +525,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     double dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
     double dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
 
-    double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_degreesToRadians(pos1.latitude)) *
             math.cos(_degreesToRadians(pos2.latitude)) *
             math.sin(dLng / 2) *
@@ -441,14 +539,16 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   void _onPinTapped(int index) {
     final viewModel = context.read<CafeExplorerViewModel>();
     final selectedCafe = viewModel.visibleCafes[index];
-    int viewportIndex = viewModel.cafesInViewport.indexWhere((c) => c.id == selectedCafe.id);
-    
+    int viewportIndex = viewModel.cafesInViewport.indexWhere(
+      (c) => c.id == selectedCafe.id,
+    );
+
     if (viewportIndex != -1 && _horizontalScrollController.hasClients) {
       double screenWidth = MediaQuery.of(context).size.width;
       double cardWidth = screenWidth * 0.9;
       double spacing = 12.0;
       double targetOffset = viewportIndex * (cardWidth + spacing);
-      
+
       _horizontalScrollController.animateTo(
         targetOffset,
         duration: Duration(milliseconds: 300),
@@ -460,6 +560,20 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   void _onMapCreated(GoogleMapController controller) {
     _mapController = controller;
     _updateMarkers();
+
+    // Verificar se há uma posição customizada do ViewModel
+    final viewModel = context.read<CafeExplorerViewModel>();
+    debugPrint('📍 Posição atual do ViewModel: ${viewModel.currentPosition}');
+
+    // Se a posição for diferente da default, mover para ela
+    if (viewModel.currentPosition.latitude != -23.5505 ||
+        viewModel.currentPosition.longitude != -46.6333) {
+      debugPrint('🗺️ Movendo mapa para posição customizada');
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(viewModel.currentPosition, 15.0),
+      );
+    }
+
     Future.delayed(Duration(milliseconds: 500), _updateCafesInViewport);
   }
 
@@ -471,7 +585,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
         _pinLabels = [];
       });
     }
-    
+
     final viewModel = context.read<CafeExplorerViewModel>();
     viewModel.updateMapCenter(position.target);
     viewModel.updateZoom(position.zoom);
@@ -481,7 +595,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     _isMapMoving = false;
     _updateMarkers();
     _updateCafesInViewport();
-    
+
     // Forçar atualização imediata de labels para debug
     Future.delayed(Duration(milliseconds: 500), () {
       if (mounted && !_isMapMoving) {
@@ -496,12 +610,12 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     try {
       final viewModel = context.read<CafeExplorerViewModel>();
       LatLngBounds visibleRegion = await _mapController!.getVisibleRegion();
-      
+
       List<Cafe> cafesInView = viewModel.visibleCafes.where((cafe) {
         return cafe.position.latitude >= visibleRegion.southwest.latitude &&
-               cafe.position.latitude <= visibleRegion.northeast.latitude &&
-               cafe.position.longitude >= visibleRegion.southwest.longitude &&
-               cafe.position.longitude <= visibleRegion.northeast.longitude;
+            cafe.position.latitude <= visibleRegion.northeast.latitude &&
+            cafe.position.longitude >= visibleRegion.southwest.longitude &&
+            cafe.position.longitude <= visibleRegion.northeast.longitude;
       }).toList();
 
       viewModel.updateCafesInViewport(cafesInView);
@@ -521,8 +635,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             children: [
               Consumer<CafeExplorerViewModel>(
                 builder: (context, viewModel, _) {
-                  return viewModel.isMapView 
-                      ? _buildMapView(viewModel) 
+                  return viewModel.isMapView
+                      ? _buildMapView(viewModel)
                       : _buildListView(viewModel);
                 },
               ),
@@ -580,8 +694,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             child: _buildToggleButtons(viewModel),
           ),
           _buildSuggestionsDropdown(viewModel),
-          if (viewModel.cafesInViewport.isNotEmpty)
-            _buildCarousel(viewModel),
+          if (viewModel.cafesInViewport.isNotEmpty) _buildCarousel(viewModel),
         ],
       ),
     );
@@ -690,11 +803,13 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: viewModel.searchPlaces.running 
-                        ? null 
+                    onTap: viewModel.searchPlaces.running
+                        ? null
                         : () {
                             if (viewModel.suggestions.isNotEmpty) {
-                              viewModel.selectPlace.execute(viewModel.suggestions.first);
+                              viewModel.selectPlace.execute(
+                                viewModel.suggestions.first,
+                              );
                             }
                           },
                     child: Center(
@@ -749,9 +864,17 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             ),
             child: Row(
               children: [
-                _buildToggleButton('Mapa', viewModel.isMapView, () => viewModel.toggleView()),
+                _buildToggleButton(
+                  'Mapa',
+                  viewModel.isMapView,
+                  () => viewModel.toggleView(),
+                ),
                 SizedBox(width: 4),
-                _buildToggleButton('Lista', !viewModel.isMapView, () => viewModel.toggleView()),
+                _buildToggleButton(
+                  'Lista',
+                  !viewModel.isMapView,
+                  () => viewModel.toggleView(),
+                ),
               ],
             ),
           ),
@@ -784,10 +907,10 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   }
 
   Widget _buildCafeCounter(CafeExplorerViewModel viewModel) {
-    final count = viewModel.isMapView 
-        ? viewModel.cafesInViewport.length 
+    final count = viewModel.isMapView
+        ? viewModel.cafesInViewport.length
         : viewModel.visibleCafes.length;
-    
+
     return Container(
       height: 48,
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -842,8 +965,11 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
           child: ListView.separated(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
-            itemCount: viewModel.suggestions.length > 5 ? 5 : viewModel.suggestions.length,
-            separatorBuilder: (context, index) => Divider(height: 1, color: AppColors.moonAsh),
+            itemCount: viewModel.suggestions.length > 5
+                ? 5
+                : viewModel.suggestions.length,
+            separatorBuilder: (context, index) =>
+                Divider(height: 1, color: AppColors.moonAsh),
             itemBuilder: (context, index) {
               final suggestion = viewModel.suggestions[index];
               return Material(
@@ -853,10 +979,10 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                   onTap: () async {
                     _searchController.text = suggestion.description;
                     _searchFocusNode.unfocus();
-                    
+
                     // Executar seleção e aguardar
                     await viewModel.selectPlace.execute(suggestion);
-                    
+
                     // Se modo mapa, mover câmera
                     if (viewModel.isMapView && _mapController != null) {
                       _mapController!.animateCamera(
@@ -876,8 +1002,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                           width: 20,
                           height: 20,
                           colorFilter: ColorFilter.mode(
-                            suggestion.isEstablishment 
-                                ? AppColors.papayaSensorial 
+                            suggestion.isEstablishment
+                                ? AppColors.papayaSensorial
                                 : AppColors.grayScale1,
                             BlendMode.srcIn,
                           ),
@@ -908,7 +1034,10 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                         ),
                         if (suggestion.isEstablishment)
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.papayaSensorial.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
@@ -945,7 +1074,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
           builder: (context) {
             double screenWidth = MediaQuery.of(context).size.width;
             double cardWidth = screenWidth * 0.9;
-            
+
             return ListView.builder(
               controller: _horizontalScrollController,
               scrollDirection: Axis.horizontal,
@@ -1238,9 +1367,7 @@ class PinGroup {
     position = _calculateCenterPosition();
   }
 
-  PinGroup.single(Cafe cafe)
-      : cafes = [cafe],
-        isCluster = false {
+  PinGroup.single(Cafe cafe) : cafes = [cafe], isCluster = false {
     position = cafe.position;
   }
 
@@ -1250,18 +1377,15 @@ class PinGroup {
     if (cafes.isEmpty) {
       return LatLng(0, 0);
     }
-    
+
     double totalLat = 0;
     double totalLng = 0;
-    
+
     for (var cafe in cafes) {
       totalLat += cafe.position.latitude;
       totalLng += cafe.position.longitude;
     }
-    
-    return LatLng(
-      totalLat / cafes.length,
-      totalLng / cafes.length,
-    );
+
+    return LatLng(totalLat / cafes.length, totalLng / cafes.length);
   }
 }
