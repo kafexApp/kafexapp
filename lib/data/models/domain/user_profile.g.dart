@@ -27,28 +27,3 @@ Map<String, dynamic> _$$UserProfileImplToJson(_$UserProfileImpl instance) =>
       'favoritesCount': instance.favoritesCount,
       'wantToVisitCount': instance.wantToVisitCount,
     };
-
-_$PostImpl _$$PostImplFromJson(Map<String, dynamic> json) => _$PostImpl(
-  id: json['id'] as String,
-  authorName: json['authorName'] as String,
-  authorAvatar: json['authorAvatar'] as String?,
-  createdAt: DateTime.parse(json['createdAt'] as String),
-  content: json['content'] as String,
-  imageUrl: json['imageUrl'] as String?,
-  likes: (json['likes'] as num?)?.toInt() ?? 0,
-  commentsCount: (json['commentsCount'] as num?)?.toInt() ?? 0,
-  isLiked: json['isLiked'] as bool? ?? false,
-);
-
-Map<String, dynamic> _$$PostImplToJson(_$PostImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'authorName': instance.authorName,
-      'authorAvatar': instance.authorAvatar,
-      'createdAt': instance.createdAt.toIso8601String(),
-      'content': instance.content,
-      'imageUrl': instance.imageUrl,
-      'likes': instance.likes,
-      'commentsCount': instance.commentsCount,
-      'isLiked': instance.isLiked,
-    };

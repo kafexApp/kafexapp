@@ -4,20 +4,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:kafex/data/models/domain/user_profile.dart';
 import 'package:kafex/data/models/domain/profile_tab_data.dart';
+import 'package:kafex/data/models/domain/post.dart';
 import 'package:kafex/data/repositories/user_profile_repository.dart';
 import 'package:kafex/models/cafe_model.dart';
 import 'package:kafex/utils/command.dart';
 import 'package:kafex/utils/result.dart';
 import 'package:kafex/services/user_profile_service.dart';
 import 'package:kafex/services/quero_visitar_service.dart';
-import 'package:kafex/services/favorito_service.dart'; // ✅ ADICIONADO
+import 'package:kafex/services/favorito_service.dart';
 import 'package:kafex/backend/supabase/supabase.dart';
 
 class UserProfileViewModel extends ChangeNotifier {
   final UserProfileRepository _repository;
   final String userId;
   final QueroVisitarService _queroVisitarService = QueroVisitarService();
-  final FavoritoService _favoritoService = FavoritoService(); // ✅ ADICIONADO
+  final FavoritoService _favoritoService = FavoritoService();
 
   UserProfileViewModel({
     required UserProfileRepository repository,
@@ -45,7 +46,6 @@ class UserProfileViewModel extends ChangeNotifier {
   late final Command1<void, String> likePost = Command1(_likePost);
   late final Command1<void, String> openComments = Command1(_openComments);
 
-  // Método para carregar perfil do usuário do Supabase
   Future<Result<void>> _loadUserProfile() async {
     try {
       print('🔍 Carregando perfil do usuário (Firebase UID): $userId');
@@ -59,7 +59,6 @@ class UserProfileViewModel extends ChangeNotifier {
         return Result.ok(null);
       }
 
-      // Fallback: usar repository mock se não encontrar no Supabase
       final result = await _repository.getUserProfile(userId);
 
       if (result.isOk) {
@@ -76,7 +75,6 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // ✅ ATUALIZADO: Busca perfil do usuário no Supabase e conta Favoritos e Quero Visitar
   Future<UserProfile?> _getUserFromSupabase(String firebaseUid) async {
     try {
       print('🔍 Buscando usuário no Supabase por Firebase UID: $firebaseUid');
@@ -90,32 +88,25 @@ class UserProfileViewModel extends ChangeNotifier {
       if (response != null) {
         print('✅ Usuário encontrado no Supabase: ${response['nome_exibicao']}');
 
-        // Contar posts do usuário
         final postsCount = await _countUserPosts(response['id']);
-
-        // ✅ NOVO: Contar Favoritos
         final favoritesCount = await _favoritoService.countUserFavoritos(firebaseUid);
-        print('⭐ Usuário tem $favoritesCount favoritos');
-
-        // Contar "Quero Visitar"
         final wantToVisitCount = await _queroVisitarService.countQueroVisitar(firebaseUid);
+
+        print('⭐ Usuário tem $favoritesCount favoritos');
         print('📍 Usuário tem $wantToVisitCount cafés em "Quero Visitar"');
 
-        // Criar objeto UserProfile
         return UserProfile(
           id: response['id'].toString(),
           name: response['nome_exibicao'] ?? 'Usuário',
           avatar: response['foto_url'],
           bio: 'Coffeelover ☕️',
           postsCount: postsCount,
-          favoritesCount: favoritesCount, // ✅ ATUALIZADO
+          favoritesCount: favoritesCount,
           wantToVisitCount: wantToVisitCount,
         );
       }
 
-      print(
-        '⚠️ Usuário não encontrado no Supabase pelo Firebase UID: $firebaseUid',
-      );
+      print('⚠️ Usuário não encontrado no Supabase pelo Firebase UID: $firebaseUid');
       return null;
     } catch (e) {
       print('❌ Erro ao buscar usuário no Supabase: $e');
@@ -123,7 +114,6 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // Conta posts do usuário
   Future<int> _countUserPosts(int userId) async {
     try {
       final response = await SupaClient.client
@@ -143,37 +133,29 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // ✅ ATUALIZADO: Método para carregar dados das tabs com Favoritos e Quero Visitar
   Future<Result<void>> _loadTabData() async {
     try {
-      print(
-        '🔍 Carregando dados das tabs para usuário (Firebase UID): $userId',
-      );
+      print('🔍 Carregando dados das tabs para usuário (Firebase UID): $userId');
 
-      // Carregar posts do usuário do Supabase
       final posts = await _getUserPostsFromSupabase();
-
-      // ✅ NOVO: Carregar lista de Favoritos
       final favoriteCafes = await _getFavoriteCafes();
-      print('⭐ ${favoriteCafes.length} cafés favoritos carregados');
-
-      // Carregar lista "Quero Visitar"
       final wantToVisitCafes = await _getWantToVisitCafes();
+
+      print('⭐ ${favoriteCafes.length} cafés favoritos carregados');
       print('📍 ${wantToVisitCafes.length} cafés carregados em "Quero Visitar"');
 
       _tabData = _tabData.copyWith(
         userPosts: posts,
-        favoriteCafes: favoriteCafes, // ✅ ATUALIZADO
+        favoriteCafes: favoriteCafes,
         wantToVisitCafes: wantToVisitCafes,
       );
 
       notifyListeners();
-      print('✅ Dados das tabs carregados - ${posts.length} posts, ${favoriteCafes.length} favoritos, ${wantToVisitCafes.length} quero visitar');
+      print('✅ Dados das tabs carregados - ${posts.length} posts');
       return Result.ok(null);
     } catch (e) {
       print('❌ Erro ao carregar dados das tabs: $e');
 
-      // Fallback para repository mock
       final result = await _repository.getProfileTabData(userId);
 
       if (result.isOk) {
@@ -186,7 +168,6 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // ✅ NOVO: Método para buscar cafés Favoritos
   Future<List<CafeModel>> _getFavoriteCafes() async {
     try {
       print('🔍 Buscando cafés Favoritos');
@@ -237,7 +218,6 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // Método para buscar cafés "Quero Visitar"
   Future<List<CafeModel>> _getWantToVisitCafes() async {
     try {
       print('🔍 Buscando cafés "Quero Visitar"');
@@ -288,14 +268,13 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
-  // Busca posts do usuário no Supabase usando Firebase UID
   Future<List<Post>> _getUserPostsFromSupabase() async {
     try {
       print('🔍 Buscando posts do usuário (Firebase UID): $userId');
 
       final userResponse = await SupaClient.client
           .from('usuario_perfil')
-          .select('id')
+          .select('id, ref')
           .eq('ref', userId)
           .maybeSingle();
 
@@ -305,6 +284,7 @@ class UserProfileViewModel extends ChangeNotifier {
       }
 
       final userIdInt = userResponse['id'];
+      final userFirebaseUid = userResponse['ref'];
       print('✅ ID do usuário encontrado: $userIdInt');
 
       final response = await SupaClient.client
@@ -322,17 +302,35 @@ class UserProfileViewModel extends ChangeNotifier {
 
       final posts = <Post>[];
       for (var postData in response) {
+        final tipoCalculado = postData['tipo_calculado']?.toString().toLowerCase() ?? '';
+        
+        DomainPostType postType;
+        if (tipoCalculado.contains('avalia')) {
+          postType = DomainPostType.coffeeReview;
+        } else if (tipoCalculado.contains('cafeteria') || tipoCalculado.contains('nova')) {
+          postType = DomainPostType.newCoffee;
+        } else {
+          postType = DomainPostType.traditional;
+        }
+
         posts.add(
           Post(
             id: postData['id'].toString(),
             authorName: postData['nome_exibicao'] ?? 'Usuário',
-            authorAvatar: postData['foto_url'],
+            authorAvatar: postData['foto_url'] ?? '',
+            authorUid: userFirebaseUid,
             content: postData['descricao'] ?? '',
             imageUrl: postData['url_foto'],
+            videoUrl: postData['url_video'],
             createdAt: DateTime.parse(postData['criado_em']),
             likes: 0,
-            commentsCount: postData['comentarios'] ?? 0,
+            comments: int.tryParse(postData['comentarios']?.toString() ?? '0') ?? 0,
             isLiked: false,
+            type: postType,
+            coffeeName: postData['nome_cafeteria'],
+            rating: postData['pontuacao']?.toDouble(),
+            coffeeId: postData['id_cafeteria']?.toString(),
+            coffeeAddress: postData['endereco'],
           ),
         );
       }
@@ -378,7 +376,6 @@ class UserProfileViewModel extends ChangeNotifier {
     return Result.ok(null);
   }
 
-  // Avatar padrão
   String getDefaultAvatar(String userName) {
     final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     return initial;

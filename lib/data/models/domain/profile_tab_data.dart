@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:kafex/data/models/domain/user_profile.dart';
+import 'package:kafex/data/models/domain/post.dart';
 import 'package:kafex/models/cafe_model.dart';
 
 part 'profile_tab_data.freezed.dart';

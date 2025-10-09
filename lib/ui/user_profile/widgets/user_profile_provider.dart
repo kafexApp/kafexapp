@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kafex/data/repositories/user_profile_repository.dart';
 import 'package:kafex/ui/user_profile/viewmodel/user_profile_viewmodel.dart';
-import 'package:kafex/ui/user_profile/widgets/user_profile_screen.dart';
+import 'user_profile_screen.dart';
 
 class UserProfileProvider extends StatelessWidget {
   final String userId;

@@ -1,9 +1,9 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:kafex/data/models/domain/user_profile.dart';
 import 'package:kafex/data/models/domain/profile_tab_data.dart';
+import 'package:kafex/data/models/domain/post.dart';
 import 'package:kafex/models/cafe_model.dart';
 import 'package:kafex/utils/result.dart';
-import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';
 
 abstract class UserProfileRepository {
   Future<Result<UserProfile>> getUserProfile(String userId);
@@ -43,24 +43,26 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
         Post(
           id: '1',
           authorName: userName,
-          authorAvatar: null,
+          authorAvatar: '',
           content: 'Descobri um café incrível hoje! O ambiente é aconchegante e o espresso é excepcional.',
           imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400',
           createdAt: DateTime.now().subtract(Duration(hours: 2)),
           likes: 12,
-          commentsCount: 8,
+          comments: 8,
           isLiked: false,
+          type: DomainPostType.traditional,
         ),
         Post(
           id: '2',
           authorName: userName,
-          authorAvatar: null,
+          authorAvatar: '',
           content: 'Domingo perfeito experimentando diferentes métodos de preparo de café.',
           imageUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400',
           createdAt: DateTime.now().subtract(Duration(days: 1)),
           likes: 24,
-          commentsCount: 3,
+          comments: 3,
           isLiked: false,
+          type: DomainPostType.traditional,
         ),
       ];
 

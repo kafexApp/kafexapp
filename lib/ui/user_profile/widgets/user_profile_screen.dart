@@ -3,10 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/utils/app_icons.dart';
-import 'package:kafex/ui/posts/widgets/feed_post_widget.dart';
+import 'package:kafex/ui/posts/factories/post_card_factory.dart';
 import 'package:kafex/widgets/custom_boxcafe_minicard.dart';
 import 'package:kafex/ui/user_profile/viewmodel/user_profile_viewmodel.dart';
-import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -366,23 +365,13 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     }
 
     return ListView.builder(
-      padding: EdgeInsets.only(top: 16),
+      padding: EdgeInsets.only(top: 16, bottom: 16),
       itemCount: viewModel.userPosts.length,
       itemBuilder: (context, index) {
         final post = viewModel.userPosts[index];
 
-        // Convertendo Post para FeedComUsuarioRow (compatibilidade)
-        final feedPost = FeedComUsuarioRow({
-          'id': int.tryParse(post.id) ?? index,
-          'criado_em': post.createdAt,
-          'descricao': post.content,
-          'imagem_url': post.imageUrl,
-          'usuario': post.authorName,
-          'comentarios': post.commentsCount.toString(),
-        });
-
-        return FeedPostCard(
-          post: feedPost,
+        return PostCardFactory.create(
+          post: post,
           onLike: () => viewModel.likePost.execute(post.id),
           onComment: () => viewModel.openComments.execute(post.id),
         );
