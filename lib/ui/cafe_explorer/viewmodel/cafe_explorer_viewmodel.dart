@@ -1,5 +1,7 @@
+// lib/ui/cafe_explorer/viewmodel/cafe_explorer_viewmodel.dart
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../../../data/repositories/cafe_repository.dart';
@@ -19,14 +21,21 @@ class CafeExplorerViewModel extends ChangeNotifier {
     required CafeRepository cafeRepository,
     required PlacesRepository placesRepository,
     required ClusteringService clusteringService,
-  })  : _cafeRepository = cafeRepository,
-        _placesRepository = placesRepository,
-        _clusteringService = clusteringService {
+  }) : _cafeRepository = cafeRepository,
+       _placesRepository = placesRepository,
+       _clusteringService = clusteringService {
+    debugPrint('🟢 CafeExplorerViewModel construído');
+
     loadCafes = Command0(_loadCafes);
     searchPlaces = Command1(_searchPlaces);
     selectPlace = Command1(_selectPlace);
-    
+
+    // Verificar se deve mostrar diálogo de localização
+    debugPrint('🟢 Chamando _checkLocationDialogStatus');
+    _checkLocationDialogStatus();
+
     // Carregar cafés automaticamente
+    debugPrint('🟢 Carregando cafés');
     loadCafes.execute();
   }
 
@@ -35,17 +44,23 @@ class CafeExplorerViewModel extends ChangeNotifier {
   List<Cafe> _visibleCafes = [];
   List<Cafe> _cafesInViewport = [];
   List<PlaceSuggestion> _suggestions = [];
-  
+
   bool _isMapView = true;
   double _currentZoom = 15.0;
   LatLng _currentPosition = LatLng(-23.5505, -46.6333); // São Paulo default
-  
+
   LatLng? _searchLocation;
   String _searchAddress = '';
   bool _isShowingSearchResults = false;
-  
+
   String _lastSearchQuery = '';
   Timer? _searchTimer;
+
+  // === Controle do diálogo de localização ===
+  bool _shouldShowLocationDialog = false;
+  static const String _locationDialogKey = 'location_dialog_shown';
+  static const String _savedLatitudeKey = 'saved_latitude';
+  static const String _savedLongitudeKey = 'saved_longitude';
 
   // Raio de filtro em km para o modo lista
   static const double _filterRadiusKm = 5.0;
@@ -55,109 +70,196 @@ class CafeExplorerViewModel extends ChangeNotifier {
   List<Cafe> get visibleCafes => List.unmodifiable(_visibleCafes);
   List<Cafe> get cafesInViewport => List.unmodifiable(_cafesInViewport);
   List<PlaceSuggestion> get suggestions => List.unmodifiable(_suggestions);
-  
+
   bool get isMapView => _isMapView;
   double get currentZoom => _currentZoom;
   LatLng get currentPosition => _currentPosition;
   LatLng? get searchLocation => _searchLocation;
   String get searchAddress => _searchAddress;
   bool get isShowingSearchResults => _isShowingSearchResults;
-  
+
   bool get hasSuggestions => _suggestions.isNotEmpty;
-  bool get isLoading => loadCafes.running;
+  bool get shouldShowLocationDialog => _shouldShowLocationDialog;
 
   // === Commands ===
-  late final Command0<List<Cafe>> loadCafes;
-  late final Command1<List<PlaceSuggestion>, String> searchPlaces;
-  late final Command1<void, PlaceSuggestion> selectPlace;
+  late Command0<void> loadCafes;
+  late Command1<void, String> searchPlaces;
+  late Command1<void, PlaceSuggestion> selectPlace;
 
-  /// Carregar todas as cafeterias do banco de dados
-  Future<Result<List<Cafe>>> _loadCafes() async {
+  // === Verificar se deve mostrar o diálogo ===
+  Future<void> _checkLocationDialogStatus() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final hasShown = prefs.getBool(_locationDialogKey) ?? false;
+
+      debugPrint('🗺️ Verificando status do diálogo de localização: $hasShown');
+
+      if (!hasShown) {
+        // Nunca foi mostrado - mostrar diálogo
+        _shouldShowLocationDialog = true;
+        notifyListeners();
+        debugPrint('✅ Diálogo de localização será exibido');
+      } else {
+        // Já foi mostrado - carregar localização salva
+        debugPrint('⏭️ Diálogo já foi exibido, carregando localização salva');
+        final savedLat = prefs.getDouble(_savedLatitudeKey);
+        final savedLng = prefs.getDouble(_savedLongitudeKey);
+
+        if (savedLat != null && savedLng != null) {
+          _currentPosition = LatLng(savedLat, savedLng);
+          debugPrint('📍 Localização carregada: $savedLat, $savedLng');
+          notifyListeners();
+        } else {
+          debugPrint('⚠️ Nenhuma localização salva encontrada');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Erro ao verificar status do diálogo: $e');
+    }
+  }
+
+  // === Pular solicitação de localização ===
+  Future<void> skipLocationRequest() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_locationDialogKey, true);
+
+      _shouldShowLocationDialog = false;
+      notifyListeners();
+
+      debugPrint('⏭️ Usuário optou por pular a localização');
+    } catch (e) {
+      debugPrint('❌ Erro ao salvar preferência: $e');
+    }
+  }
+
+  // === Aceitar solicitação de localização ===
+  Future<void> acceptLocationRequest(LatLng location) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_locationDialogKey, true);
+      await prefs.setDouble(_savedLatitudeKey, location.latitude);
+      await prefs.setDouble(_savedLongitudeKey, location.longitude);
+
+      _shouldShowLocationDialog = false;
+      _currentPosition = location;
+      notifyListeners();
+
+      debugPrint(
+        '✅ Localização aceita e salva: ${location.latitude}, ${location.longitude}',
+      );
+    } catch (e) {
+      debugPrint('❌ Erro ao salvar localização: $e');
+    }
+  }
+
+  /// Carregar todas as cafeterias
+  Future<Result<void>> _loadCafes() async {
+    try {
+      debugPrint('🔄 Iniciando carregamento de cafeterias...');
+
       final cafes = await _cafeRepository.getAllCafes();
+
       _allCafes = cafes;
       _visibleCafes = List.from(_allCafes);
+
+      debugPrint('✅ ${cafes.length} cafeterias carregadas com sucesso');
+
       notifyListeners();
-      return Result.ok(cafes);
+      return Result.ok(null);
     } catch (e) {
+      debugPrint('❌ Erro ao carregar cafeterias: $e');
       return Result.error(Exception('Erro ao carregar cafeterias: $e'));
     }
   }
 
-  /// Buscar lugares (cafeterias + Google Places)
-  Future<Result<List<PlaceSuggestion>>> _searchPlaces(String query) async {
+  /// Buscar lugares (híbrido: cafeterias + Google Places)
+  Future<Result<void>> _searchPlaces(String query) async {
     if (query.trim().isEmpty) {
-      _suggestions = [];
-      notifyListeners();
-      return Result.ok([]);
+      clearSuggestions();
+      return Result.ok(null);
     }
 
-    // Debounce
-    if (_lastSearchQuery == query) {
-      return Result.ok(_suggestions);
+    // Debounce: aguardar 500ms entre buscas
+    if (query == _lastSearchQuery) {
+      return Result.ok(null);
     }
+    _lastSearchQuery = query;
 
-    try {
-      // Aguardar 500ms antes de buscar (debounce)
-      await Future.delayed(Duration(milliseconds: 500));
+    _searchTimer?.cancel();
+    _searchTimer = Timer(Duration(milliseconds: 500), () async {
+      try {
+        debugPrint('🔍 Buscando: "$query"');
 
-      _lastSearchQuery = query;
-      
-      // Busca híbrida: cafeterias cadastradas + lugares do Google
-      final cafeSuggestions = _searchCafeteriasByName(query);
-      final placeSuggestions = await _placesRepository.searchPlaces(query);
-      
-      // Combinar resultados (cafeterias primeiro)
-      _suggestions = [...cafeSuggestions, ...placeSuggestions];
-      
-      notifyListeners();
-      return Result.ok(_suggestions);
-    } catch (e) {
-      return Result.error(Exception('Erro ao buscar lugares: $e'));
-    }
+        // Buscar em paralelo: cafeterias cadastradas + Google Places
+        final results = await Future.wait([
+          _searchCafeteriasByName(query),
+          _placesRepository.searchPlaces(query),
+        ]);
+
+        final cafeSuggestions = results[0] as List<PlaceSuggestion>;
+        final placeSuggestions = results[1] as List<PlaceSuggestion>;
+
+        // Combinar resultados (cafeterias primeiro)
+        _suggestions = [...cafeSuggestions, ...placeSuggestions];
+
+        debugPrint('✅ ${_suggestions.length} sugestões encontradas');
+
+        notifyListeners();
+      } catch (e) {
+        debugPrint('❌ Erro na busca: $e');
+      }
+    });
+
+    return Result.ok(null);
   }
 
-  /// Buscar cafeterias por nome (localmente)
-  List<PlaceSuggestion> _searchCafeteriasByName(String query) {
-    final lowerQuery = query.toLowerCase();
-    
-    return _allCafes
-        .where((cafe) =>
-            cafe.name.toLowerCase().contains(lowerQuery) ||
-            cafe.address.toLowerCase().contains(lowerQuery))
-        .map((cafe) => PlaceSuggestion(
-              placeId: 'cafe_${cafe.id}',
-              description: cafe.name,
-              mainText: cafe.name,
-              secondaryText: cafe.address,
-            ))
-        .take(5)
-        .toList();
+  /// Buscar cafeterias por nome (local)
+  Future<List<PlaceSuggestion>> _searchCafeteriasByName(String query) async {
+    final lowerQuery = query.toLowerCase().trim();
+
+    final matchingCafes = _allCafes.where((cafe) {
+      return cafe.name.toLowerCase().contains(lowerQuery) ||
+          cafe.address.toLowerCase().contains(lowerQuery);
+    }).toList();
+
+    return matchingCafes.map((cafe) {
+      return PlaceSuggestion(
+        placeId: 'cafe_${cafe.id}',
+        description: cafe.name,
+        mainText: cafe.name,
+        secondaryText: cafe.address,
+        types: ['cafe', 'establishment'],
+      );
+    }).toList();
   }
 
-  /// Selecionar lugar da lista de sugestões
+  /// Selecionar um lugar da busca
   Future<Result<void>> _selectPlace(PlaceSuggestion suggestion) async {
     try {
-      _suggestions = [];
-      notifyListeners();
+      debugPrint('📍 Selecionado: ${suggestion.description}');
 
-      // Verificar se é uma cafeteria cadastrada
+      clearSuggestions();
+
+      // Verificar se é uma cafeteria cadastrada (placeId com prefixo "cafe_")
       if (suggestion.placeId.startsWith('cafe_')) {
         final cafeId = suggestion.placeId.replaceFirst('cafe_', '');
         final cafe = _allCafes.firstWhere((c) => c.id == cafeId);
-        
+
         if (_isMapView) {
-          // Modo mapa: atualizar posição central
+          // Modo mapa: apenas atualizar posição (o widget move a câmera)
           _currentPosition = cafe.position;
           notifyListeners();
         } else {
-          // Modo lista: filtrar para mostrar apenas essa cafeteria
+          // Modo lista: filtrar para mostrar apenas este café
           _visibleCafes = [cafe];
+          _searchLocation = cafe.position;
+          _searchAddress = cafe.address;
           _isShowingSearchResults = true;
           notifyListeners();
         }
       } else {
-        // Lugar do Google Places
+        // É um lugar do Google Places: buscar coordenadas
         final coordinates = await _placesRepository.getCoordinatesFromPlaceId(
           suggestion.placeId,
         );
@@ -173,7 +275,7 @@ class CafeExplorerViewModel extends ChangeNotifier {
           }
         }
       }
-      
+
       return Result.ok(null);
     } catch (e) {
       return Result.error(Exception('Erro ao selecionar lugar: $e'));
@@ -202,20 +304,26 @@ class CafeExplorerViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Limpar sugestões
+  void clearSuggestions() {
+    _suggestions = [];
+    notifyListeners();
+  }
+
   /// Alternar entre mapa e lista
   void toggleView() {
     _isMapView = !_isMapView;
-    
+
     // Ao alternar para modo lista, aplicar filtro de raio
     if (!_isMapView) {
       _filterCafesByMapRadius();
     }
-    
+
     // Limpar busca ao voltar para o mapa
     if (_isMapView && _isShowingSearchResults) {
       clearSearch();
     }
-    
+
     notifyListeners();
   }
 
@@ -228,69 +336,56 @@ class CafeExplorerViewModel extends ChangeNotifier {
   /// Atualizar posição central do mapa
   void updateMapCenter(LatLng position) {
     _currentPosition = position;
-    
+
     // Se estiver no modo lista, atualizar filtro de raio
     if (!_isMapView && !_isShowingSearchResults) {
       _filterCafesByMapRadius();
     }
-    
+
     notifyListeners();
   }
 
-  /// Filtrar cafeterias por raio do centro do mapa (5km)
-  void _filterCafesByMapRadius() {
-    _visibleCafes = _allCafes.where((cafe) {
-      final distance = _calculateDistanceKm(_currentPosition, cafe.position);
-      return distance <= _filterRadiusKm;
-    }).toList();
-  }
-
-  /// Calcular distância entre dois pontos em km (fórmula Haversine)
-  double _calculateDistanceKm(LatLng pos1, LatLng pos2) {
-    const double earthRadiusKm = 6371.0;
-    
-    final dLat = _degreesToRadians(pos2.latitude - pos1.latitude);
-    final dLng = _degreesToRadians(pos2.longitude - pos1.longitude);
-    
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_degreesToRadians(pos1.latitude)) *
-            math.cos(_degreesToRadians(pos2.latitude)) *
-            math.sin(dLng / 2) *
-            math.sin(dLng / 2);
-    
-    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-    
-    return earthRadiusKm * c;
-  }
-
-  /// Converter graus para radianos
-  double _degreesToRadians(double degrees) {
-    return degrees * math.pi / 180;
-  }
-
-  /// Atualizar cafés visíveis no viewport do mapa
+  /// Atualizar cafés no viewport
   void updateCafesInViewport(List<Cafe> cafes) {
     _cafesInViewport = cafes;
     notifyListeners();
   }
 
-  /// Obter grupos de pins (com clustering)
-  List<PinGroup> getPinGroups() {
-    return _clusteringService.groupCafes(_visibleCafes, _currentZoom);
+  /// Filtrar cafés dentro do raio do centro do mapa (modo lista)
+  void _filterCafesByMapRadius() {
+    _visibleCafes = _allCafes.where((cafe) {
+      final distance = _calculateDistance(_currentPosition, cafe.position);
+      return distance <= _filterRadiusKm;
+    }).toList();
+
+    notifyListeners();
   }
 
-  /// Limpar sugestões
-  void clearSuggestions() {
-    _suggestions = [];
-    notifyListeners();
+  /// Calcular distância entre dois pontos (em km)
+  double _calculateDistance(LatLng from, LatLng to) {
+    const double earthRadius = 6371;
+
+    double dLat = _degreesToRadians(to.latitude - from.latitude);
+    double dLng = _degreesToRadians(to.longitude - from.longitude);
+
+    double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_degreesToRadians(from.latitude)) *
+            math.cos(_degreesToRadians(to.latitude)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * (math.pi / 180);
   }
 
   @override
   void dispose() {
     _searchTimer?.cancel();
-    loadCafes.dispose();
-    searchPlaces.dispose();
-    selectPlace.dispose();
     super.dispose();
   }
 }
