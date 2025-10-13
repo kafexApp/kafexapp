@@ -20,10 +20,8 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     try {
       print('🔄 Repository: Buscando notificações...');
       
-      // Busca notificações do Supabase através do Service
       final notificacoesSupabase = await NotificationsService.getNotifications();
 
-      // Converte dados do Supabase para o modelo de domínio AppNotification
       final notifications = notificacoesSupabase.map((notifData) {
         return _convertToAppNotification(notifData);
       }).toList();
@@ -99,16 +97,12 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
 
   /// Converte dados do Supabase para o modelo de domínio AppNotification
   AppNotification _convertToAppNotification(Map<String, dynamic> data) {
-    // Determinar o tipo de notificação baseado no campo 'tipo'
     NotificationType type = _mapTipoToNotificationType(data['tipo']);
 
-    // Determinar se está lida (visivel = false significa lida)
     bool isRead = !(data['visivel'] ?? true);
 
-    // Criar título e mensagem baseados no tipo
     final titleAndMessage = _generateTitleAndMessage(data);
 
-    // Parse da data - tratando timezone corretamente
     DateTime notificationTime;
     try {
       final createdAt = data['created_at'];
@@ -122,6 +116,9 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       notificationTime = DateTime.now();
     }
 
+    // 🔔 NOVO: Construir actionUrl baseado no tipo de notificação
+    String? actionUrl = _buildActionUrl(data);
+
     return AppNotification(
       id: data['id'].toString(),
       type: type,
@@ -130,27 +127,61 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       time: notificationTime,
       isRead: isRead,
       icon: null,
-      actionUrl: null,
+      actionUrl: actionUrl, // URL para navegação
     );
   }
 
-  /// Mapeia o tipo do banco para o enum NotificationType
+  /// 🔔 NOVO: Constrói a URL de ação baseada no tipo de notificação
+  String? _buildActionUrl(Map<String, dynamic> data) {
+    final tipo = data['tipo'] as String?;
+    
+    switch (tipo) {
+      case 'curtida_post':
+      case 'comentario_post':
+        // Para curtidas e comentários, navegar para o post
+        final feedId = data['feed_id'];
+        final comentarioId = data['comentario_id'];
+        
+        if (feedId != null) {
+          // Formato: /post/{postId}?commentId={commentId}
+          String url = '/post/$feedId';
+          if (comentarioId != null) {
+            url += '?commentId=$comentarioId';
+          }
+          return url;
+        }
+        break;
+      
+      case 'avaliacao_cafeteria':
+        // Para avaliações, navegar para a cafeteria
+        final cafeteriaId = data['cafeteria_id'];
+        if (cafeteriaId != null) {
+          return '/cafeteria/$cafeteriaId';
+        }
+        break;
+      
+      default:
+        return null;
+    }
+    
+    return null;
+  }
+
   NotificationType _mapTipoToNotificationType(String? tipo) {
     switch (tipo) {
       case 'curtida_post':
-        return NotificationType.review; // Usando review para curtidas
+        return NotificationType.review;
       case 'comentario_post':
-        return NotificationType.community; // Usando community para comentários
+        return NotificationType.community;
       case 'avaliacao_cafeteria':
-        return NotificationType.newPlace; // Usando newPlace para avaliações
+        return NotificationType.newPlace;
       case 'teste':
-        return NotificationType.appUpdate; // Usando appUpdate para testes
+        return NotificationType.appUpdate;
       default:
         return NotificationType.community;
     }
   }
 
-  /// Gera título e mensagem baseados no tipo de notificação
   Map<String, String> _generateTitleAndMessage(Map<String, dynamic> data) {
     final tipo = data['tipo'] as String?;
     final previaComentario = data['previa_comentario'] as String?;
@@ -197,7 +228,6 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     }
   }
 
-  /// Retorna título apropriado para cada tipo
   String _getTitleForType(String? tipo) {
     switch (tipo) {
       case 'curtida_post':

@@ -2,6 +2,7 @@
 import 'package:kafex/backend/supabase/supabase.dart';
 import 'package:kafex/models/comment_models.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'notifications_service.dart';
 
 class CommentsService {
   /// Busca comentários reais de um post específico
@@ -22,7 +23,7 @@ class CommentsService {
           timestamp:
               DateTime.tryParse(comentario['comentario_criado_em'] ?? '') ??
               DateTime.now(),
-          likes: 0, // Campo não existe na estrutura atual
+          likes: 0,
           isLiked: false,
         );
       }).toList();
@@ -32,7 +33,7 @@ class CommentsService {
     }
   }
 
-  /// Adiciona um novo comentário real
+  /// Adiciona um novo comentário real e cria notificação para o dono do post
   static Future<CommentData?> addComment({
     required String postId,
     required String conteudo,
@@ -50,7 +51,7 @@ class CommentsService {
 
       // CORREÇÃO: Inserir na tabela comentario (não na view)
       final response = await SupaClient.client
-          .from('comentario') // Tabela base, não a view
+          .from('comentario')
           .insert({
             'feed_id': int.parse(postId),
             'user_ref': user.uid,
@@ -65,6 +66,13 @@ class CommentsService {
 
       // Atualizar contador no post
       await _updatePostCommentsCount(postId);
+
+      // 🔔 NOVO: Criar notificação para o dono do post
+      await _createCommentNotification(
+        postId: postId,
+        commentId: response['id'],
+        commentContent: conteudo,
+      );
 
       // Retornar dados do comentário combinados com dados do usuário
       return CommentData(
@@ -83,6 +91,68 @@ class CommentsService {
     }
   }
 
+  /// 🔔 NOVO: Cria notificação para o dono do post
+  static Future<void> _createCommentNotification({
+    required String postId,
+    required int commentId,
+    required String commentContent,
+  }) async {
+    try {
+      print('🔔 === INICIANDO CRIAÇÃO DE NOTIFICAÇÃO ===');
+      print('   Post ID: $postId');
+      print('   Comment ID: $commentId');
+      print('   Conteúdo: $commentContent');
+
+      // Buscar o Firebase UID do dono do post
+      print('🔍 Buscando dono do post...');
+      final postData = await SupaClient.client
+          .from('feed')
+          .select('usuario_uid')
+          .eq('id', int.parse(postId))
+          .maybeSingle();
+
+      print('📦 Resposta do banco: $postData');
+
+      if (postData == null) {
+        print('⚠️ Post não encontrado, notificação não criada');
+        return;
+      }
+
+      final postOwnerUid = postData['usuario_uid'] as String?;
+      print('👤 Dono do post (Firebase UID): $postOwnerUid');
+
+      if (postOwnerUid == null || postOwnerUid.isEmpty) {
+        print('⚠️ Dono do post não identificado, notificação não criada');
+        return;
+      }
+
+      // Criar prévia do comentário (primeiros 50 caracteres)
+      String preview = commentContent.trim();
+      if (preview.length > 50) {
+        preview = preview.substring(0, 50) + '...';
+      }
+      print('📝 Prévia do comentário: $preview');
+
+      // Criar a notificação
+      print('🔔 Chamando NotificationsService.notifyPostComment...');
+      final success = await NotificationsService.notifyPostComment(
+        feedId: int.parse(postId),
+        comentarioId: commentId,
+        postOwnerFirebaseUid: postOwnerUid,
+        comentarioPreview: preview,
+      );
+
+      if (success) {
+        print('✅ Notificação de comentário criada com sucesso');
+      } else {
+        print('⚠️ Falha ao criar notificação de comentário');
+      }
+    } catch (e, stackTrace) {
+      print('❌ Erro ao criar notificação de comentário: $e');
+      print('Stack trace: $stackTrace');
+    }
+  }
+
   /// Edita um comentário existente
   static Future<bool> editComment({
     required String commentId,
@@ -92,7 +162,6 @@ class CommentsService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
 
-      // CORREÇÃO: Atualizar na tabela comentario (não na view)
       await SupaClient.client
           .from('comentario')
           .update({'comentario': novoConteudo})
@@ -115,7 +184,6 @@ class CommentsService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
 
-      // CORREÇÃO: Deletar da tabela comentario (não da view)
       await SupaClient.client
           .from('comentario')
           .delete()
@@ -156,7 +224,6 @@ class CommentsService {
     try {
       print('🔍 Buscando dados do usuário: $userRef');
 
-      // CORREÇÃO: Buscar na tabela usuario_perfil pelo campo 'ref' (não 'user_ref')
       final response = await SupaClient.client
           .from('usuario_perfil')
           .select('id, nome_exibicao, foto_url')
@@ -197,7 +264,7 @@ class CommentsService {
       print('👤 Criando perfil de usuário no Supabase...');
 
       final profileData = {
-        'ref': userRef, // CORREÇÃO: campo correto é 'ref'
+        'ref': userRef,
         'nome_exibicao': firebaseUser.displayName ?? 'Usuário',
         'email': firebaseUser.email,
         'foto_url': firebaseUser.photoURL,
@@ -226,7 +293,6 @@ class CommentsService {
   /// Atualiza contador de comentários no post
   static Future<void> _updatePostCommentsCount(String postId) async {
     try {
-      // O trigger já faz isso automaticamente
       print('✅ Trigger atualizará automaticamente o contador de comentários');
     } catch (e) {
       print('⚠️ Erro ao atualizar contador de comentários: $e');
