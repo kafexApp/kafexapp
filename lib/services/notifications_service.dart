@@ -8,8 +8,18 @@ class NotificationsService {
   static final SupabaseClient _supabase = Supabase.instance.client;
 
   /// Obtém o Firebase UID do usuário atual
+  /// TEMPORÁRIO: Forçando UID para testes
   static String? _getCurrentFirebaseUid() {
-    return FirebaseAuth.instance.currentUser?.uid;
+    final firebaseUid = FirebaseAuth.instance.currentUser?.uid;
+    
+    // TEMPORÁRIO: Se não estiver logado, usar UID fixo para testes
+    if (firebaseUid == null) {
+      print('⚠️ Usuário não logado no Firebase, usando UID fixo para testes');
+      return 'M2KJy0duZQPfgvEIgPDqqgRv1xu2';
+    }
+    
+    print('✅ Firebase UID encontrado: $firebaseUid');
+    return firebaseUid;
   }
 
   /// Busca o user_id do Supabase a partir do Firebase UID
@@ -44,11 +54,12 @@ class NotificationsService {
       print('🔍 Buscando notificações para o usuário: $firebaseUid');
 
       // Buscar todas as notificações do usuário
+      // ORDER BY created_at DESC = mais recentes primeiro
       final response = await _supabase
           .from('notificacao')
           .select()
           .eq('user_notificado_ref', firebaseUid)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false); // DESC = mais recente primeiro
 
       print('✅ ${response.length} notificações encontradas');
       return List<Map<String, dynamic>>.from(response);

@@ -131,51 +131,64 @@ class LikesService {
   /// Cria notificação quando alguém curte um post
   Future<void> _createLikeNotification(int feedId, String currentUserUid) async {
     try {
-      print('📬 Criando notificação de curtida...');
+      print('📬 [NOTIF] Iniciando criação de notificação de curtida...');
+      print('📬 [NOTIF] Feed ID: $feedId');
+      print('📬 [NOTIF] Current User UID: $currentUserUid');
 
       // Busca o dono do post (usuario_uid do feed)
+      print('📬 [NOTIF] Buscando dono do post...');
       final postResponse = await _supabase
           .from('feed')
           .select('usuario_uid')
           .eq('id', feedId)
           .maybeSingle();
 
+      print('📬 [NOTIF] Post response: $postResponse');
+
       if (postResponse == null) {
-        print('⚠️ Post não encontrado');
+        print('⚠️ [NOTIF] Post não encontrado');
         return;
       }
 
       final postOwnerUid = postResponse['usuario_uid'] as String?;
+      print('📬 [NOTIF] Post Owner UID: $postOwnerUid');
       
       if (postOwnerUid == null) {
-        print('⚠️ Dono do post não identificado');
+        print('⚠️ [NOTIF] Dono do post não identificado (usuario_uid é null)');
         return;
       }
 
       // Busca o nome do usuário que curtiu
+      print('📬 [NOTIF] Buscando nome do usuário que curtiu...');
       final userResponse = await _supabase
           .from('usuario_perfil')
           .select('nome_exibicao')
           .eq('ref', currentUserUid)
           .maybeSingle();
 
+      print('📬 [NOTIF] User response: $userResponse');
       final userName = userResponse?['nome_exibicao'] as String? ?? 'Alguém';
+      print('📬 [NOTIF] User name: $userName');
 
       // Busca o user_id do usuário notificado para preencher usuario_notificado_id
+      print('📬 [NOTIF] Buscando ID do usuário notificado...');
       final notifiedUserResponse = await _supabase
           .from('usuario_perfil')
           .select('id')
           .eq('ref', postOwnerUid)
           .maybeSingle();
 
+      print('📬 [NOTIF] Notified user response: $notifiedUserResponse');
       final usuarioNotificadoId = notifiedUserResponse?['id'] as int?;
+      print('📬 [NOTIF] Usuario notificado ID: $usuarioNotificadoId');
 
       if (usuarioNotificadoId == null) {
-        print('⚠️ ID do usuário notificado não encontrado');
+        print('⚠️ [NOTIF] ID do usuário notificado não encontrado');
         return;
       }
 
       // Cria a notificação manualmente com mensagem personalizada
+      print('📬 [NOTIF] Inserindo notificação no banco...');
       await _supabase.from('notificacao').insert({
         'tipo': 'curtida_post',
         'usuario_notificado_id': usuarioNotificadoId,
@@ -186,9 +199,10 @@ class LikesService {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      print('✅ Notificação de curtida criada com nome: $userName');
-    } catch (e) {
-      print('❌ Erro ao criar notificação de curtida: $e');
+      print('✅ [NOTIF] Notificação de curtida criada com nome: $userName');
+    } catch (e, stackTrace) {
+      print('❌ [NOTIF] Erro ao criar notificação de curtida: $e');
+      print('❌ [NOTIF] Stack trace: $stackTrace');
       // Não bloqueia a curtida se a notificação falhar
     }
   }

@@ -108,12 +108,26 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
     // Criar título e mensagem baseados no tipo
     final titleAndMessage = _generateTitleAndMessage(data);
 
+    // Parse da data - tratando timezone corretamente
+    DateTime notificationTime;
+    try {
+      final createdAt = data['created_at'];
+      if (createdAt is String) {
+        notificationTime = DateTime.parse(createdAt).toLocal();
+      } else {
+        notificationTime = DateTime.now();
+      }
+    } catch (e) {
+      print('⚠️ Erro ao parsear data da notificação: $e');
+      notificationTime = DateTime.now();
+    }
+
     return AppNotification(
       id: data['id'].toString(),
       type: type,
       title: titleAndMessage['title']!,
       message: titleAndMessage['message']!,
-      time: DateTime.parse(data['created_at']),
+      time: notificationTime,
       isRead: isRead,
       icon: null,
       actionUrl: null,
@@ -139,19 +153,28 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
   /// Gera título e mensagem baseados no tipo de notificação
   Map<String, String> _generateTitleAndMessage(Map<String, dynamic> data) {
     final tipo = data['tipo'] as String?;
+    final previaComentario = data['previa_comentario'] as String?;
 
+    // SEMPRE usar previa_comentario se existir
+    if (previaComentario != null && previaComentario.isNotEmpty) {
+      return {
+        'title': _getTitleForType(tipo),
+        'message': previaComentario,
+      };
+    }
+
+    // Fallback caso não tenha previa_comentario
     switch (tipo) {
       case 'curtida_post':
         return {
           'title': 'Curtida no seu post! ❤️',
-          'message': 'Alguém curtiu seu post no feed.',
+          'message': 'Alguém curtiu seu post.',
         };
       
       case 'comentario_post':
-        final previa = data['previa_comentario'] as String?;
         return {
           'title': 'Novo comentário 💬',
-          'message': previa ?? 'Alguém comentou no seu post.',
+          'message': 'Alguém comentou no seu post.',
         };
       
       case 'avaliacao_cafeteria':
@@ -161,17 +184,32 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
         };
       
       case 'teste':
-        final previa = data['previa_comentario'] as String?;
         return {
           'title': 'Notificação de Teste',
-          'message': previa ?? 'Esta é uma notificação de teste.',
+          'message': 'Esta é uma notificação de teste.',
         };
       
       default:
         return {
           'title': 'Nova notificação',
-          'message': data['previa_comentario'] ?? 'Você tem uma nova notificação.',
+          'message': 'Você tem uma nova notificação.',
         };
+    }
+  }
+
+  /// Retorna título apropriado para cada tipo
+  String _getTitleForType(String? tipo) {
+    switch (tipo) {
+      case 'curtida_post':
+        return 'Curtida no seu post! ❤️';
+      case 'comentario_post':
+        return 'Novo comentário 💬';
+      case 'avaliacao_cafeteria':
+        return 'Nova avaliação ⭐';
+      case 'teste':
+        return 'Notificação de Teste';
+      default:
+        return 'Nova notificação';
     }
   }
 }
