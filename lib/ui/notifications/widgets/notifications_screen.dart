@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -12,12 +13,29 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NotificationsViewModel>().loadNotifications.execute();
     });
+
+    // Atualiza a tela a cada 1 minuto para recalcular os tempos
+    _timer = Timer.periodic(Duration(minutes: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          // Força rebuild para atualizar os tempos
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -348,7 +366,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.promotion:
         return AppColors.papayaSensorial;
       case NotificationType.review:
-        return AppColors.pear;
+        return AppColors.spiced; // Vermelho para curtida (coração)
       case NotificationType.appUpdate:
         return AppColors.eletricBlue;
       case NotificationType.community:
@@ -363,7 +381,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case NotificationType.promotion:
         return AppIcons.tag;
       case NotificationType.review:
-        return AppIcons.star;
+        return AppIcons.heart; // ❤️ Coração para curtida
       case NotificationType.appUpdate:
         return AppIcons.download;
       case NotificationType.community:
@@ -380,7 +398,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         print('Abrir promoção');
         break;
       case NotificationType.review:
-        print('Abrir avaliação');
+        print('Abrir post com curtida');
         break;
       case NotificationType.appUpdate:
         print('Abrir loja de apps');
