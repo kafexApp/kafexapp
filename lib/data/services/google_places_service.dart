@@ -1,3 +1,4 @@
+// lib/data/services/google_places_service.dart
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -39,7 +40,7 @@ class GooglePlacesService {
         }
       }
     } catch (e) {
-      print('Erro ao buscar sugestões: $e');
+      print('❌ Erro ao buscar sugestões: $e');
     }
 
     return [];
@@ -68,9 +69,85 @@ class GooglePlacesService {
         }
       }
     } catch (e) {
-      print('Erro ao obter coordenadas: $e');
+      print('❌ Erro ao obter coordenadas: $e');
     }
 
     return null;
+  }
+
+  /// Obter detalhes completos de um lugar, incluindo foto
+  Future<Map<String, dynamic>?> getPlaceDetailsWithPhoto(String placeId) async {
+    final String originalUrl = '$_baseUrl/details/json'
+        '?place_id=$placeId'
+        '&fields=name,formatted_address,formatted_phone_number,website,geometry,photos'
+        '&language=pt-BR'
+        '&key=$_apiKey';
+
+    final String url = kIsWeb 
+        ? '$_corsProxy${Uri.encodeComponent(originalUrl)}' 
+        : originalUrl;
+
+    try {
+      print('🔍 Buscando detalhes do lugar: $placeId');
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['status'] == 'OK') {
+          final result = data['result'];
+          
+          // Extrair coordenadas
+          final geometry = result['geometry'];
+          final location = geometry?['location'];
+          
+          // Extrair primeira foto (se existir)
+          String? photoUrl;
+          final photos = result['photos'];
+          if (photos != null && photos is List && photos.isNotEmpty) {
+            final photoReference = photos[0]['photo_reference'];
+            if (photoReference != null) {
+              photoUrl = getPhotoUrl(photoReference, maxWidth: 800);
+              print('📸 Foto encontrada: $photoUrl');
+            }
+          } else {
+            print('⚠️ Nenhuma foto disponível para este lugar');
+          }
+
+          return {
+            'name': result['name'],
+            'address': result['formatted_address'],
+            'phone': result['formatted_phone_number'],
+            'website': result['website'],
+            'latitude': location?['lat'],
+            'longitude': location?['lng'],
+            'photoUrl': photoUrl,
+          };
+        } else {
+          print('⚠️ Status da API: ${data['status']}');
+        }
+      } else {
+        print('❌ HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Erro ao obter detalhes com foto: $e');
+    }
+
+    return null;
+  }
+
+  /// Gera URL da foto a partir do photo_reference
+  String getPhotoUrl(String photoReference, {int maxWidth = 400}) {
+    // URL direta da API do Google Places Photos
+    final photoUrl = 'https://maps.googleapis.com/maps/api/place/photo'
+        '?maxwidth=$maxWidth'
+        '&photo_reference=$photoReference'
+        '&key=$_apiKey';
+    
+    // Nota: Em ambiente web, pode ser necessário usar o CORS proxy
+    // Para apps nativos, a URL funciona diretamente
+    return kIsWeb 
+        ? '$_corsProxy${Uri.encodeComponent(photoUrl)}'
+        : photoUrl;
   }
 }

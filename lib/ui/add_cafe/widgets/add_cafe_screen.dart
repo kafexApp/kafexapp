@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -139,11 +140,13 @@ class _AddCafeScreenState extends State<AddCafeScreen>
 
   Future<void> _selectImageFromSource(ImageSource source) async {
     try {
-      Permission permission =
-          source == ImageSource.camera ? Permission.camera : Permission.photos;
+      if (!kIsWeb) {
+        Permission permission =
+            source == ImageSource.camera ? Permission.camera : Permission.photos;
 
-      final status = await permission.request();
-      if (!status.isGranted) return;
+        final status = await permission.request();
+        if (!status.isGranted) return;
+      }
 
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: source,
@@ -154,7 +157,7 @@ class _AddCafeScreenState extends State<AddCafeScreen>
 
       if (pickedFile != null) {
         final viewModel = context.read<AddCafeViewModel>();
-        viewModel.setCustomPhoto(File(pickedFile.path));
+        viewModel.setCustomPhoto(pickedFile);
 
         CustomToast.showSuccess(
           context,
@@ -203,7 +206,6 @@ class _AddCafeScreenState extends State<AddCafeScreen>
       ),
       body: Consumer<AddCafeViewModel>(
         builder: (context, viewModel, _) {
-          // Listener para submit
           if (viewModel.submitCafe.completed) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               CustomToast.showSuccess(
