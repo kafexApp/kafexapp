@@ -1,6 +1,7 @@
+// lib/ui/add_cafe/viewmodel/add_cafe_viewmodel.dart
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import '../../../data/models/domain/cafe_submission.dart';
 import '../../../data/models/domain/wizard_state.dart';
 import '../../../data/repositories/places_submission_repository.dart';
@@ -18,13 +19,9 @@ class AddCafeViewModel extends ChangeNotifier {
   })  : _placesRepository = placesRepository,
         _submissionRepository = submissionRepository;
 
-  // ==================== ESTADO ====================
-
-  // Estado do wizard
   AddCafeWizardState _wizardState = AddCafeWizardState();
   AddCafeWizardState get wizardState => _wizardState;
 
-  // Busca de lugares
   List<PlaceDetails> _placeSuggestions = [];
   List<PlaceDetails> get placeSuggestions => _placeSuggestions;
   
@@ -33,12 +30,11 @@ class AddCafeViewModel extends ChangeNotifier {
   bool _showSuggestions = false;
   bool get showSuggestions => _showSuggestions;
 
-  // Dados do formulário
   PlaceDetails? _selectedPlace;
   PlaceDetails? get selectedPlace => _selectedPlace;
 
-  File? _customPhoto;
-  File? get customPhoto => _customPhoto;
+  XFile? _customPhoto;
+  XFile? get customPhoto => _customPhoto;
 
   bool _isOfficeFriendly = false;
   bool get isOfficeFriendly => _isOfficeFriendly;
@@ -49,8 +45,6 @@ class AddCafeViewModel extends ChangeNotifier {
   bool _isVegFriendly = false;
   bool get isVegFriendly => _isVegFriendly;
 
-  // ==================== COMMANDS ====================
-
   late final Command1<List<PlaceDetails>, String> searchPlaces =
       Command1(_searchPlaces);
 
@@ -58,26 +52,28 @@ class AddCafeViewModel extends ChangeNotifier {
 
   late final Command0<void> submitCafe = Command0(_submitCafe);
 
-  // ==================== NAVEGAÇÃO DO WIZARD ====================
-
   void nextStep() {
     if (_wizardState.canGoNext) {
+      final newIndex = _wizardState.currentStepIndex + 1;
       _wizardState = AddCafeWizardState(
-        currentStepIndex: _wizardState.currentStepIndex + 1,
-        currentStep: WizardStep.values[_wizardState.currentStepIndex + 1],
+        currentStepIndex: newIndex,
+        currentStep: WizardStep.values[newIndex],
         totalSteps: _wizardState.totalSteps,
       );
+      print('🔄 Wizard avançou para step $newIndex: ${_wizardState.currentStep}');
       notifyListeners();
     }
   }
 
   void previousStep() {
     if (_wizardState.canGoBack) {
+      final newIndex = _wizardState.currentStepIndex - 1;
       _wizardState = AddCafeWizardState(
-        currentStepIndex: _wizardState.currentStepIndex - 1,
-        currentStep: WizardStep.values[_wizardState.currentStepIndex - 1],
+        currentStepIndex: newIndex,
+        currentStep: WizardStep.values[newIndex],
         totalSteps: _wizardState.totalSteps,
       );
+      print('🔄 Wizard voltou para step $newIndex: ${_wizardState.currentStep}');
       notifyListeners();
     }
   }
@@ -89,26 +85,23 @@ class AddCafeViewModel extends ChangeNotifier {
         currentStep: WizardStep.values[stepIndex],
         totalSteps: _wizardState.totalSteps,
       );
+      print('🔄 Wizard foi para step $stepIndex: ${_wizardState.currentStep}');
       notifyListeners();
     }
   }
-
-  // ==================== VALIDAÇÕES ====================
 
   bool canProceedFromCurrentStep() {
     switch (_wizardState.currentStep) {
       case WizardStep.search:
         return _selectedPlace != null;
       case WizardStep.photo:
-        return true; // Foto é opcional
+        return true;
       case WizardStep.details:
-        return true; // Detalhes são opcionais
+        return true;
       case WizardStep.submit:
         return true;
     }
   }
-
-  // ==================== BUSCA DE LUGARES ====================
 
   Future<Result<List<PlaceDetails>>> _searchPlaces(String query) async {
     try {
@@ -121,15 +114,11 @@ class AddCafeViewModel extends ChangeNotifier {
         return Result.ok([]);
       }
 
-      // Evitar buscas duplicadas
       if (query == _lastSearchQuery) {
         return Result.ok(_placeSuggestions);
       }
 
-      // Cancelar timer anterior
       _searchTimer?.cancel();
-
-      // Aguardar 500ms (debounce)
       await Future.delayed(Duration(milliseconds: 500));
 
       _lastSearchQuery = query;
@@ -145,26 +134,46 @@ class AddCafeViewModel extends ChangeNotifier {
 
   Future<Result<void>> _selectPlace(PlaceDetails place) async {
     try {
+      print('📍 Selecionando lugar: ${place.name}');
+      
       _showSuggestions = false;
       notifyListeners();
 
-      // Buscar detalhes completos do lugar
-      final details = await _placesRepository.getPlaceDetails(place.placeId);
-
-      if (details != null) {
-        _selectedPlace = details;
+      if (place.latitude != null && place.longitude != null) {
+        print('✅ Coordenadas já disponíveis');
+        _selectedPlace = place;
         _placeSuggestions = [];
         notifyListeners();
+        return Result.ok(null);
+      }
 
-        // Auto-avançar após delay
-        await Future.delayed(Duration(milliseconds: 1200));
-        if (canProceedFromCurrentStep()) {
-          nextStep();
-        }
+      print('🌐 Buscando coordenadas no Google Places...');
+      final details = await _placesRepository.getPlaceDetails(place.placeId);
+
+      if (details != null && details.latitude != null && details.longitude != null) {
+        print('✅ Coordenadas obtidas: (${details.latitude}, ${details.longitude})');
+        
+        _selectedPlace = PlaceDetails(
+          placeId: place.placeId,
+          name: place.name,
+          address: place.address,
+          phone: place.phone,
+          website: place.website,
+          photoUrl: place.photoUrl,
+          latitude: details.latitude,
+          longitude: details.longitude,
+        );
+        
+        _placeSuggestions = [];
+        notifyListeners();
+      } else {
+        print('⚠️ Não foi possível obter coordenadas');
+        return Result.error(Exception('Não foi possível obter as coordenadas do lugar'));
       }
 
       return Result.ok(null);
     } catch (e) {
+      print('❌ Erro ao selecionar lugar: $e');
       return Result.error(Exception('Erro ao selecionar lugar: $e'));
     }
   }
@@ -182,9 +191,7 @@ class AddCafeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ==================== FOTO ====================
-
-  void setCustomPhoto(File? photo) {
+  void setCustomPhoto(XFile? photo) {
     _customPhoto = photo;
     notifyListeners();
   }
@@ -193,8 +200,6 @@ class AddCafeViewModel extends ChangeNotifier {
     _customPhoto = null;
     notifyListeners();
   }
-
-  // ==================== FACILIDADES ====================
 
   void toggleOfficeFriendly() {
     _isOfficeFriendly = !_isOfficeFriendly;
@@ -226,15 +231,12 @@ class AddCafeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ==================== SUBMIT ====================
-
   Future<Result<void>> _submitCafe() async {
     try {
       if (_selectedPlace == null) {
         return Result.error(Exception('Nenhuma cafeteria selecionada'));
       }
 
-      // Criar submissão
       final submission = CafeSubmission(
         placeId: _selectedPlace!.placeId,
         name: _selectedPlace!.name,
@@ -250,14 +252,19 @@ class AddCafeViewModel extends ChangeNotifier {
         customPhotoPath: _customPhoto?.path,
       );
 
-      // Enviar para o repository
-      return await _submissionRepository.submitCafe(submission, _customPhoto);
+      final result = await _submissionRepository.submitCafe(submission, _customPhoto);
+      
+      if (result.isOk) {
+        print('✅ Cafeteria enviada com sucesso!');
+      } else {
+        print('❌ Erro ao enviar cafeteria: ${result.asError.error}');
+      }
+      
+      return result;
     } catch (e) {
       return Result.error(Exception('Erro ao enviar cafeteria: $e'));
     }
   }
-
-  // ==================== HELPERS ====================
 
   String getStepTitle() {
     switch (_wizardState.currentStep) {

@@ -1,5 +1,8 @@
+// lib/data/repositories/places_submission_repository.dart
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/domain/cafe_submission.dart';
+import '../services/supabase_cafeteria_service.dart';
+import '../services/google_places_service.dart';
 
 /// Interface abstrata para busca de lugares (Google Places)
 abstract class PlacesSubmissionRepository {
@@ -7,48 +10,161 @@ abstract class PlacesSubmissionRepository {
   Future<PlaceDetails?> getPlaceDetails(String placeId);
 }
 
-/// Implementação mock do repositório de lugares
+/// Implementação REAL usando Supabase + Google Places API
 class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
+  final SupabaseCafeteriaService _cafeteriaService;
+  final GooglePlacesService _placesService;
+
+  PlacesSubmissionRepositoryImpl({
+    SupabaseCafeteriaService? cafeteriaService,
+    GooglePlacesService? placesService,
+  })  : _cafeteriaService = cafeteriaService ?? SupabaseCafeteriaService(),
+        _placesService = placesService ?? GooglePlacesService();
+
   @override
   Future<List<PlaceDetails>> searchPlaces(String query) async {
-    // Simular delay de rede
-    await Future.delayed(Duration(milliseconds: 800));
+    try {
+      if (query.isEmpty) return [];
 
-    // Mock data
-    return [
-      PlaceDetails(
-        placeId: 'mock_1',
-        name: 'Starbucks',
-        address: 'Rua Augusta, São Paulo - SP',
-        phone: '(11) 99999-9999',
-        website: 'https://instagram.com/starbucks',
-        photoUrl: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400',
-        latitude: -23.5505,
-        longitude: -46.6333,
-      ),
-      PlaceDetails(
-        placeId: 'mock_2',
-        name: 'Coffee Lab',
-        address: 'Vila Madalena, São Paulo - SP',
-        phone: '(11) 88888-8888',
-        website: 'https://instagram.com/coffeelab',
-        photoUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400',
-        latitude: -23.5515,
-        longitude: -46.6343,
-      ),
-    ];
+      print('🔍 Buscando lugares: "$query"');
+
+      final results = <PlaceDetails>[];
+
+      // 1️⃣ BUSCAR NO SUPABASE (cafeterias já cadastradas)
+      print('📦 Buscando cafeterias no Supabase...');
+      final cafeterias = await _cafeteriaService.searchCafeteriasByName(query);
+      print('✅ ${cafeterias.length} cafeterias encontradas no Supabase');
+
+      // Converter cafeterias do Supabase para PlaceDetails
+      for (final cafe in cafeterias) {
+        results.add(PlaceDetails(
+          placeId: 'cafe_${cafe['id']}',
+          name: cafe['nome'] as String? ?? 'Sem nome',
+          address: _buildFullAddress(cafe),
+          phone: cafe['telefone'] as String?,
+          website: cafe['instagram'] as String?,
+          photoUrl: cafe['url_foto'] as String?,
+          latitude: cafe['lat'] as double?,
+          longitude: cafe['lng'] as double?,
+        ));
+      }
+
+      // 2️⃣ BUSCAR NO GOOGLE PLACES API (lugares novos)
+      print('🌐 Buscando no Google Places API...');
+      final googleSuggestions = await _placesService.getPlaceSuggestions(query);
+      print('✅ ${googleSuggestions.length} lugares encontrados no Google');
+
+      // Converter sugestões do Google para PlaceDetails (sem coordenadas ainda)
+      for (final suggestion in googleSuggestions) {
+        // Apenas adicionar se for um estabelecimento (café, restaurante, etc)
+        if (suggestion.isEstablishment) {
+          results.add(PlaceDetails(
+            placeId: suggestion.placeId,
+            name: suggestion.mainText,
+            address: suggestion.secondaryText,
+            phone: null,
+            website: null,
+            photoUrl: null,
+            latitude: null, // Será buscado depois no getPlaceDetails
+            longitude: null,
+          ));
+        }
+      }
+
+      print('✅ Total: ${results.length} resultados (Supabase + Google)');
+      return results;
+    } catch (e) {
+      print('❌ Erro ao buscar lugares: $e');
+      return [];
+    }
   }
 
   @override
   Future<PlaceDetails?> getPlaceDetails(String placeId) async {
-    // Simular delay de rede
-    await Future.delayed(Duration(milliseconds: 1000));
+    try {
+      // Verificar se é uma cafeteria do Supabase (placeId começa com 'cafe_')
+      if (placeId.startsWith('cafe_')) {
+        final cafeIdStr = placeId.replaceFirst('cafe_', '');
+        final cafeId = int.tryParse(cafeIdStr);
 
-    // Buscar detalhes específicos
-    final places = await searchPlaces('');
-    return places.firstWhere(
-      (place) => place.placeId == placeId,
-      orElse: () => places.first,
-    );
+        if (cafeId == null) {
+          print('❌ ID inválido: $placeId');
+          return null;
+        }
+
+        print('🔍 Buscando detalhes da cafeteria ID: $cafeId');
+
+        final cafe = await _cafeteriaService.getCafeteriaById(cafeId);
+
+        if (cafe == null) {
+          print('⚠️ Cafeteria não encontrada');
+          return null;
+        }
+
+        return PlaceDetails(
+          placeId: placeId,
+          name: cafe['nome'] as String? ?? 'Sem nome',
+          address: _buildFullAddress(cafe),
+          phone: cafe['telefone'] as String?,
+          website: cafe['instagram'] as String?,
+          photoUrl: cafe['url_foto'] as String?,
+          latitude: cafe['lat'] as double?,
+          longitude: cafe['lng'] as double?,
+        );
+      }
+
+      // Se não for cafeteria, buscar coordenadas no Google Places
+      print('🌐 Buscando coordenadas no Google Places: $placeId');
+      final coordinates = await _placesService.getPlaceCoordinates(placeId);
+
+      if (coordinates == null) {
+        print('⚠️ Coordenadas não encontradas');
+        return null;
+      }
+
+      // Retornar PlaceDetails com coordenadas
+      // Nota: nome e endereço virão do searchPlaces anterior
+      return PlaceDetails(
+        placeId: placeId,
+        name: '',  // Será preenchido pela seleção anterior
+        address: '',
+        phone: null,
+        website: null,
+        photoUrl: null,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+      );
+    } catch (e) {
+      print('❌ Erro ao buscar detalhes: $e');
+      return null;
+    }
+  }
+
+  /// Constrói endereço completo a partir dos dados da cafeteria
+  String _buildFullAddress(Map<String, dynamic> cafe) {
+    final parts = <String>[];
+
+    final endereco = cafe['endereco'] as String?;
+    final bairro = cafe['bairro'] as String?;
+    final cidade = cafe['cidade'] as String?;
+    final estado = cafe['estado'] as String?;
+
+    if (endereco != null && endereco.isNotEmpty) {
+      parts.add(endereco);
+    }
+
+    if (bairro != null && bairro.isNotEmpty) {
+      parts.add(bairro);
+    }
+
+    if (cidade != null && cidade.isNotEmpty) {
+      if (estado != null && estado.isNotEmpty) {
+        parts.add('$cidade - $estado');
+      } else {
+        parts.add(cidade);
+      }
+    }
+
+    return parts.isEmpty ? 'Endereço não informado' : parts.join(', ');
   }
 }
