@@ -114,7 +114,6 @@ class CreatePostViewModel extends ChangeNotifier {
 
       print('📝 Criando post no Supabase...');
 
-      // CORREÇÃO: Usar createTraditionalPost ao invés de createPost
       final success = await PostCreationService.createTraditionalPost(
         description: description,
         imageUrl: imageUrl,
@@ -125,15 +124,12 @@ class CreatePostViewModel extends ChangeNotifier {
       if (success) {
         print('✅ Post criado com sucesso!');
 
-        // Aguarda um pequeno delay para garantir que o post foi salvo
         await Future.delayed(Duration(milliseconds: 300));
 
-        // IMPORTANTE: Emite evento para atualizar o feed automaticamente
         final postId = 'new_post_${DateTime.now().millisecondsSinceEpoch}';
         print('🚀 Emitindo evento PostCreatedEvent com ID: $postId');
         _eventBus.emit(PostCreatedEvent(postId));
 
-        // Aguarda mais um pouco para garantir que o evento foi processado
         await Future.delayed(Duration(milliseconds: 200));
         print('✅ Evento PostCreatedEvent emitido com sucesso');
 
@@ -164,7 +160,7 @@ class CreatePostViewModel extends ChangeNotifier {
       if (pickedFile != null) {
         _selectedMediaFile = pickedFile;
 
-        // Apenas no mobile, converte XFile para File
+        // CORREÇÃO: Apenas converte para File no mobile
         if (!kIsWeb) {
           _selectedMedia = File(pickedFile.path);
         }
@@ -174,9 +170,11 @@ class CreatePostViewModel extends ChangeNotifier {
             pickedFile.path.toLowerCase().endsWith('.mp4') ||
             pickedFile.path.toLowerCase().endsWith('.mov');
 
+        print('✅ Mídia selecionada: ${pickedFile.name} (isVideo: $_isVideo, isWeb: $kIsWeb)');
         notifyListeners();
       }
     } catch (e) {
+      print('❌ Erro ao selecionar mídia: $e');
       _setError('Erro ao selecionar mídia: $e');
     }
   }
@@ -200,15 +198,17 @@ class CreatePostViewModel extends ChangeNotifier {
       if (pickedFile != null) {
         _selectedMediaFile = pickedFile;
 
-        // Apenas no mobile, converte XFile para File
+        // CORREÇÃO: Apenas converte para File no mobile
         if (!kIsWeb) {
           _selectedMedia = File(pickedFile.path);
         }
 
         _isVideo = isVideo;
+        print('✅ Mídia selecionada: ${pickedFile.name} (isVideo: $_isVideo, isWeb: $kIsWeb)');
         notifyListeners();
       }
     } catch (e) {
+      print('❌ Erro ao selecionar mídia: $e');
       _setError('Erro ao selecionar mídia: $e');
     }
   }
