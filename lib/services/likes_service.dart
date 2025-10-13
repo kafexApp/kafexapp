@@ -2,6 +2,7 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'notifications_service.dart';
 
 class LikesService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -84,6 +85,7 @@ class LikesService {
   }
 
   /// Adiciona uma curtida em um post do feed
+  /// ATUALIZADO: Agora cria notificação automaticamente
   Future<bool> likeFeedPost({required int feedId, required int userId}) async {
     try {
       // Verifica se já curtiu
@@ -114,11 +116,80 @@ class LikesService {
       // Atualiza o contador de curtidas na tabela feed
       await _updateFeedLikesCount(feedId);
 
+      // ===== NOVO: CRIAR NOTIFICAÇÃO =====
+      await _createLikeNotification(feedId, firebaseUid);
+      // ===================================
+
       print('✅ Post curtido com sucesso');
       return true;
     } catch (e) {
       print('❌ Erro ao curtir post: $e');
       return false;
+    }
+  }
+
+  /// Cria notificação quando alguém curte um post
+  Future<void> _createLikeNotification(int feedId, String currentUserUid) async {
+    try {
+      print('📬 Criando notificação de curtida...');
+
+      // Busca o dono do post (usuario_uid do feed)
+      final postResponse = await _supabase
+          .from('feed')
+          .select('usuario_uid')
+          .eq('id', feedId)
+          .maybeSingle();
+
+      if (postResponse == null) {
+        print('⚠️ Post não encontrado');
+        return;
+      }
+
+      final postOwnerUid = postResponse['usuario_uid'] as String?;
+      
+      if (postOwnerUid == null) {
+        print('⚠️ Dono do post não identificado');
+        return;
+      }
+
+      // Busca o nome do usuário que curtiu
+      final userResponse = await _supabase
+          .from('usuario_perfil')
+          .select('nome_exibicao')
+          .eq('ref', currentUserUid)
+          .maybeSingle();
+
+      final userName = userResponse?['nome_exibicao'] as String? ?? 'Alguém';
+
+      // Busca o user_id do usuário notificado para preencher usuario_notificado_id
+      final notifiedUserResponse = await _supabase
+          .from('usuario_perfil')
+          .select('id')
+          .eq('ref', postOwnerUid)
+          .maybeSingle();
+
+      final usuarioNotificadoId = notifiedUserResponse?['id'] as int?;
+
+      if (usuarioNotificadoId == null) {
+        print('⚠️ ID do usuário notificado não encontrado');
+        return;
+      }
+
+      // Cria a notificação manualmente com mensagem personalizada
+      await _supabase.from('notificacao').insert({
+        'tipo': 'curtida_post',
+        'usuario_notificado_id': usuarioNotificadoId,
+        'user_notificado_ref': postOwnerUid,
+        'feed_id': feedId,
+        'previa_comentario': '$userName curtiu seu post!',
+        'visivel': true,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      print('✅ Notificação de curtida criada com nome: $userName');
+    } catch (e) {
+      print('❌ Erro ao criar notificação de curtida: $e');
+      // Não bloqueia a curtida se a notificação falhar
     }
   }
 
