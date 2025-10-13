@@ -4,31 +4,61 @@ import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../ui/notifications/widgets/notifications_provider.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
+import '../services/notifications_service.dart';
 
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final VoidCallback? onNotificationPressed;
   final bool showBackButton;
   final VoidCallback? onBackPressed;
-  final int notificationCount;
 
   const CustomAppBar({
     Key? key,
     this.onNotificationPressed,
     this.showBackButton = false,
     this.onBackPressed,
-    this.notificationCount = 0,
   }) : super(key: key);
 
   @override
   Size get preferredSize => Size.fromHeight(80);
 
-  void _navigateToNotifications(BuildContext context) {
-    Navigator.push(
+  @override
+  State<CustomAppBar> createState() => _CustomAppBarState();
+}
+
+class _CustomAppBarState extends State<CustomAppBar> {
+  int _notificationCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationCount();
+  }
+
+  /// Carrega a contagem de notificações não lidas
+  Future<void> _loadNotificationCount() async {
+    try {
+      final count = await NotificationsService.getUnreadNotificationsCount();
+      if (mounted) {
+        setState(() {
+          _notificationCount = count;
+        });
+      }
+    } catch (e) {
+      print('❌ Erro ao carregar contagem de notificações: $e');
+    }
+  }
+
+  void _navigateToNotifications(BuildContext context) async {
+    // Navega para a tela de notificações
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => NotificationsProvider(),
       ),
     );
+    
+    // Quando voltar, atualiza a contagem
+    _loadNotificationCount();
   }
 
   void _navigateToHome(BuildContext context) {
@@ -50,9 +80,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              showBackButton
+              widget.showBackButton
                   ? GestureDetector(
-                      onTap: onBackPressed ?? () => Navigator.of(context).pop(),
+                      onTap: widget.onBackPressed ?? () => Navigator.of(context).pop(),
                       child: Container(
                         width: 40,
                         height: 40,
@@ -84,21 +114,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     ),
 
               GestureDetector(
-                onTap: onNotificationPressed ?? () => _navigateToNotifications(context),
+                onTap: widget.onNotificationPressed ?? () => _navigateToNotifications(context),
                 child: Container(
                   padding: EdgeInsets.all(8),
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
                       Icon(
-                        notificationCount > 0 
+                        _notificationCount > 0 
                           ? AppIcons.notificationFill 
                           : AppIcons.notification,
                         size: 24,
                         color: AppColors.textPrimary,
                       ),
                       
-                      if (notificationCount > 0)
+                      if (_notificationCount > 0)
                         Positioned(
                           right: -2,
                           top: -2,
@@ -116,10 +146,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                             child: Center(
                               child: Text(
-                                notificationCount > 99 ? '99+' : notificationCount.toString(),
+                                _notificationCount > 99 ? '99+' : _notificationCount.toString(),
                                 style: TextStyle(
                                   color: AppColors.whiteWhite,
-                                  fontSize: notificationCount > 99 ? 8 : 10,
+                                  fontSize: _notificationCount > 99 ? 8 : 10,
                                   fontWeight: FontWeight.w600,
                                   fontFamily: 'Albert Sans',
                                 ),

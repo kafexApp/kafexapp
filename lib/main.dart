@@ -46,7 +46,7 @@ class KafexApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         home: SplashScreen(),
         debugShowCheckedModeBanner: false,
-        // ROTA TEMPORÁRIA PARA TESTES
+        // ROTAS
         routes: {
           '/home-test': (context) => const HomeScreenProvider(),
         },
