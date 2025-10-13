@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/user_profile_service.dart';
 import '../../../services/username_service.dart';
@@ -10,6 +11,7 @@ import '../../../utils/validators/form_validator.dart';
 
 class CreateAccountViewModel extends ChangeNotifier {
   final AuthService _authService = AuthService();
+  final _supabase = Supabase.instance.client;
   
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -28,6 +30,70 @@ class CreateAccountViewModel extends ChangeNotifier {
 
   bool _isValidatingCustomUsername = false;
   bool get isValidatingCustomUsername => _isValidatingCustomUsername;
+
+  // Validação de email
+  String? _emailError;
+  String? get emailError => _emailError;
+
+  bool _isValidatingEmail = false;
+  bool get isValidatingEmail => _isValidatingEmail;
+
+  // Validar email no Supabase
+  Future<bool> validateEmail(String email) async {
+    _emailError = null;
+    
+    // Validação básica
+    if (email.isEmpty) {
+      _emailError = null;
+      notifyListeners();
+      return false;
+    }
+
+    // Validar formato
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      _emailError = 'Email inválido';
+      notifyListeners();
+      return false;
+    }
+
+    _isValidatingEmail = true;
+    notifyListeners();
+
+    try {
+      // Verificar se email já existe no Supabase
+      final response = await _supabase
+          .from('usuario_perfil')
+          .select('email')
+          .eq('email', email.trim().toLowerCase())
+          .maybeSingle();
+
+      if (response != null) {
+        _emailError = 'Este email já está cadastrado';
+        _isValidatingEmail = false;
+        notifyListeners();
+        return false;
+      }
+
+      // Email disponível
+      _emailError = null;
+      _isValidatingEmail = false;
+      notifyListeners();
+      return true;
+      
+    } catch (e) {
+      print('❌ Erro ao validar email: $e');
+      _emailError = null; // Não bloquear por erro de validação
+      _isValidatingEmail = false;
+      notifyListeners();
+      return true; // Permite continuar se houver erro na consulta
+    }
+  }
+
+  // Limpar erro de email
+  void clearEmailError() {
+    _emailError = null;
+    notifyListeners();
+  }
 
   // Gerar sugestões de username baseado no nome
   Future<void> generateUsernameSuggestions(String fullName) async {
@@ -155,6 +221,15 @@ class CreateAccountViewModel extends ChangeNotifier {
       return CreateAccountResult(
         success: false,
         errorMessage: 'Por favor, selecione um username',
+      );
+    }
+
+    // Validar email no Supabase antes de criar
+    final emailIsValid = await validateEmail(email);
+    if (!emailIsValid) {
+      return CreateAccountResult(
+        success: false,
+        errorMessage: _emailError ?? 'Email já cadastrado',
       );
     }
 
