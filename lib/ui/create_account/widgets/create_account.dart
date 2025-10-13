@@ -7,6 +7,7 @@ import '../../../utils/app_colors.dart';
 import '../../../widgets/custom_buttons.dart';
 import '../../../widgets/custom_text_fields.dart';
 import './terms_checkbox.dart';
+import './username_selector.dart';
 import '../viewmodel/create_account_viewmodel.dart';
 import '../../home/widgets/home_screen_provider.dart';
 import '../../../screens/login_screen.dart';
@@ -44,10 +45,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _passwordFocus.addListener(() => setState(() {}));
     _confirmPasswordFocus.addListener(() => setState(() {}));
     _viewModel.addListener(() => setState(() {}));
+    
+    // Listener para gerar sugestões de username quando o nome mudar
+    _nameController.addListener(_onNameChanged);
   }
 
   @override
   void dispose() {
+    _nameController.removeListener(_onNameChanged);
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -60,6 +65,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _confirmPasswordFocus.dispose();
     _viewModel.dispose();
     super.dispose();
+  }
+
+  // Método chamado quando o nome muda
+  void _onNameChanged() {
+    final name = _nameController.text.trim();
+    print('🔍 Nome digitado: "$name" (${name.length} caracteres)');
+    
+    if (name.length >= 3) {
+      print('✅ Gerando sugestões para: $name');
+      _viewModel.generateUsernameSuggestions(name);
+    } else {
+      print('⚠️ Nome muito curto, limpando sugestões');
+      _viewModel.clearUsernameSuggestions();
+    }
   }
 
   @override
@@ -85,6 +104,21 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       hintText: 'Nome completo',
                       icon: Icons.person_outline,
                       keyboardType: TextInputType.name,
+                    ),
+                    
+                    SizedBox(height: 16),
+                    
+                    // Seletor de Username
+                    UsernameSelector(
+                      suggestions: _viewModel.usernameSuggestions,
+                      selectedUsername: _viewModel.selectedUsername,
+                      onUsernameSelected: _viewModel.selectUsername,
+                      onCustomUsernameChanged: (value) {
+                        _viewModel.validateCustomUsername(value);
+                      },
+                      isLoading: _viewModel.isLoadingUsernames,
+                      customUsernameError: _viewModel.customUsernameError,
+                      isValidatingCustomUsername: _viewModel.isValidatingCustomUsername,
                     ),
                     
                     SizedBox(height: 16),

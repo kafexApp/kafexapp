@@ -6,7 +6,7 @@ import 'dart:io';
 import '../backend/supabase/supabase.dart';
 import '../backend/supabase/tables/usuario_perfil.dart';
 import '../utils/user_manager.dart';
-import '../utils/username_generator.dart'; // ✅ ADICIONADO
+import '../utils/username_generator.dart';
 
 class UserProfileService {
   static final _supabase = SupaClient.client;
@@ -36,20 +36,21 @@ class UserProfileService {
     }
   }
 
-  /// ✅ NOVO: Cria perfil completo do usuário no cadastro inicial
+  /// ✅ ATUALIZADO: Cria perfil completo do usuário no cadastro inicial
   static Future<bool> createUserProfile({
     required String firebaseUid,
     required String nomeExibicao,
     required String email,
     required String telefone,
+    String? nomeUsuario, // ✅ NOVO: Aceita username opcional
     String? fotoUrl,
   }) async {
     try {
       print('👤 Criando perfil completo no Supabase...');
 
-      // Gerar username único
-      final username = await UsernameGenerator.generateUniqueUsername(nomeExibicao);
-      print('📝 Username gerado: $username');
+      // Usar username fornecido ou gerar um novo
+      final username = nomeUsuario ?? await UsernameGenerator.generateUniqueUsername(nomeExibicao);
+      print('📝 Username: $username');
 
       final profileData = {
         'ref': firebaseUid,
@@ -157,7 +158,7 @@ class UserProfileService {
         'cadastro_completo': false,
         'nivel_usuario': 'usuario',
         'profissional': false,
-        'login_social': true, // ✅ Identificar que veio de login social
+        'login_social': true,
         'criado_em': DateTime.now().toIso8601String(),
       };
 
