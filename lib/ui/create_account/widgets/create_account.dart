@@ -48,11 +48,15 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     
     // Listener para gerar sugestões de username quando o nome mudar
     _nameController.addListener(_onNameChanged);
+    
+    // Listener para validar email
+    _emailController.addListener(_onEmailChanged);
   }
 
   @override
   void dispose() {
     _nameController.removeListener(_onNameChanged);
+    _emailController.removeListener(_onEmailChanged);
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -79,6 +83,59 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       print('⚠️ Nome muito curto, limpando sugestões');
       _viewModel.clearUsernameSuggestions();
     }
+  }
+
+  // Método chamado quando o email muda
+  void _onEmailChanged() {
+    final email = _emailController.text.trim();
+    if (email.isNotEmpty && email.contains('@')) {
+      _viewModel.validateEmail(email);
+    } else {
+      _viewModel.clearEmailError();
+    }
+  }
+
+  Widget? _buildEmailSuffixIcon() {
+    if (_viewModel.isValidatingEmail) {
+      return Padding(
+        padding: EdgeInsets.only(right: 12),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.pear),
+          ),
+        ),
+      );
+    }
+    
+    if (_viewModel.emailError != null && _emailController.text.isNotEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(right: 12),
+        child: Icon(
+          Icons.close_rounded,
+          color: AppColors.spiced,
+          size: 24,
+        ),
+      );
+    }
+    
+    if (_viewModel.emailError == null &&
+        !_viewModel.isValidatingEmail &&
+        _emailController.text.isNotEmpty &&
+        _emailController.text.contains('@')) {
+      return Padding(
+        padding: EdgeInsets.only(right: 12),
+        child: Icon(
+          Icons.check_circle_outline,
+          color: AppColors.pear,
+          size: 24,
+        ),
+      );
+    }
+    
+    return null;
   }
 
   @override
@@ -123,12 +180,115 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     
                     SizedBox(height: 16),
                     
-                    CustomTextField(
-                      controller: _emailController,
-                      focusNode: _emailFocus,
-                      hintText: 'Email',
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
+                    // Campo de Email com validação
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AnimatedContainer(
+                          duration: Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: AppColors.whiteWhite,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _viewModel.emailError != null
+                                  ? AppColors.spiced
+                                  : AppColors.moonAsh.withOpacity(0.2),
+                              width: 2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _emailController,
+                                  focusNode: _emailFocus,
+                                  keyboardType: TextInputType.emailAddress,
+                                  style: GoogleFonts.albertSans(
+                                    fontSize: 16,
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  decoration: InputDecoration(
+                                    prefixIcon: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(width: 16),
+                                        Icon(
+                                          Icons.email_outlined,
+                                          size: 18,
+                                          color: AppColors.carbon,
+                                        ),
+                                        SizedBox(width: 12),
+                                      ],
+                                    ),
+                                    prefixIconConstraints: BoxConstraints(minWidth: 0, minHeight: 0),
+                                    suffixIcon: _buildEmailSuffixIcon(),
+                                    hintText: 'seu@email.com',
+                                    hintStyle: GoogleFonts.albertSans(
+                                      fontSize: 16,
+                                      color: AppColors.textSecondary.withOpacity(0.5),
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_viewModel.emailError != null) ...[
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 16,
+                                color: AppColors.spiced,
+                              ),
+                              SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  _viewModel.emailError!,
+                                  style: GoogleFonts.albertSans(
+                                    fontSize: 13,
+                                    color: AppColors.spiced,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (_viewModel.emailError == null &&
+                            !_viewModel.isValidatingEmail &&
+                            _emailController.text.isNotEmpty &&
+                            _emailController.text.contains('@')) ...[
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 16,
+                                color: AppColors.carbon,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Email disponível',
+                                style: GoogleFonts.albertSans(
+                                  fontSize: 13,
+                                  color: AppColors.carbon,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
                     
                     SizedBox(height: 16),

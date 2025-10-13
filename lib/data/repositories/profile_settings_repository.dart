@@ -62,13 +62,28 @@ class ProfileSettingsRepositoryImpl implements ProfileSettingsRepository {
         return Result.error(Exception('Usuário não autenticado'));
       }
 
-      // Salvar no Supabase
-      final data = settings.toSupabase();
-      data['ref'] = userId; // Adiciona o ID do Firebase
-
-      await _supabase
+      // Verificar se o usuário já existe
+      final existing = await _supabase
           .from('usuario_perfil')
-          .upsert(data);
+          .select('id')
+          .eq('ref', userId)
+          .maybeSingle();
+
+      final data = settings.toSupabase();
+      data['ref'] = userId;
+
+      if (existing != null) {
+        // Atualizar registro existente
+        await _supabase
+            .from('usuario_perfil')
+            .update(data)
+            .eq('ref', userId);
+      } else {
+        // Criar novo registro
+        await _supabase
+            .from('usuario_perfil')
+            .insert(data);
+      }
 
       // Atualizar UserManager
       final userManager = UserManager.instance;
