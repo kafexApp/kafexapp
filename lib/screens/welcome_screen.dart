@@ -1,10 +1,12 @@
+// lib/screens/welcome_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_buttons.dart';
 import 'login_screen.dart';
-import 'create_account_screen.dart';
+import '../ui/create_account/widgets/create_account.dart'; // ✅ CAMINHO ATUALIZADO
 
 class WelcomeScreen extends StatelessWidget {
   @override

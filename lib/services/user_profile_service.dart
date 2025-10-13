@@ -6,6 +6,7 @@ import 'dart:io';
 import '../backend/supabase/supabase.dart';
 import '../backend/supabase/tables/usuario_perfil.dart';
 import '../utils/user_manager.dart';
+import '../utils/username_generator.dart'; // ✅ ADICIONADO
 
 class UserProfileService {
   static final _supabase = SupaClient.client;
@@ -35,6 +36,62 @@ class UserProfileService {
     }
   }
 
+  /// ✅ NOVO: Cria perfil completo do usuário no cadastro inicial
+  static Future<bool> createUserProfile({
+    required String firebaseUid,
+    required String nomeExibicao,
+    required String email,
+    required String telefone,
+    String? fotoUrl,
+  }) async {
+    try {
+      print('👤 Criando perfil completo no Supabase...');
+
+      // Gerar username único
+      final username = await UsernameGenerator.generateUniqueUsername(nomeExibicao);
+      print('📝 Username gerado: $username');
+
+      final profileData = {
+        'ref': firebaseUid,
+        'nome_exibicao': nomeExibicao,
+        'nome_usuario': username,
+        'email': email,
+        'telefone': telefone,
+        'foto_url': fotoUrl,
+        'ativo': true,
+        'cadastro_completo': false,
+        'nivel_usuario': 'usuario',
+        'profissional': false,
+        'criado_em': DateTime.now().toIso8601String(),
+      };
+
+      final response = await _supabase
+          .from('usuario_perfil')
+          .insert(profileData)
+          .select()
+          .single();
+
+      if (response != null) {
+        print('✅ Perfil criado com sucesso: ${response['id']}');
+        
+        // Atualizar UserManager
+        UserManager.instance.setUserData(
+          uid: firebaseUid,
+          name: nomeExibicao,
+          email: email,
+          photoUrl: fotoUrl,
+        );
+        
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      print('❌ Erro ao criar perfil de usuário: $e');
+      return false;
+    }
+  }
+
   /// Carrega os dados do usuário do Supabase e salva no UserManager
   static Future<void> loadAndSyncUserProfile() async {
     final firebaseUser = FirebaseAuth.instance.currentUser;
@@ -49,7 +106,7 @@ class UserProfileService {
       if (profile != null) {
         // Atualizar UserManager com dados do Supabase
         UserManager.instance.setUserData(
-          uid: FirebaseAuth.instance.currentUser?.uid ?? '',
+          uid: firebaseUser.uid,
           name: profile.nomeExibicao ?? firebaseUser.displayName ?? 'Usuário Kafex',
           email: profile.email ?? firebaseUser.email ?? '',
           photoUrl: profile.fotoUrl ?? firebaseUser.photoURL,
@@ -67,7 +124,7 @@ class UserProfileService {
         } else {
           // Usar dados do Firebase como fallback
           UserManager.instance.setUserData(
-            uid: FirebaseAuth.instance.currentUser?.uid ?? '',
+            uid: firebaseUser.uid,
             name: firebaseUser.displayName ?? 'Usuário Kafex',
             email: firebaseUser.email ?? '',
             photoUrl: firebaseUser.photoURL,
@@ -80,18 +137,27 @@ class UserProfileService {
     }
   }
 
-  /// Cria perfil do usuário no Supabase se não existir
+  /// Cria perfil do usuário no Supabase se não existir (para login social)
   static Future<bool> _createUserProfileIfNotExists(User firebaseUser) async {
     try {
       print('👤 Criando perfil de usuário no Supabase...');
 
+      // Gerar username único para login social
+      final username = await UsernameGenerator.generateUniqueUsername(
+        firebaseUser.displayName ?? firebaseUser.email ?? 'usuario'
+      );
+
       final profileData = {
         'ref': firebaseUser.uid,
         'nome_exibicao': firebaseUser.displayName ?? 'Usuário Kafex',
+        'nome_usuario': username,
         'email': firebaseUser.email,
         'foto_url': firebaseUser.photoURL,
         'ativo': true,
         'cadastro_completo': false,
+        'nivel_usuario': 'usuario',
+        'profissional': false,
+        'login_social': true, // ✅ Identificar que veio de login social
         'criado_em': DateTime.now().toIso8601String(),
       };
 
