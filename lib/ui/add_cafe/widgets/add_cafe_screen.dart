@@ -1,3 +1,4 @@
+// lib/ui/add_cafe/widgets/add_cafe_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
@@ -795,15 +796,39 @@ class _AddCafeScreenState extends State<AddCafeScreen>
         color: viewModel.customPhoto != null
             ? null
             : AppColors.moonAsh.withOpacity(0.3),
-        image: viewModel.customPhoto != null
-            ? DecorationImage(
-                image: FileImage(viewModel.customPhoto!),
-                fit: BoxFit.cover,
-              )
-            : null,
       ),
-      child: viewModel.customPhoto == null
-          ? Center(
+      child: viewModel.customPhoto != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: kIsWeb
+                  ? Image.network(
+                      viewModel.customPhoto!.path,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Icon(
+                            AppIcons.image,
+                            size: 40,
+                            color: AppColors.grayScale2,
+                          ),
+                        );
+                      },
+                    )
+                  : Image.file(
+                      File(viewModel.customPhoto!.path),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Center(
+                          child: Icon(
+                            AppIcons.image,
+                            size: 40,
+                            color: AppColors.grayScale2,
+                          ),
+                        );
+                      },
+                    ),
+            )
+          : Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -822,8 +847,7 @@ class _AddCafeScreenState extends State<AddCafeScreen>
                   ),
                 ],
               ),
-            )
-          : null,
+            ),
     );
   }
 
