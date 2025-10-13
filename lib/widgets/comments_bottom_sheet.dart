@@ -12,12 +12,14 @@ class PostCommentsModal extends StatefulWidget {
   final String postId;
   final List<CommentData> initialComments;
   final Function(String)? onCommentAdded;
+  final String? highlightCommentId; // 🔔 NOVO: ID do comentário para destacar
 
   const PostCommentsModal({
     Key? key,
     required this.postId,
     this.initialComments = const [],
     this.onCommentAdded,
+    this.highlightCommentId, // 🔔 NOVO
   }) : super(key: key);
 
   @override
@@ -62,6 +64,13 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
         comments = loadedComments;
         isLoading = false;
       });
+
+      // 🔔 NOVO: Se tem comentário para destacar, scroll até ele
+      if (widget.highlightCommentId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToHighlightedComment();
+        });
+      }
     } catch (e) {
       print('Erro ao carregar comentários: $e');
       setState(() {
@@ -71,12 +80,33 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     }
   }
 
+  /// 🔔 NOVO: Scroll até o comentário destacado
+  void _scrollToHighlightedComment() {
+    if (widget.highlightCommentId == null) return;
+
+    final index = comments.indexWhere((c) => c.id == widget.highlightCommentId);
+    
+    if (index != -1 && _scrollController.hasClients) {
+      print('📍 Scrolling para comentário index: $index');
+      
+      // Estimar a altura de cada item (aproximadamente 100px)
+      final targetPosition = index * 100.0;
+      
+      // 🔧 CORRIGIDO: Usar jumpTo ao invés de animateTo para scroll instantâneo
+      _scrollController.jumpTo(
+        targetPosition.clamp(
+          0.0,
+          _scrollController.position.maxScrollExtent,
+        ),
+      );
+    }
+  }
+
   /// Adiciona novo comentário
   Future<void> _postComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty || isPosting) return;
 
-    // Verificar se usuário está logado
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       _showLoginRequiredDialog();
@@ -99,10 +129,8 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
           _commentController.clear();
         });
 
-        // Callback para atualizar contador na UI principal
         widget.onCommentAdded?.call(text);
 
-        // Scroll para o final para mostrar novo comentário
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (_scrollController.hasClients) {
             _scrollController.animateTo(
@@ -113,7 +141,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
           }
         });
 
-        // Feedback visual
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Comentário adicionado!'),
@@ -134,14 +161,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     }
   }
 
-  /// Curte ou descurte um comentário (funcionalidade desabilitada temporariamente)
-  Future<void> _toggleCommentLike(CommentData comment) async {
-    // TODO: Implementar sistema de curtidas se necessário
-    // A estrutura atual não possui campo de curtidas
-    print('Sistema de curtidas não implementado ainda');
-  }
-
-  /// Edita um comentário
   Future<void> _editComment(String commentId, String newContent) async {
     try {
       final success = await CommentsService.editComment(
@@ -174,7 +193,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     }
   }
 
-  /// Remove um comentário
   Future<void> _deleteComment(String commentId) async {
     try {
       final success = await CommentsService.deleteComment(
@@ -232,7 +250,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
   }
 
   void _showCommentOptionsModal(CommentData comment) async {
-    // Verificar se é comentário do usuário atual
     final isOwnComment = await CommentsService.isUserComment(comment.id);
 
     showModalBottomSheet(
@@ -250,7 +267,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle do Modal
               Container(
                 margin: EdgeInsets.only(top: 12),
                 width: 40,
@@ -260,11 +276,8 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-
               SizedBox(height: 20),
-
               if (isOwnComment) ...[
-                // Botão Editar
                 ListTile(
                   onTap: () {
                     Navigator.pop(context);
@@ -284,8 +297,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                     ),
                   ),
                 ),
-
-                // Divisor
                 Divider(
                   height: 1,
                   thickness: 1,
@@ -293,8 +304,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                   indent: 16,
                   endIndent: 16,
                 ),
-
-                // Botão Excluir
                 ListTile(
                   onTap: () {
                     Navigator.pop(context);
@@ -315,7 +324,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                   ),
                 ),
               ] else ...[
-                // Botão Reportar (para comentários de outros usuários)
                 ListTile(
                   onTap: () {
                     Navigator.pop(context);
@@ -336,7 +344,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                   ),
                 ),
               ],
-
               SizedBox(height: 20),
             ],
           ),
@@ -424,7 +431,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // TODO: Implementar sistema de reports
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Comentário reportado'),
@@ -454,7 +460,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       child: Column(
         children: [
           _buildHeader(),
-
           Expanded(
             child: isLoading
                 ? _buildLoadingState()
@@ -469,7 +474,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                     },
                   ),
           ),
-
           _buildCommentInput(),
         ],
       ),
@@ -552,7 +556,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
               ],
             ),
           ),
-
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
@@ -571,22 +574,31 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
   }
 
   Widget _buildCommentItem(CommentData comment) {
+    // 🔔 NOVO: Destacar comentário se for o que veio da notificação
+    final isHighlighted = widget.highlightCommentId == comment.id;
+
     return Container(
       margin: EdgeInsets.only(bottom: 16),
+      padding: isHighlighted ? EdgeInsets.all(12) : EdgeInsets.zero,
+      decoration: isHighlighted
+          ? BoxDecoration(
+              color: AppColors.papayaSensorial.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.papayaSensorial.withOpacity(0.3),
+                width: 2,
+              ),
+            )
+          : null,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar
           _buildUserAvatar(comment.userName, comment.userAvatar),
-
           SizedBox(width: 12),
-
-          // Conteúdo do comentário
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nome e tempo
                 Row(
                   children: [
                     Text(
@@ -606,7 +618,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                       ),
                     ),
                     Spacer(),
-                    // Botão de opções
                     GestureDetector(
                       onTap: () => _showCommentOptionsModal(comment),
                       child: Container(
@@ -620,10 +631,7 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                     ),
                   ],
                 ),
-
                 SizedBox(height: 4),
-
-                // Conteúdo
                 Text(
                   comment.content,
                   style: GoogleFonts.albertSans(
@@ -632,14 +640,11 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                     height: 1.4,
                   ),
                 ),
-
                 SizedBox(height: 8),
-
-                // Botão de curtir (desabilitado temporariamente)
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: null, // Desabilitado até implementar curtidas
+                      onTap: null,
                       child: Row(
                         children: [
                           Icon(
@@ -731,7 +736,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
       child: SafeArea(
         child: Row(
           children: [
-            // Campo de texto
             Expanded(
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -770,15 +774,12 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                     filled: false,
                   ),
                   onChanged: (value) {
-                    setState(() {}); // Para atualizar o botão de envio
+                    setState(() {});
                   },
                 ),
               ),
             ),
-
             SizedBox(width: 12),
-
-            // Botão Enviar
             GestureDetector(
               onTap: _commentController.text.trim().isNotEmpty && !isPosting
                   ? _postComment
@@ -830,12 +831,13 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
   }
 }
 
-// Função helper para mostrar o modal
+// 🔔 ATUALIZADO: Função helper com highlightCommentId
 void showCommentsModal(
   BuildContext context, {
   required String postId,
   List<CommentData> comments = const [],
   Function(String)? onCommentAdded,
+  String? highlightCommentId, // 🔔 NOVO parâmetro
 }) {
   showModalBottomSheet(
     context: context,
@@ -846,6 +848,7 @@ void showCommentsModal(
       postId: postId,
       initialComments: comments,
       onCommentAdded: onCommentAdded,
+      highlightCommentId: highlightCommentId, // 🔔 NOVO
     ),
   );
 }

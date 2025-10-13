@@ -6,6 +6,7 @@ import '../../../utils/app_colors.dart';
 import '../../../utils/app_icons.dart';
 import '../../../data/models/domain/notification.dart';
 import '../viewmodel/notifications_viewmodel.dart';
+import '../../posts/widgets/post_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   @override
@@ -390,6 +391,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _handleNotificationTap(AppNotification notification) {
+    print('🔔 === CLIQUE NA NOTIFICAÇÃO ===');
+    print('   Notification ID: ${notification.id}');
+    print('   Notification Type: ${notification.type}');
+    print('   Action URL: ${notification.actionUrl}');
+    
+    // Se tem actionUrl, navegar
+    if (notification.actionUrl != null) {
+      _navigateFromNotification(notification.actionUrl!);
+      return;
+    }
+
+    print('⚠️ ActionURL está null, usando fallback');
+    
+    // Fallback para tipos sem actionUrl
     switch (notification.type) {
       case NotificationType.newPlace:
         print('Abrir detalhes da cafeteria');
@@ -404,8 +419,42 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         print('Abrir loja de apps');
         break;
       case NotificationType.community:
-        print('Abrir perfil do usuário');
+        print('Abrir post com comentário');
         break;
+    }
+  }
+
+  /// Navega para a tela correta baseado na actionUrl
+  void _navigateFromNotification(String actionUrl) {
+    print('🔔 Navegando para: $actionUrl');
+
+    // Parse da URL
+    final uri = Uri.parse(actionUrl);
+    final path = uri.path;
+    final queryParams = uri.queryParameters;
+
+    if (path.startsWith('/post/')) {
+      // Navegar para detalhes do post
+      final postId = path.replaceFirst('/post/', '');
+      final commentId = queryParams['commentId'];
+
+      print('📍 Navegando para PostDetailScreen');
+      print('   Post ID: $postId');
+      print('   Comment ID: $commentId');
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PostDetailScreen(
+            postId: postId,
+            highlightCommentId: commentId,
+          ),
+        ),
+      );
+    } else if (path.startsWith('/cafeteria/')) {
+      // TODO: Navegar para detalhes da cafeteria
+      final cafeteriaId = path.replaceFirst('/cafeteria/', '');
+      print('Abrir cafeteria: $cafeteriaId');
     }
   }
 }
