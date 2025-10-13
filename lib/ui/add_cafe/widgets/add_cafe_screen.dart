@@ -207,57 +207,75 @@ class _AddCafeScreenState extends State<AddCafeScreen>
       ),
       body: Consumer<AddCafeViewModel>(
         builder: (context, viewModel, _) {
-          if (viewModel.submitCafe.completed) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              CustomToast.showSuccess(
-                context,
-                message: 'Cafeteria enviada com sucesso!',
-              );
-              Future.delayed(Duration(seconds: 2), () {
-                Navigator.pop(context);
-              });
-            });
-          }
+          return ListenableBuilder(
+            listenable: viewModel.submitCafe,
+            builder: (context, _) {
+              // ============ LISTENER PARA SUBMIT - SUCESSO ============
+              if (viewModel.submitCafe.completed) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  CustomToast.showSuccess(
+                    context,
+                    message: 'Sua cafeteria foi cadastrada com sucesso! Em breve ela estará disponível no nosso mapa.',
+                  );
+                  Future.delayed(Duration(seconds: 3), () {
+                    if (mounted) {
+                      Navigator.pop(context);
+                    }
+                  });
+                });
+              }
 
-          if (viewModel.submitCafe.error) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              CustomToast.showError(
-                context,
-                message: 'Erro ao enviar cafeteria. Tente novamente.',
-              );
-            });
-          }
+              // ============ LISTENER PARA SUBMIT - ERRO ============
+              if (viewModel.submitCafe.error) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  final errorMessage = viewModel.submitCafe.result?.asError.error.toString() ?? 'Erro ao enviar cafeteria';
+                  
+                  // Extrair mensagem limpa do erro
+                  String cleanMessage = errorMessage;
+                  if (errorMessage.contains('Exception:')) {
+                    final parts = errorMessage.split('Exception:');
+                    cleanMessage = parts.last.trim();
+                  }
+                  
+                  CustomToast.showError(
+                    context,
+                    message: cleanMessage,
+                  );
+                });
+              }
 
-          return Stack(
-            children: [
-              Column(
+              return Stack(
                 children: [
-                  _buildProgressBar(viewModel),
-                  Expanded(
-                    child: PageView(
-                      controller: _pageController,
-                      physics: NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildSearchStep(viewModel),
-                        _buildPhotoStep(viewModel),
-                        _buildDetailsStep(viewModel),
-                        _buildSubmitStep(viewModel),
-                      ],
+                  Column(
+                    children: [
+                      _buildProgressBar(viewModel),
+                      Expanded(
+                        child: PageView(
+                          controller: _pageController,
+                          physics: NeverScrollableScrollPhysics(),
+                          children: [
+                            _buildSearchStep(viewModel),
+                            _buildPhotoStep(viewModel),
+                            _buildDetailsStep(viewModel),
+                            _buildSubmitStep(viewModel),
+                          ],
+                        ),
+                      ),
+                      _buildWizardNavigation(viewModel),
+                    ],
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: CustomBottomNavbar(
+                      isInCafeExplorer: true,
+                      onSearchPressed: () {},
                     ),
                   ),
-                  _buildWizardNavigation(viewModel),
                 ],
-              ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: CustomBottomNavbar(
-                  isInCafeExplorer: true,
-                  onSearchPressed: () {},
-                ),
-              ),
-            ],
+              );
+            },
           );
         },
       ),

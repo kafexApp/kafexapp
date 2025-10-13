@@ -96,12 +96,64 @@ class SupabaseCafeteriaService {
       return nearbyCafeterias;
     } catch (e) {
       print('❌ Erro ao buscar cafeterias próximas: $e');
+      rethrow;
+    }
+  }
+
+  /// Busca cafeterias por nome (para autocompletar)
+  Future<List<Map<String, dynamic>>> searchCafeteriasByName(String query) async {
+    try {
+      if (query.isEmpty) return [];
+
+      print('🔍 Buscando cafeterias por nome: "$query"');
+
+      final response = await _client
+          .from('cafeteria')
+          .select()
+          .eq('ativo', true)
+          .ilike('nome', '%$query%')
+          .limit(10);
+
+      final results = List<Map<String, dynamic>>.from(response);
+      print('✅ ${results.length} cafeterias encontradas');
+
+      return results;
+    } catch (e) {
+      print('❌ Erro ao buscar cafeterias por nome: $e');
       return [];
     }
   }
 
-  /// Cria uma nova cafeteria no Supabase
-  /// Retorna o ID da cafeteria criada
+  /// Verifica se uma cafeteria já existe pela referencia_mapa
+  Future<Map<String, dynamic>?> checkCafeteriaExists({
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final referenciaMapa = 'LatLng(lat: $latitude, lng: $longitude)';
+      
+      print('🔍 Verificando se cafeteria existe: $referenciaMapa');
+
+      final response = await _client
+          .from('cafeteria')
+          .select()
+          .eq('referencia_mapa', referenciaMapa)
+          .maybeSingle();
+
+      if (response != null) {
+        print('⚠️ Cafeteria já existe! Nome: ${response['nome']}, ID: ${response['id']}');
+      } else {
+        print('✅ Cafeteria não encontrada, pode criar');
+      }
+
+      return response;
+    } catch (e) {
+      print('❌ Erro ao verificar cafeteria: $e');
+      return null;
+    }
+  }
+
+  /// Cria uma nova cafeteria no banco de dados
   Future<int?> createCafeteria({
     required String nome,
     required String endereco,
@@ -110,121 +162,100 @@ class SupabaseCafeteriaService {
     required String usuarioUid,
     required int userId,
     String? telefone,
-    String? email,
     String? instagram,
     String? urlFoto,
     String? bairro,
     String? cidade,
     String? estado,
-    String? cep,
     bool petFriendly = false,
     bool opcaoVegana = false,
     bool officeFriendly = false,
   }) async {
     try {
-      print('📝 Criando cafeteria: $nome');
+      print('══════════════');
+      print('💾 Criando cafeteria no Supabase');
+      print('📝 Nome: $nome');
+      print('📍 Endereço: $endereco');
+      print('══════════════');
 
-      // Montar referencia_mapa no formato: "LatLng(lat: -23.5505, lng: -46.6333)"
-      final referenciaMapa = 'LatLng(lat: $latitude, lng: $longitude)';
+      // ✅ VALIDAR SE JÁ EXISTE
+      final existing = await checkCafeteriaExists(
+        latitude: latitude,
+        longitude: longitude,
+      );
 
-      // Preparar dados para inserção
+      if (existing != null) {
+        print('❌ Cafeteria já cadastrada: ${existing['nome']}');
+        throw Exception('Ops! Esta cafeteria já está cadastrada no sistema.');
+      }
+
       final data = {
         'nome': nome,
         'endereco': endereco,
         'lat': latitude,
         'lng': longitude,
-        'referencia_mapa': referenciaMapa,
+        'referencia_mapa': 'LatLng(lat: $latitude, lng: $longitude)',
         'usuario_uid': usuarioUid,
         'user_id': userId,
         'telefone': telefone,
-        'email': email,
         'instagram': instagram,
         'url_foto': urlFoto,
         'bairro': bairro,
         'cidade': cidade,
         'estado': estado,
-        'cep': cep,
         'pet_friendly': petFriendly,
         'opcao_vegana': opcaoVegana,
-        'office_friendly': officeFriendly,
-        'ativo': true,
-        'criado_em': DateTime.now().toIso8601String(),
+        // 'work_friendly': officeFriendly, // ❌ Coluna não existe no banco
+        'ativo': false, // ✅ Cafeteria precisa ser aprovada antes de aparecer
+        'pontuacao': 0,
+        'avaliacoes': 0,
       };
 
-      // Inserir no Supabase e retornar o ID gerado
       final response = await _client
           .from('cafeteria')
           .insert(data)
           .select('id')
           .single();
 
-      final cafeteriaId = response['id'] as int?;
-
-      if (cafeteriaId != null) {
-        print('✅ Cafeteria criada com sucesso! ID: $cafeteriaId');
-      } else {
-        print('⚠️ Cafeteria criada mas ID não retornado');
-      }
+      final cafeteriaId = response['id'] as int;
+      
+      print('✅ Cafeteria criada com sucesso!');
+      print('🆔 ID: $cafeteriaId');
+      print('⚠️ Status: INATIVA (aguardando aprovação)');
+      print('══════════════');
 
       return cafeteriaId;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ Erro ao criar cafeteria: $e');
-      rethrow;
+      print('📍 Stack trace: $stackTrace');
+      rethrow; // ← IMPORTANTE: propagar o erro para ser tratado na UI
     }
   }
 
-  /// Busca cafeterias por nome (case-insensitive)
-  Future<List<Map<String, dynamic>>> searchCafeteriasByName(
-    String query,
-  ) async {
-    try {
-      if (query.isEmpty) return [];
-
-      print('🔍 Buscando cafeterias por nome: $query');
-
-      final response = await _client
-          .from('cafeteria')
-          .select()
-          .eq('ativo', true)
-          .ilike('nome', '%$query%')
-          .order('nome', ascending: true)
-          .limit(10);
-
-      final results = List<Map<String, dynamic>>.from(response);
-
-      print('✅ ${results.length} cafeterias encontradas');
-      return results;
-    } catch (e) {
-      print('❌ Erro ao buscar cafeterias por nome: $e');
-      return [];
-    }
-  }
-
-  /// Calcula a distância entre dois pontos geográficos (fórmula de Haversine)
-  /// Retorna a distância em quilômetros
+  /// Calcula a distância entre dois pontos em km (fórmula de Haversine)
   double _calculateDistance(
     double lat1,
     double lon1,
     double lat2,
     double lon2,
   ) {
-    const earthRadiusKm = 6371.0;
+    const earthRadius = 6371.0; // Raio da Terra em km
 
-    final dLat = _degreesToRadians(lat2 - lat1);
-    final dLon = _degreesToRadians(lon2 - lon1);
+    final dLat = _toRadians(lat2 - lat1);
+    final dLon = _toRadians(lon2 - lon1);
 
     final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(_degreesToRadians(lat1)) *
-            math.cos(_degreesToRadians(lat2)) *
+        math.cos(_toRadians(lat1)) *
+            math.cos(_toRadians(lat2)) *
             math.sin(dLon / 2) *
             math.sin(dLon / 2);
 
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 
-    return earthRadiusKm * c;
+    return earthRadius * c;
   }
 
-  double _degreesToRadians(double degrees) {
+  double _toRadians(double degrees) {
     return degrees * math.pi / 180;
   }
 }
