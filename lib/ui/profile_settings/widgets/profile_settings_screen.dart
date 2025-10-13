@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/widgets/custom_buttons.dart';
 import 'package:kafex/widgets/custom_toast.dart';
@@ -70,15 +68,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   Widget _buildProfileImage(ProfileSettingsViewModel viewModel) {
     final imagePath = viewModel.getProfileImagePath();
     
-    // Se há uma imagem selecionada, mostrar preview usando bytes
-    if (viewModel.selectedImagePath != null && viewModel.imageBytes != null) {
-      return Image.memory(
-        Uint8List.fromList(viewModel.imageBytes!),
-        fit: BoxFit.cover,
+    if (viewModel.selectedImagePath != null) {
+      return Container(
+        width: 114,
+        height: 114,
+        decoration: BoxDecoration(
+          color: AppColors.papayaSensorial.withOpacity(0.2),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          PhosphorIcons.image(),
+          size: 40,
+          color: AppColors.papayaSensorial,
+        ),
       );
     }
     
-    // Se há foto do usuário
     if (imagePath.isNotEmpty && imagePath.startsWith('http')) {
       return Image.network(
         imagePath,
@@ -89,18 +94,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       );
     }
     
-    // Fallback para avatar com iniciais
     return viewModel.buildFallbackAvatar(_nameController.text);
-  }
-
-  Future<Uint8List> _loadImageBytes(String path) async {
-    // No web, precisamos recarregar os bytes
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery);
-    if (file != null) {
-      return await file.readAsBytes();
-    }
-    return Uint8List(0);
   }
 
   Future<void> _saveProfile(ProfileSettingsViewModel viewModel) async {
@@ -371,9 +365,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         ),
                         SizedBox(height: 8),
                         UsernameSelector(
-                          suggestions: _selectedUsername.isEmpty 
-                              ? ['${_nameController.text.toLowerCase().replaceAll(' ', '_')}', '${_nameController.text.toLowerCase().replaceAll(' ', '')}'] 
-                              : [_selectedUsername],
+                          suggestions: _selectedUsername.isEmpty && _nameController.text.isNotEmpty
+                              ? [
+                                  '${_nameController.text.toLowerCase().replaceAll(' ', '_')}',
+                                  '${_nameController.text.toLowerCase().replaceAll(' ', '')}'
+                                ]
+                              : _selectedUsername.isNotEmpty
+                                  ? [_selectedUsername]
+                                  : ['usuario'],
                           selectedUsername: _selectedUsername,
                           onUsernameSelected: (username) {
                             setState(() {
@@ -388,7 +387,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                               _customUsernameError = null;
                             });
                             
-                            // Validação básica
                             await Future.delayed(Duration(milliseconds: 500));
                             
                             if (username.length < 3) {
@@ -399,303 +397,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                               return;
                             }
                             
-                            if (!RegExp(r'^[a-z0-9_]+
-
-                        SizedBox(height: 16),
-
-                        // Telefone
-                        _buildTextField(
-                          controller: _phoneController,
-                          label: 'Celular',
-                          icon: PhosphorIcons.phone(),
-                          keyboardType: TextInputType.phone,
-                          hint: '(11) 99999-9999',
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                        ),
-
-                        SizedBox(height: 24),
-
-                        // Seção de Endereço
-                        Text(
-                          'Endereço',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-
-                        SizedBox(height: 16),
-
-                        // CEP
-                        _buildTextField(
-                          controller: _cepController,
-                          label: 'CEP',
-                          icon: PhosphorIcons.mapPin(),
-                          hint: '00000-000',
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                        ),
-
-                        SizedBox(height: 16),
-
-                        // Endereço
-                        _buildTextField(
-                          controller: _addressController,
-                          label: 'Rua / Avenida',
-                          icon: PhosphorIcons.roadHorizon(),
-                        ),
-
-                        SizedBox(height: 16),
-
-                        // Cidade e Estado
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: _buildTextField(
-                                controller: _cityController,
-                                label: 'Cidade',
-                                icon: PhosphorIcons.buildings(),
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _stateController,
-                                label: 'Estado',
-                                icon: PhosphorIcons.flag(),
-                                hint: 'SP',
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(height: 32),
-
-                        // Redefinir senha
-                        Container(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _resetPassword(viewModel),
-                            icon: Icon(
-                              PhosphorIcons.key(),
-                              size: 18,
-                              color: AppColors.papayaSensorial,
-                            ),
-                            label: Text(
-                              'Redefinir senha',
-                              style: GoogleFonts.albertSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.papayaSensorial,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              side: BorderSide(
-                                color: AppColors.papayaSensorial,
-                                width: 1.5,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: 16),
-
-                        // Botão Salvar
-                        PrimaryButton(
-                          text: 'Salvar alterações',
-                          onPressed: viewModel.isSaving ? null : () => _saveProfile(viewModel),
-                          isLoading: viewModel.isSaving,
-                        ),
-
-                        SizedBox(height: 32),
-
-                        // Zona de Perigo
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppColors.roseClay.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.roseClay.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    PhosphorIcons.warning(),
-                                    color: AppColors.roseClay,
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Zona de Perigo',
-                                    style: GoogleFonts.albertSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.roseClay,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 12),
-                              Text(
-                                'Esta ação é irreversível. Todos os seus dados serão permanentemente removidos.',
-                                style: GoogleFonts.albertSans(
-                                  fontSize: 14,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: viewModel.isSaving ? null : () => _deleteAccount(viewModel),
-                                  icon: Icon(
-                                    PhosphorIcons.trash(),
-                                    size: 18,
-                                    color: AppColors.roseClay,
-                                  ),
-                                  label: Text(
-                                    'Excluir conta',
-                                    style: GoogleFonts.albertSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.roseClay,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(vertical: 12),
-                                    side: BorderSide(
-                                      color: AppColors.roseClay,
-                                      width: 1.5,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: 48),
-                      ],
-                    ),
-                  ),
-                ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    String? hint,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
-    int maxLines = 1,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      inputFormatters: inputFormatters,
-      validator: validator,
-      maxLines: maxLines,
-      style: GoogleFonts.albertSans(
-        fontSize: 16,
-        color: AppColors.textPrimary,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(
-          icon,
-          color: AppColors.grayScale2,
-          size: 20,
-        ),
-        labelStyle: GoogleFonts.albertSans(
-          fontSize: 16,
-          color: AppColors.grayScale1,
-        ),
-        hintStyle: GoogleFonts.albertSans(
-          fontSize: 16,
-          color: AppColors.grayScale2,
-        ),
-        filled: true,
-        fillColor: AppColors.whiteWhite,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.moonAsh,
-            width: 1,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.moonAsh,
-            width: 1,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppColors.papayaSensorial,
-            width: 2,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.red,
-            width: 1,
-          ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.red,
-            width: 2,
-          ),
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
-    _cepController.dispose();
-    _addressController.dispose();
-    _cityController.dispose();
-    _stateController.dispose();
-    super.dispose();
-  }
-}).hasMatch(username)) {
+                            if (!RegExp(r'^[a-z0-9_]+$').hasMatch(username)) {
                               setState(() {
                                 _customUsernameError = 'Use apenas letras minúsculas, números e underscore';
                                 _isValidatingUsername = false;
