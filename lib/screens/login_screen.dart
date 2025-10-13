@@ -5,9 +5,11 @@ import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../utils/user_manager.dart';
 import '../widgets/custom_buttons.dart';
+import '../widgets/custom_text_fields.dart';
 import '../widgets/custom_toast.dart';
 import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
+import 'welcome_screen.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -55,136 +57,32 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   SvgPicture.asset(
                     'assets/images/kafex_logo_positive.svg',
-                    width: 120,
-                    height: 40,
+                    width: 144,
+                    height: 48,
                   ),
                   
                   SizedBox(height: 40),
 
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.whiteWhite,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _emailController,
-                      focusNode: _emailFocus,
-                      keyboardType: TextInputType.emailAddress,
-                      enabled: !_isLoading,
-                      textInputAction: TextInputAction.next,
-                      onSubmitted: (_) => _passwordFocus.requestFocus(),
-                      style: GoogleFonts.albertSans(
-                        fontSize: 16,
-                        color: AppColors.carbon,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Email',
-                        hintStyle: GoogleFonts.albertSans(
-                          fontSize: 16,
-                          color: AppColors.grayScale2,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: AppColors.papayaSensorial,
-                            width: 2,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.transparent,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 18,
-                        ),
-                      ),
-                    ),
+                  CustomTextField(
+                    controller: _emailController,
+                    focusNode: _emailFocus,
+                    hintText: 'Email',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
                   ),
-
+                  
                   SizedBox(height: 16),
 
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.whiteWhite,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _passwordController,
-                      focusNode: _passwordFocus,
-                      obscureText: !_isPasswordVisible,
-                      enabled: !_isLoading,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _handleLogin(),
-                      style: GoogleFonts.albertSans(
-                        fontSize: 16,
-                        color: AppColors.carbon,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Senha',
-                        hintStyle: GoogleFonts.albertSans(
-                          fontSize: 16,
-                          color: AppColors.grayScale2,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: AppColors.papayaSensorial,
-                            width: 2,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.transparent,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _isPasswordVisible
-                                ? AppIcons.eyeSlash
-                                : AppIcons.eye,
-                            color: AppColors.grayScale2,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                            if (!_isLoading) {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            }
-                          },
-                        ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 18,
-                        ),
-                      ),
-                    ),
+                  CustomPasswordField(
+                    controller: _passwordController,
+                    focusNode: _passwordFocus,
+                    hintText: 'Senha',
+                    isVisible: _isPasswordVisible,
+                    onToggleVisibility: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
                   ),
 
                   SizedBox(height: 32),
@@ -226,18 +124,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 16),
 
-                  CustomOutlineButton(
-                    text: 'Recuperar senha',
-                    onPressed: () {
-                      if (!_isLoading) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ForgotPasswordScreen(),
-                          ),
-                        );
-                      }
-                    },
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomOutlineButton(
+                          text: 'Voltar',
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => WelcomeScreen()),
+                            );
+                          },
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: CustomOutlineButton(
+                          text: 'Recuperar senha',
+                          onPressed: () {
+                            if (!_isLoading) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ForgotPasswordScreen(),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ),
 
                   SizedBox(height: 32),
@@ -315,13 +231,13 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (result.isSuccess && result.user != null) {
-        String uid = result.user!.uid;  // ← ADICIONADO
+        String uid = result.user!.uid;
         String email = _emailController.text.trim();
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
         
         UserManager.instance.setUserData(
-          uid: uid,  // ← ADICIONADO
+          uid: uid,
           name: name,
           email: email,
           photoUrl: result.user?.photoURL,
@@ -354,13 +270,13 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _authService.signInWithGoogle();
 
       if (result.isSuccess && result.user != null) {
-        String uid = result.user!.uid;  // ← ADICIONADO
+        String uid = result.user!.uid;
         String email = result.user?.email ?? 'usuario@gmail.com';
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
         
         UserManager.instance.setUserData(
-          uid: uid,  // ← ADICIONADO
+          uid: uid,
           name: name,
           email: email,
           photoUrl: result.user?.photoURL,
@@ -393,13 +309,13 @@ class _LoginScreenState extends State<LoginScreen> {
       final result = await _authService.signInWithApple();
 
       if (result.isSuccess && result.user != null) {
-        String uid = result.user!.uid;  // ← ADICIONADO
+        String uid = result.user!.uid;
         String email = result.user?.email ?? 'usuario@icloud.com';
         String name = result.user?.displayName ?? 
                      UserManager.instance.extractNameFromEmail(email);
         
         UserManager.instance.setUserData(
-          uid: uid,  // ← ADICIONADO
+          uid: uid,
           name: name,
           email: email,
           photoUrl: result.user?.photoURL,
