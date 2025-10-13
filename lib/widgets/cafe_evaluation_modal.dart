@@ -38,6 +38,7 @@ class CafeEvaluationModal extends StatefulWidget {
 
 class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
   final TextEditingController _reviewController = TextEditingController();
+  final FocusNode _reviewFocusNode = FocusNode();
   final ImagePicker _imagePicker = ImagePicker();
   
   double _rating = 0;
@@ -45,8 +46,17 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    _reviewFocusNode.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
   void dispose() {
     _reviewController.dispose();
+    _reviewFocusNode.dispose();
     super.dispose();
   }
 
@@ -281,6 +291,8 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isFocused = _reviewFocusNode.hasFocus;
+    
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
@@ -392,7 +404,7 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                     
                     SizedBox(height: 32),
                     
-                    // Campo de texto para avaliação
+                    // Campo de texto para avaliação com design atualizado
                     Text(
                       'Conte mais sobre sua experiência',
                       style: GoogleFonts.albertSans(
@@ -404,26 +416,49 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                     
                     SizedBox(height: 12),
                     
-                    Container(
+                    AnimatedContainer(
+                      duration: Duration(milliseconds: 200),
                       decoration: BoxDecoration(
-                        color: AppColors.moonAsh,
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppColors.whiteWhite,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isFocused 
+                              ? AppColors.papayaSensorial 
+                              : AppColors.grayScale2.withOpacity(0.3),
+                          width: isFocused ? 2 : 1,
+                        ),
+                        boxShadow: isFocused
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.papayaSensorial.withOpacity(0.1),
+                                  blurRadius: 12,
+                                  offset: Offset(0, 4),
+                                ),
+                              ]
+                            : [],
                       ),
                       child: TextField(
                         controller: _reviewController,
+                        focusNode: _reviewFocusNode,
                         maxLines: 6,
                         style: GoogleFonts.albertSans(
-                          fontSize: 14,
-                          color: AppColors.carbon,
+                          fontSize: 16,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
                         ),
                         decoration: InputDecoration(
                           hintText: 'Qual café você experimentou? Conte mais detalhes sobre a sua experiência.',
                           hintStyle: GoogleFonts.albertSans(
-                            fontSize: 14,
-                            color: AppColors.grayScale1,
+                            fontSize: 16,
+                            color: AppColors.textSecondary.withOpacity(0.6),
+                            fontWeight: FontWeight.w400,
                           ),
+                          filled: true,
+                          fillColor: Colors.transparent,
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(16),
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                         ),
                       ),
                     ),
