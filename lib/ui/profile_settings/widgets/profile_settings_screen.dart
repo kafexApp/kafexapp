@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/widgets/custom_buttons.dart';
 import 'package:kafex/widgets/custom_toast.dart';
 import 'package:kafex/data/models/domain/profile_settings.dart';
 import 'package:kafex/ui/profile_settings/viewmodel/profile_settings_viewmodel.dart';
+import 'package:kafex/ui/create_account/widgets/username_selector.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   @override
@@ -18,10 +20,15 @@ class ProfileSettingsScreen extends StatefulWidget {
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _cepController = TextEditingController();
   final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  
+  String _selectedUsername = '';
+  bool _isValidatingUsername = false;
+  String? _customUsernameError;
 
   @override
   void initState() {
@@ -35,10 +42,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   void _setupTextControllerListeners() {
     _nameController.addListener(_onTextChanged);
-    _usernameController.addListener(_onTextChanged);
-    _emailController.addListener(_onTextChanged);
     _phoneController.addListener(_onTextChanged);
+    _cepController.addListener(_onTextChanged);
     _addressController.addListener(_onTextChanged);
+    _cityController.addListener(_onTextChanged);
+    _stateController.addListener(_onTextChanged);
   }
 
   void _onTextChanged() {
@@ -50,31 +58,23 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   }
 
   void _updateControllersFromSettings(ProfileSettings settings) {
-    _nameController.text = settings.name;
-    _usernameController.text = settings.username;
-    _emailController.text = settings.email;
-    _phoneController.text = settings.phone ?? '';
-    _addressController.text = settings.address ?? '';
+    _nameController.text = settings.nomeExibicao;
+    _selectedUsername = settings.nomeUsuario;
+    _phoneController.text = settings.telefone ?? '';
+    _cepController.text = settings.cep ?? '';
+    _addressController.text = settings.endereco ?? '';
+    _cityController.text = settings.cidade ?? '';
+    _stateController.text = settings.estado ?? '';
   }
 
   Widget _buildProfileImage(ProfileSettingsViewModel viewModel) {
     final imagePath = viewModel.getProfileImagePath();
     
-    // Se há uma imagem selecionada (não funciona no Flutter Web)
-    if (viewModel.selectedImagePath != null) {
-      // Para Flutter Web, mostrar apenas um placeholder
-      return Container(
-        width: 114,
-        height: 114,
-        decoration: BoxDecoration(
-          color: AppColors.papayaSensorial.withOpacity(0.2),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          PhosphorIcons.image(),
-          size: 40,
-          color: AppColors.papayaSensorial,
-        ),
+    // Se há uma imagem selecionada, mostrar preview usando bytes
+    if (viewModel.selectedImagePath != null && viewModel.imageBytes != null) {
+      return Image.memory(
+        Uint8List.fromList(viewModel.imageBytes!),
+        fit: BoxFit.cover,
       );
     }
     
@@ -93,27 +93,46 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     return viewModel.buildFallbackAvatar(_nameController.text);
   }
 
+  Future<Uint8List> _loadImageBytes(String path) async {
+    // No web, precisamos recarregar os bytes
+    final picker = ImagePicker();
+    final file = await picker.pickImage(source: ImageSource.gallery);
+    if (file != null) {
+      return await file.readAsBytes();
+    }
+    return Uint8List(0);
+  }
+
   Future<void> _saveProfile(ProfileSettingsViewModel viewModel) async {
     if (!_formKey.currentState!.validate()) return;
+    
+    if (_selectedUsername.isEmpty) {
+      CustomToast.showError(context, message: 'Selecione um username');
+      return;
+    }
 
-    final settings = ProfileSettings(
-      name: _nameController.text.trim(),
-      username: _usernameController.text.trim(),
-      email: _emailController.text.trim(),
-      phone: _phoneController.text.trim(),
-      address: _addressController.text.trim(),
+    final settings = viewModel.settings!.copyWith(
+      nomeExibicao: _nameController.text.trim(),
+      nomeUsuario: _selectedUsername,
+      telefone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+      cep: _cepController.text.trim().isEmpty ? null : _cepController.text.trim(),
+      endereco: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+      cidade: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
+      estado: _stateController.text.trim().isEmpty ? null : _stateController.text.trim(),
     );
 
-    viewModel.saveSettings.execute(settings);
+    await viewModel.saveSettings.execute(settings);
     
-    // Mostrar toast de sucesso sempre (já que é mock)
-    CustomToast.showSuccess(context, message: 'Perfil atualizado com sucesso!');
+    if (viewModel.state.errorMessage == null) {
+      CustomToast.showSuccess(context, message: 'Perfil atualizado com sucesso!');
+    } else {
+      CustomToast.showError(context, message: viewModel.state.errorMessage!);
+    }
   }
 
   Future<void> _resetPassword(ProfileSettingsViewModel viewModel) async {
-    viewModel.resetPassword.execute();
+    await viewModel.resetPassword.execute();
     
-    // Aguardar e verificar resultado via state
     await Future.delayed(Duration(milliseconds: 100));
     
     if (viewModel.state.errorMessage != null) {
@@ -121,7 +140,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     } else {
       CustomToast.showSuccess(
         context, 
-        message: 'Email de redefinição enviado para ${viewModel.settings?.email}!'
+        message: 'Email de redefinição de senha enviado!'
       );
     }
   }
@@ -130,9 +149,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final confirmed = await _showDeleteAccountDialog();
     if (confirmed != true) return;
 
-    viewModel.deleteAccount.execute();
+    await viewModel.deleteAccount.execute();
     
-    // Aguardar resultado
     await Future.delayed(Duration(milliseconds: 100));
     
     if (viewModel.state.errorMessage != null) {
@@ -184,17 +202,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               ),
               SizedBox(height: 8),
               Text(
-                'Todos os seus dados serão permanentemente removidos, incluindo:',
+                'Todos os seus dados serão permanentemente removidos do Supabase e Firebase.',
                 style: GoogleFonts.albertSans(
                   fontSize: 14,
                   color: AppColors.textSecondary,
                 ),
               ),
-              SizedBox(height: 12),
-              _buildDeleteItem('• Perfil e informações pessoais'),
-              _buildDeleteItem('• Histórico de atividades'),
-              _buildDeleteItem('• Posts e comentários'),
-              _buildDeleteItem('• Favoritos e preferências'),
               SizedBox(height: 16),
               Text(
                 'Tem certeza que deseja continuar?',
@@ -241,24 +254,10 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
-  Widget _buildDeleteItem(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 2),
-      child: Text(
-        text,
-        style: GoogleFonts.albertSans(
-          fontSize: 13,
-          color: AppColors.textSecondary,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<ProfileSettingsViewModel>(
       builder: (context, viewModel, _) {
-        // Atualizar controllers quando settings carregarem (apenas uma vez)
         if (viewModel.settings != null && 
             _nameController.text.isEmpty && 
             !viewModel.isLoading) {
@@ -295,6 +294,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                   child: SingleChildScrollView(
                     padding: EdgeInsets.all(24),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Foto de perfil
                         Center(
@@ -319,10 +319,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                 bottom: 0,
                                 right: 0,
                                 child: GestureDetector(
-                                  onTap: () {
-                                    viewModel.selectImage.execute();
-                                    CustomToast.showInfo(context, message: 'Seleção de imagem não disponível no navegador');
-                                  },
+                                  onTap: () => viewModel.selectImage.execute(),
                                   child: Container(
                                     width: 36,
                                     height: 36,
@@ -348,7 +345,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
                         SizedBox(height: 32),
 
-                        // Campos do formulário
+                        // Nome completo
                         _buildTextField(
                           controller: _nameController,
                           label: 'Nome completo',
@@ -363,42 +360,50 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
                         SizedBox(height: 16),
 
-                        _buildTextField(
-                          controller: _usernameController,
-                          label: 'Username',
-                          icon: PhosphorIcons.at(),
-                          hint: 'seu_username',
-                          validator: (value) {
-                            if (value?.isEmpty ?? true) {
-                              return 'Username é obrigatório';
-                            }
-                            if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value!)) {
-                              return 'Apenas letras, números e underscore';
-                            }
-                            return null;
-                          },
+                        // Username Selector
+                        Text(
+                          'Username',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
+                        SizedBox(height: 8),
+                        UsernameSelector(
+                          suggestions: _selectedUsername.isEmpty 
+                              ? ['${_nameController.text.toLowerCase().replaceAll(' ', '_')}', '${_nameController.text.toLowerCase().replaceAll(' ', '')}'] 
+                              : [_selectedUsername],
+                          selectedUsername: _selectedUsername,
+                          onUsernameSelected: (username) {
+                            setState(() {
+                              _selectedUsername = username;
+                              _customUsernameError = null;
+                            });
+                            _onTextChanged();
+                          },
+                          onCustomUsernameChanged: (username) async {
+                            setState(() {
+                              _isValidatingUsername = true;
+                              _customUsernameError = null;
+                            });
+                            
+                            // Validação básica
+                            await Future.delayed(Duration(milliseconds: 500));
+                            
+                            if (username.length < 3) {
+                              setState(() {
+                                _customUsernameError = 'Username deve ter no mínimo 3 caracteres';
+                                _isValidatingUsername = false;
+                              });
+                              return;
+                            }
+                            
+                            if (!RegExp(r'^[a-z0-9_]+
 
                         SizedBox(height: 16),
 
-                        _buildTextField(
-                          controller: _emailController,
-                          label: 'Email',
-                          icon: PhosphorIcons.envelope(),
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value?.isEmpty ?? true) {
-                              return 'Email é obrigatório';
-                            }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
-                              return 'Email inválido';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        SizedBox(height: 16),
-
+                        // Telefone
                         _buildTextField(
                           controller: _phoneController,
                           label: 'Celular',
@@ -410,13 +415,64 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           ],
                         ),
 
+                        SizedBox(height: 24),
+
+                        // Seção de Endereço
+                        Text(
+                          'Endereço',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+
                         SizedBox(height: 16),
 
+                        // CEP
+                        _buildTextField(
+                          controller: _cepController,
+                          label: 'CEP',
+                          icon: PhosphorIcons.mapPin(),
+                          hint: '00000-000',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                        ),
+
+                        SizedBox(height: 16),
+
+                        // Endereço
                         _buildTextField(
                           controller: _addressController,
-                          label: 'Endereço',
-                          icon: PhosphorIcons.mapPin(),
-                          maxLines: 2,
+                          label: 'Rua / Avenida',
+                          icon: PhosphorIcons.roadHorizon(),
+                        ),
+
+                        SizedBox(height: 16),
+
+                        // Cidade e Estado
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: _buildTextField(
+                                controller: _cityController,
+                                label: 'Cidade',
+                                icon: PhosphorIcons.buildings(),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                controller: _stateController,
+                                label: 'Estado',
+                                icon: PhosphorIcons.flag(),
+                                hint: 'SP',
+                              ),
+                            ),
+                          ],
                         ),
 
                         SizedBox(height: 32),
@@ -463,7 +519,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
                         SizedBox(height: 32),
 
-                        // Seção de zona de perigo
+                        // Zona de Perigo
                         Container(
                           width: double.infinity,
                           padding: EdgeInsets.all(20),
@@ -632,10 +688,323 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _usernameController.dispose();
-    _emailController.dispose();
     _phoneController.dispose();
+    _cepController.dispose();
     _addressController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    super.dispose();
+  }
+}).hasMatch(username)) {
+                              setState(() {
+                                _customUsernameError = 'Use apenas letras minúsculas, números e underscore';
+                                _isValidatingUsername = false;
+                              });
+                              return;
+                            }
+                            
+                            setState(() {
+                              _selectedUsername = username;
+                              _isValidatingUsername = false;
+                            });
+                            _onTextChanged();
+                          },
+                          isValidatingCustomUsername: _isValidatingUsername,
+                          customUsernameError: _customUsernameError,
+                        ),
+
+                        SizedBox(height: 16),
+
+                        // Telefone
+                        _buildTextField(
+                          controller: _phoneController,
+                          label: 'Celular',
+                          icon: PhosphorIcons.phone(),
+                          keyboardType: TextInputType.phone,
+                          hint: '(11) 99999-9999',
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                        ),
+
+                        SizedBox(height: 24),
+
+                        // Seção de Endereço
+                        Text(
+                          'Endereço',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+
+                        SizedBox(height: 16),
+
+                        // CEP
+                        _buildTextField(
+                          controller: _cepController,
+                          label: 'CEP',
+                          icon: PhosphorIcons.mapPin(),
+                          hint: '00000-000',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                        ),
+
+                        SizedBox(height: 16),
+
+                        // Endereço
+                        _buildTextField(
+                          controller: _addressController,
+                          label: 'Rua / Avenida',
+                          icon: PhosphorIcons.roadHorizon(),
+                        ),
+
+                        SizedBox(height: 16),
+
+                        // Cidade e Estado
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: _buildTextField(
+                                controller: _cityController,
+                                label: 'Cidade',
+                                icon: PhosphorIcons.buildings(),
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: _buildTextField(
+                                controller: _stateController,
+                                label: 'Estado',
+                                icon: PhosphorIcons.flag(),
+                                hint: 'SP',
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 32),
+
+                        // Redefinir senha
+                        Container(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _resetPassword(viewModel),
+                            icon: Icon(
+                              PhosphorIcons.key(),
+                              size: 18,
+                              color: AppColors.papayaSensorial,
+                            ),
+                            label: Text(
+                              'Redefinir senha',
+                              style: GoogleFonts.albertSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.papayaSensorial,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              side: BorderSide(
+                                color: AppColors.papayaSensorial,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: 16),
+
+                        // Botão Salvar
+                        PrimaryButton(
+                          text: 'Salvar alterações',
+                          onPressed: viewModel.isSaving ? null : () => _saveProfile(viewModel),
+                          isLoading: viewModel.isSaving,
+                        ),
+
+                        SizedBox(height: 32),
+
+                        // Zona de Perigo
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.roseClay.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.roseClay.withOpacity(0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    PhosphorIcons.warning(),
+                                    color: AppColors.roseClay,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Zona de Perigo',
+                                    style: GoogleFonts.albertSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.roseClay,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'Esta ação é irreversível. Todos os seus dados serão permanentemente removidos.',
+                                style: GoogleFonts.albertSans(
+                                  fontSize: 14,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: viewModel.isSaving ? null : () => _deleteAccount(viewModel),
+                                  icon: Icon(
+                                    PhosphorIcons.trash(),
+                                    size: 18,
+                                    color: AppColors.roseClay,
+                                  ),
+                                  label: Text(
+                                    'Excluir conta',
+                                    style: GoogleFonts.albertSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.roseClay,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    side: BorderSide(
+                                      color: AppColors.roseClay,
+                                      width: 1.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        SizedBox(height: 48),
+                      ],
+                    ),
+                  ),
+                ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    String? hint,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      validator: validator,
+      maxLines: maxLines,
+      style: GoogleFonts.albertSans(
+        fontSize: 16,
+        color: AppColors.textPrimary,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(
+          icon,
+          color: AppColors.grayScale2,
+          size: 20,
+        ),
+        labelStyle: GoogleFonts.albertSans(
+          fontSize: 16,
+          color: AppColors.grayScale1,
+        ),
+        hintStyle: GoogleFonts.albertSans(
+          fontSize: 16,
+          color: AppColors.grayScale2,
+        ),
+        filled: true,
+        fillColor: AppColors.whiteWhite,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: AppColors.moonAsh,
+            width: 1,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: AppColors.moonAsh,
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: AppColors.papayaSensorial,
+            width: 2,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.red,
+            width: 1,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.red,
+            width: 2,
+          ),
+        ),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _cepController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
     super.dispose();
   }
 }

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:kafex/data/models/domain/profile_settings.dart';
 import 'package:kafex/utils/result.dart';
 import 'package:kafex/utils/user_manager.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract class ProfileSettingsRepository {
   Future<Result<ProfileSettings>> loadUserSettings();
@@ -11,65 +12,72 @@ abstract class ProfileSettingsRepository {
 }
 
 class ProfileSettingsRepositoryImpl implements ProfileSettingsRepository {
+  final _supabase = Supabase.instance.client;
+
   @override
   Future<Result<ProfileSettings>> loadUserSettings() async {
     try {
-      await Future.delayed(Duration(milliseconds: 300));
-      
       final userManager = UserManager.instance;
+      final userId = FirebaseAuth.instance.currentUser?.uid;
       
-      final settings = ProfileSettings(
-        name: userManager.userName,
-        username: _extractUsernameFromEmail(userManager.userEmail),
-        email: userManager.userEmail,
-        phone: '', // TODO: Carregar do Supabase
-        address: '', // TODO: Carregar do Supabase
-        profileImagePath: userManager.userPhotoUrl,
-      );
+      if (userId == null) {
+        return Result.error(Exception('Usuário não autenticado'));
+      }
+
+      // Buscar dados do Supabase
+      final response = await _supabase
+          .from('usuario_perfil')
+          .select()
+          .eq('ref', userId)
+          .single();
+
+      final settings = ProfileSettings.fromSupabase(response);
       
       return Result.ok(settings);
     } catch (e) {
-      return Result.error(Exception('Erro ao carregar configurações: $e'));
+      // Se não encontrar no Supabase, retorna dados básicos do Firebase
+      try {
+        final userManager = UserManager.instance;
+        
+        final settings = ProfileSettings(
+          nomeExibicao: userManager.userName,
+          nomeUsuario: _extractUsernameFromEmail(userManager.userEmail),
+          email: userManager.userEmail,
+          fotoUrl: userManager.userPhotoUrl,
+        );
+        
+        return Result.ok(settings);
+      } catch (e) {
+        return Result.error(Exception('Erro ao carregar configurações: $e'));
+      }
     }
   }
 
   @override
   Future<Result<void>> saveUserSettings(ProfileSettings settings) async {
     try {
-      // Simular delay de API
-      await Future.delayed(Duration(seconds: 1));
+      final userId = FirebaseAuth.instance.currentUser?.uid;
       
-      // CORREÇÃO: Só atualiza a foto do usuário se for diferente da atual
-      // e se for realmente uma atualização de perfil (não de post)
-      final userManager = UserManager.instance;
-      final currentPhotoUrl = userManager.userPhotoUrl;
-      
-      // Só atualiza a foto se:
-      // 1. A foto atual for diferente da nova foto
-      // 2. A nova foto não for uma URL de post (contém '/posts/')
-      String? newPhotoUrl = currentPhotoUrl;
-      
-      if (settings.profileImagePath != null && 
-          settings.profileImagePath != currentPhotoUrl &&
-          !settings.profileImagePath!.contains('/posts/')) {
-        newPhotoUrl = settings.profileImagePath;
-        print('🔄 Atualizando foto do usuário: ${settings.profileImagePath}');
-      } else if (settings.profileImagePath?.contains('/posts/') == true) {
-        print('⚠️ Ignorando URL de post como foto de perfil: ${settings.profileImagePath}');
+      if (userId == null) {
+        return Result.error(Exception('Usuário não autenticado'));
       }
-      
-      // Atualizar UserManager apenas com dados válidos de perfil
+
+      // Salvar no Supabase
+      final data = settings.toSupabase();
+      data['ref'] = userId; // Adiciona o ID do Firebase
+
+      await _supabase
+          .from('usuario_perfil')
+          .upsert(data);
+
+      // Atualizar UserManager
+      final userManager = UserManager.instance;
       userManager.setUserData(
-        uid: FirebaseAuth.instance.currentUser?.uid ?? '',
-        name: settings.name,
+        uid: userId,
+        name: settings.nomeExibicao,
         email: settings.email,
-        photoUrl: newPhotoUrl,
+        photoUrl: settings.fotoUrl,
       );
-      
-      // TODO: Implementar salvamento no Supabase
-      // - Salvar dados completos do usuário
-      // - Upload da imagem se necessário
-      // - Atualizar tabela de usuários
       
       return Result.ok(null);
     } catch (e) {
@@ -119,12 +127,12 @@ class ProfileSettingsRepositoryImpl implements ProfileSettingsRepository {
       if (user == null) {
         return Result.error(Exception('Usuário não encontrado'));
       }
-      
-      // TODO: Excluir dados do Supabase antes de excluir conta do Firebase
-      // - Excluir posts do usuário
-      // - Excluir comentários
-      // - Excluir favoritos
-      // - Excluir dados do perfil
+
+      // Excluir dados do Supabase
+      await _supabase
+          .from('usuario_perfil')
+          .delete()
+          .eq('ref', user.uid);
       
       // Excluir conta do Firebase
       await user.delete();

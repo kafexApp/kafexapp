@@ -1,7 +1,66 @@
-// lib/services/avatar_service.dart
-import 'package:flutter/material.dart'; // IMPORTAÇÃO FALTANTE
+import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
+import 'dart:io';
 
 class AvatarService {
+  static final _storage = FirebaseStorage.instance;
+
+  /// Faz upload do avatar para o Firebase Storage
+  static Future<String?> uploadAvatar({
+    required String userId,
+    required String imagePath,
+    List<int>? imageBytes,
+  }) async {
+    try {
+      final fileName = '${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storageRef = _storage.ref().child('avatars/$fileName');
+
+      print('📸 Iniciando upload do avatar...');
+
+      UploadTask uploadTask;
+
+      if (kIsWeb) {
+        // Web: usar bytes
+        if (imageBytes == null) {
+          print('❌ Bytes da imagem não fornecidos para web');
+          return null;
+        }
+        uploadTask = storageRef.putData(
+          Uint8List.fromList(imageBytes),
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+      } else {
+        // Mobile/Desktop: usar arquivo
+        final file = File(imagePath);
+        uploadTask = storageRef.putFile(file);
+      }
+
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      print('✅ Upload concluído: $downloadUrl');
+      return downloadUrl;
+    } catch (e) {
+      print('❌ Erro ao fazer upload do avatar: $e');
+      return null;
+    }
+  }
+
+  /// Deleta o avatar antigo do Firebase Storage
+  static Future<void> deleteAvatar(String photoUrl) async {
+    try {
+      if (photoUrl.isEmpty || !photoUrl.contains('firebase')) return;
+      
+      final ref = _storage.refFromURL(photoUrl);
+      await ref.delete();
+      
+      print('🗑️ Avatar antigo deletado');
+    } catch (e) {
+      print('⚠️ Erro ao deletar avatar antigo: $e');
+    }
+  }
+
   /// Otimiza URLs de avatar baseado no provider
   static String? optimizePhotoUrl(String? url, {int size = 200}) {
     if (url == null || url.isEmpty) return null;

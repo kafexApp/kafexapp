@@ -1,4 +1,3 @@
-// lib/ui/profile_settings/viewmodel/profile_settings_viewmodel.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,8 +6,7 @@ import 'package:kafex/data/repositories/profile_settings_repository.dart';
 import 'package:kafex/utils/command.dart';
 import 'package:kafex/utils/result.dart';
 import 'package:kafex/utils/app_colors.dart';
-import 'package:kafex/backend/supabase/supabase.dart';
-import 'package:kafex/services/user_profile_service.dart';
+import 'package:kafex/services/avatar_service.dart';
 import 'package:kafex/utils/user_manager.dart';
 
 class ProfileSettingsViewModel extends ChangeNotifier {
@@ -20,6 +18,7 @@ class ProfileSettingsViewModel extends ChangeNotifier {
 
   // Estados
   ProfileSettingsState _state = const ProfileSettingsState();
+  List<int>? _imageBytes; // Para web
 
   // Getters
   ProfileSettingsState get state => _state;
@@ -27,6 +26,7 @@ class ProfileSettingsViewModel extends ChangeNotifier {
   bool get isLoading => _state.isLoading;
   bool get isSaving => _state.isSaving;
   String? get selectedImagePath => _state.selectedImagePath;
+  List<int>? get imageBytes => _imageBytes; // Expor bytes
   bool get hasChanges => _state.settings?.hasChanges ?? false;
 
   // Commands
@@ -37,67 +37,27 @@ class ProfileSettingsViewModel extends ChangeNotifier {
   late final Command0<void> deleteAccount = Command0(_deleteAccount);
   late final Command1<void, ProfileSettings> updateSettings = Command1(_updateSettings);
 
-  // Método para carregar settings do Supabase
+  // Método para carregar settings
   Future<Result<void>> _loadSettings() async {
     _updateState(_state.copyWith(isLoading: true, errorMessage: null));
     
     try {
-      final firebaseUser = FirebaseAuth.instance.currentUser;
+      final result = await _repository.loadUserSettings();
       
-      if (firebaseUser == null) {
+      if (result.isOk) {
         _updateState(_state.copyWith(
-          isLoading: false,
-          errorMessage: 'Usuário não autenticado',
-        ));
-        return Result.error(Exception('Usuário não autenticado'));
-      }
-
-      print('🔍 Carregando perfil do usuário: ${firebaseUser.uid}');
-
-      // Buscar perfil no Supabase
-      final profile = await UserProfileService.getUserProfile(firebaseUser.uid);
-
-      if (profile != null) {
-        // Converter UsuarioPerfilRow para ProfileSettings
-        final settings = ProfileSettings(
-          name: profile.nomeExibicao ?? firebaseUser.displayName ?? 'Usuário',
-          username: profile.nomeUsuario ?? '',
-          email: profile.email ?? firebaseUser.email ?? '',
-          phone: profile.telefone,
-          address: profile.endereco,
-          profileImagePath: profile.fotoUrl,
-          hasChanges: false,
-        );
-
-        _updateState(_state.copyWith(
-          settings: settings,
+          settings: result.asOk.value,
           isLoading: false,
         ));
-
-        print('✅ Perfil carregado com sucesso: ${settings.name}');
         return Result.ok(null);
       } else {
-        // Se não encontrou no Supabase, usar dados do Firebase
-        final settings = ProfileSettings(
-          name: firebaseUser.displayName ?? 'Usuário',
-          username: '',
-          email: firebaseUser.email ?? '',
-          phone: null,
-          address: null,
-          profileImagePath: firebaseUser.photoURL,
-          hasChanges: false,
-        );
-
         _updateState(_state.copyWith(
-          settings: settings,
           isLoading: false,
+          errorMessage: result.asError.error.toString(),
         ));
-
-        print('⚠️ Perfil não encontrado no Supabase, usando Firebase');
-        return Result.ok(null);
+        return Result.error(result.asError.error);
       }
     } catch (e) {
-      print('❌ Erro ao carregar perfil: $e');
       _updateState(_state.copyWith(
         isLoading: false,
         errorMessage: 'Erro ao carregar perfil: $e',
@@ -118,6 +78,9 @@ class ProfileSettingsViewModel extends ChangeNotifier {
       );
 
       if (image != null) {
+        // Ler bytes da imagem (necessário para web)
+        _imageBytes = await image.readAsBytes();
+        
         _updateState(_state.copyWith(selectedImagePath: image.path));
         
         // Marcar como tendo mudanças
@@ -127,6 +90,7 @@ class ProfileSettingsViewModel extends ChangeNotifier {
           ));
         }
         
+        print('✅ Imagem selecionada: ${image.path}');
         return Result.ok(null);
       }
       
@@ -140,7 +104,7 @@ class ProfileSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  // Método para salvar settings no Supabase
+  // Método para salvar settings
   Future<Result<void>> _saveSettings(ProfileSettings settings) async {
     _updateState(_state.copyWith(isSaving: true, errorMessage: null));
     
@@ -155,45 +119,52 @@ class ProfileSettingsViewModel extends ChangeNotifier {
         return Result.error(Exception('Usuário não autenticado'));
       }
 
-      print('💾 Salvando perfil do usuário: ${firebaseUser.uid}');
-
-      // Atualizar no Supabase
-      final success = await UserProfileService.updateUserProfile(
-        firebaseUid: firebaseUser.uid,
-        nomeExibicao: settings.name,
-        nomeUsuario: settings.username,
-        telefone: settings.phone,
-        endereco: settings.address,
-        fotoUrl: settings.profileImagePath,
-      );
-
-      if (success) {
-        // Atualizar UserManager
-        UserManager.instance.setUserData(
-          uid: FirebaseAuth.instance.currentUser?.uid ?? '',
-          name: settings.name,
-          email: settings.email,
-          photoUrl: settings.profileImagePath,
+      // Se houver imagem selecionada, fazer upload
+      String? fotoUrl = settings.fotoUrl;
+      
+      if (_state.selectedImagePath != null && _imageBytes != null) {
+        print('📸 Fazendo upload da nova foto...');
+        
+        final uploadResult = await AvatarService.uploadAvatar(
+          userId: firebaseUser.uid,
+          imagePath: _state.selectedImagePath!,
+          imageBytes: _imageBytes,
         );
+        
+        if (uploadResult != null) {
+          fotoUrl = uploadResult;
+          print('✅ Upload concluído: $fotoUrl');
+          
+          // Deletar foto antiga se existir
+          if (settings.fotoUrl != null && settings.fotoUrl!.isNotEmpty) {
+            await AvatarService.deleteAvatar(settings.fotoUrl!);
+          }
+        } else {
+          print('⚠️ Falha no upload da foto');
+        }
+      }
 
-        // Atualizar estado local
+      // Atualizar settings com a nova URL da foto
+      final updatedSettings = settings.copyWith(fotoUrl: fotoUrl);
+
+      // Salvar no repository
+      final result = await _repository.saveUserSettings(updatedSettings);
+
+      if (result.isOk) {
         _updateState(_state.copyWith(
-          settings: settings.copyWith(hasChanges: false),
+          settings: updatedSettings.copyWith(hasChanges: false),
           isSaving: false,
           selectedImagePath: null,
         ));
-
-        print('✅ Perfil salvo com sucesso');
         return Result.ok(null);
       } else {
         _updateState(_state.copyWith(
           isSaving: false,
-          errorMessage: 'Erro ao salvar perfil no Supabase',
+          errorMessage: result.asError.error.toString(),
         ));
-        return Result.error(Exception('Erro ao salvar perfil'));
+        return Result.error(result.asError.error);
       }
     } catch (e) {
-      print('❌ Erro ao salvar perfil: $e');
       _updateState(_state.copyWith(
         isSaving: false,
         errorMessage: 'Erro ao salvar perfil: $e',
@@ -205,23 +176,23 @@ class ProfileSettingsViewModel extends ChangeNotifier {
   // Método para redefinir senha
   Future<Result<void>> _resetPassword() async {
     try {
-      final firebaseUser = FirebaseAuth.instance.currentUser;
-      
-      if (firebaseUser == null || firebaseUser.email == null) {
+      if (_state.settings?.email == null) {
         _updateState(_state.copyWith(
-          errorMessage: 'Usuário não autenticado ou sem email',
+          errorMessage: 'Email não encontrado',
         ));
-        return Result.error(Exception('Usuário não autenticado'));
+        return Result.error(Exception('Email não encontrado'));
       }
 
-      await FirebaseAuth.instance.sendPasswordResetEmail(
-        email: firebaseUser.email!,
-      );
-
-      print('✅ Email de redefinição enviado para: ${firebaseUser.email}');
-      return Result.ok(null);
+      final result = await _repository.resetPassword(_state.settings!.email);
+      
+      if (result.isError) {
+        _updateState(_state.copyWith(
+          errorMessage: result.asError.error.toString(),
+        ));
+      }
+      
+      return result;
     } catch (e) {
-      print('❌ Erro ao enviar email de redefinição: $e');
       _updateState(_state.copyWith(
         errorMessage: 'Erro ao enviar email de redefinição: $e',
       ));
@@ -231,29 +202,25 @@ class ProfileSettingsViewModel extends ChangeNotifier {
 
   // Método para deletar conta
   Future<Result<void>> _deleteAccount() async {
+    _updateState(_state.copyWith(isSaving: true, errorMessage: null));
+    
     try {
-      final firebaseUser = FirebaseAuth.instance.currentUser;
+      final result = await _repository.deleteUserAccount();
       
-      if (firebaseUser == null) {
+      if (result.isOk) {
+        _updateState(_state.copyWith(isSaving: false));
+        return Result.ok(null);
+      } else {
         _updateState(_state.copyWith(
-          errorMessage: 'Usuário não autenticado',
+          isSaving: false,
+          errorMessage: result.asError.error.toString(),
         ));
-        return Result.error(Exception('Usuário não autenticado'));
+        return Result.error(result.asError.error);
       }
-
-      // TODO: Implementar lógica de deleção no Supabase
-      // Por enquanto, apenas deleta do Firebase
-      await firebaseUser.delete();
-      
-      // Limpar UserManager
-      UserManager.instance.clearUserData();
-
-      print('✅ Conta deletada com sucesso');
-      return Result.ok(null);
     } catch (e) {
-      print('❌ Erro ao deletar conta: $e');
       _updateState(_state.copyWith(
-        errorMessage: 'Erro ao deletar conta. Tente fazer login novamente: $e',
+        isSaving: false,
+        errorMessage: 'Erro ao deletar conta: $e',
       ));
       return Result.error(Exception('Erro ao deletar conta: $e'));
     }
@@ -277,7 +244,7 @@ class ProfileSettingsViewModel extends ChangeNotifier {
       return _state.selectedImagePath!;
     }
     
-    return _state.settings?.profileImagePath ?? 
+    return _state.settings?.fotoUrl ?? 
            UserManager.instance.userPhotoUrl ?? 
            '';
   }

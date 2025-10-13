@@ -9,24 +9,32 @@ part of 'profile_settings.dart';
 _$ProfileSettingsImpl _$$ProfileSettingsImplFromJson(
   Map<String, dynamic> json,
 ) => _$ProfileSettingsImpl(
-  name: json['name'] as String,
-  username: json['username'] as String,
+  nomeExibicao: json['nomeExibicao'] as String,
+  nomeUsuario: json['nomeUsuario'] as String,
   email: json['email'] as String,
-  phone: json['phone'] as String?,
-  address: json['address'] as String?,
-  profileImagePath: json['profileImagePath'] as String?,
+  telefone: json['telefone'] as String?,
+  endereco: json['endereco'] as String?,
+  cep: json['cep'] as String?,
+  cidade: json['cidade'] as String?,
+  estado: json['estado'] as String?,
+  bairro: json['bairro'] as String?,
+  fotoUrl: json['fotoUrl'] as String?,
   hasChanges: json['hasChanges'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$$ProfileSettingsImplToJson(
   _$ProfileSettingsImpl instance,
 ) => <String, dynamic>{
-  'name': instance.name,
-  'username': instance.username,
+  'nomeExibicao': instance.nomeExibicao,
+  'nomeUsuario': instance.nomeUsuario,
   'email': instance.email,
-  'phone': instance.phone,
-  'address': instance.address,
-  'profileImagePath': instance.profileImagePath,
+  'telefone': instance.telefone,
+  'endereco': instance.endereco,
+  'cep': instance.cep,
+  'cidade': instance.cidade,
+  'estado': instance.estado,
+  'bairro': instance.bairro,
+  'fotoUrl': instance.fotoUrl,
   'hasChanges': instance.hasChanges,
 };
 

@@ -21,12 +21,16 @@ ProfileSettings _$ProfileSettingsFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$ProfileSettings {
-  String get name => throw _privateConstructorUsedError;
-  String get username => throw _privateConstructorUsedError;
+  String get nomeExibicao => throw _privateConstructorUsedError;
+  String get nomeUsuario => throw _privateConstructorUsedError;
   String get email => throw _privateConstructorUsedError;
-  String? get phone => throw _privateConstructorUsedError;
-  String? get address => throw _privateConstructorUsedError;
-  String? get profileImagePath => throw _privateConstructorUsedError;
+  String? get telefone => throw _privateConstructorUsedError;
+  String? get endereco => throw _privateConstructorUsedError;
+  String? get cep => throw _privateConstructorUsedError;
+  String? get cidade => throw _privateConstructorUsedError;
+  String? get estado => throw _privateConstructorUsedError;
+  String? get bairro => throw _privateConstructorUsedError;
+  String? get fotoUrl => throw _privateConstructorUsedError;
   bool get hasChanges => throw _privateConstructorUsedError;
 
   /// Serializes this ProfileSettings to a JSON map.
@@ -47,12 +51,16 @@ abstract class $ProfileSettingsCopyWith<$Res> {
   ) = _$ProfileSettingsCopyWithImpl<$Res, ProfileSettings>;
   @useResult
   $Res call({
-    String name,
-    String username,
+    String nomeExibicao,
+    String nomeUsuario,
     String email,
-    String? phone,
-    String? address,
-    String? profileImagePath,
+    String? telefone,
+    String? endereco,
+    String? cep,
+    String? cidade,
+    String? estado,
+    String? bairro,
+    String? fotoUrl,
     bool hasChanges,
   });
 }
@@ -72,39 +80,59 @@ class _$ProfileSettingsCopyWithImpl<$Res, $Val extends ProfileSettings>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? name = null,
-    Object? username = null,
+    Object? nomeExibicao = null,
+    Object? nomeUsuario = null,
     Object? email = null,
-    Object? phone = freezed,
-    Object? address = freezed,
-    Object? profileImagePath = freezed,
+    Object? telefone = freezed,
+    Object? endereco = freezed,
+    Object? cep = freezed,
+    Object? cidade = freezed,
+    Object? estado = freezed,
+    Object? bairro = freezed,
+    Object? fotoUrl = freezed,
     Object? hasChanges = null,
   }) {
     return _then(
       _value.copyWith(
-            name: null == name
-                ? _value.name
-                : name // ignore: cast_nullable_to_non_nullable
+            nomeExibicao: null == nomeExibicao
+                ? _value.nomeExibicao
+                : nomeExibicao // ignore: cast_nullable_to_non_nullable
                       as String,
-            username: null == username
-                ? _value.username
-                : username // ignore: cast_nullable_to_non_nullable
+            nomeUsuario: null == nomeUsuario
+                ? _value.nomeUsuario
+                : nomeUsuario // ignore: cast_nullable_to_non_nullable
                       as String,
             email: null == email
                 ? _value.email
                 : email // ignore: cast_nullable_to_non_nullable
                       as String,
-            phone: freezed == phone
-                ? _value.phone
-                : phone // ignore: cast_nullable_to_non_nullable
+            telefone: freezed == telefone
+                ? _value.telefone
+                : telefone // ignore: cast_nullable_to_non_nullable
                       as String?,
-            address: freezed == address
-                ? _value.address
-                : address // ignore: cast_nullable_to_non_nullable
+            endereco: freezed == endereco
+                ? _value.endereco
+                : endereco // ignore: cast_nullable_to_non_nullable
                       as String?,
-            profileImagePath: freezed == profileImagePath
-                ? _value.profileImagePath
-                : profileImagePath // ignore: cast_nullable_to_non_nullable
+            cep: freezed == cep
+                ? _value.cep
+                : cep // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            cidade: freezed == cidade
+                ? _value.cidade
+                : cidade // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            estado: freezed == estado
+                ? _value.estado
+                : estado // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            bairro: freezed == bairro
+                ? _value.bairro
+                : bairro // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            fotoUrl: freezed == fotoUrl
+                ? _value.fotoUrl
+                : fotoUrl // ignore: cast_nullable_to_non_nullable
                       as String?,
             hasChanges: null == hasChanges
                 ? _value.hasChanges
@@ -126,12 +154,16 @@ abstract class _$$ProfileSettingsImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String name,
-    String username,
+    String nomeExibicao,
+    String nomeUsuario,
     String email,
-    String? phone,
-    String? address,
-    String? profileImagePath,
+    String? telefone,
+    String? endereco,
+    String? cep,
+    String? cidade,
+    String? estado,
+    String? bairro,
+    String? fotoUrl,
     bool hasChanges,
   });
 }
@@ -150,39 +182,59 @@ class __$$ProfileSettingsImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? name = null,
-    Object? username = null,
+    Object? nomeExibicao = null,
+    Object? nomeUsuario = null,
     Object? email = null,
-    Object? phone = freezed,
-    Object? address = freezed,
-    Object? profileImagePath = freezed,
+    Object? telefone = freezed,
+    Object? endereco = freezed,
+    Object? cep = freezed,
+    Object? cidade = freezed,
+    Object? estado = freezed,
+    Object? bairro = freezed,
+    Object? fotoUrl = freezed,
     Object? hasChanges = null,
   }) {
     return _then(
       _$ProfileSettingsImpl(
-        name: null == name
-            ? _value.name
-            : name // ignore: cast_nullable_to_non_nullable
+        nomeExibicao: null == nomeExibicao
+            ? _value.nomeExibicao
+            : nomeExibicao // ignore: cast_nullable_to_non_nullable
                   as String,
-        username: null == username
-            ? _value.username
-            : username // ignore: cast_nullable_to_non_nullable
+        nomeUsuario: null == nomeUsuario
+            ? _value.nomeUsuario
+            : nomeUsuario // ignore: cast_nullable_to_non_nullable
                   as String,
         email: null == email
             ? _value.email
             : email // ignore: cast_nullable_to_non_nullable
                   as String,
-        phone: freezed == phone
-            ? _value.phone
-            : phone // ignore: cast_nullable_to_non_nullable
+        telefone: freezed == telefone
+            ? _value.telefone
+            : telefone // ignore: cast_nullable_to_non_nullable
                   as String?,
-        address: freezed == address
-            ? _value.address
-            : address // ignore: cast_nullable_to_non_nullable
+        endereco: freezed == endereco
+            ? _value.endereco
+            : endereco // ignore: cast_nullable_to_non_nullable
                   as String?,
-        profileImagePath: freezed == profileImagePath
-            ? _value.profileImagePath
-            : profileImagePath // ignore: cast_nullable_to_non_nullable
+        cep: freezed == cep
+            ? _value.cep
+            : cep // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        cidade: freezed == cidade
+            ? _value.cidade
+            : cidade // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        estado: freezed == estado
+            ? _value.estado
+            : estado // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        bairro: freezed == bairro
+            ? _value.bairro
+            : bairro // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        fotoUrl: freezed == fotoUrl
+            ? _value.fotoUrl
+            : fotoUrl // ignore: cast_nullable_to_non_nullable
                   as String?,
         hasChanges: null == hasChanges
             ? _value.hasChanges
@@ -195,39 +247,51 @@ class __$$ProfileSettingsImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$ProfileSettingsImpl implements _ProfileSettings {
+class _$ProfileSettingsImpl extends _ProfileSettings {
   const _$ProfileSettingsImpl({
-    required this.name,
-    required this.username,
+    required this.nomeExibicao,
+    required this.nomeUsuario,
     required this.email,
-    this.phone,
-    this.address,
-    this.profileImagePath,
+    this.telefone,
+    this.endereco,
+    this.cep,
+    this.cidade,
+    this.estado,
+    this.bairro,
+    this.fotoUrl,
     this.hasChanges = false,
-  });
+  }) : super._();
 
   factory _$ProfileSettingsImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProfileSettingsImplFromJson(json);
 
   @override
-  final String name;
+  final String nomeExibicao;
   @override
-  final String username;
+  final String nomeUsuario;
   @override
   final String email;
   @override
-  final String? phone;
+  final String? telefone;
   @override
-  final String? address;
+  final String? endereco;
   @override
-  final String? profileImagePath;
+  final String? cep;
+  @override
+  final String? cidade;
+  @override
+  final String? estado;
+  @override
+  final String? bairro;
+  @override
+  final String? fotoUrl;
   @override
   @JsonKey()
   final bool hasChanges;
 
   @override
   String toString() {
-    return 'ProfileSettings(name: $name, username: $username, email: $email, phone: $phone, address: $address, profileImagePath: $profileImagePath, hasChanges: $hasChanges)';
+    return 'ProfileSettings(nomeExibicao: $nomeExibicao, nomeUsuario: $nomeUsuario, email: $email, telefone: $telefone, endereco: $endereco, cep: $cep, cidade: $cidade, estado: $estado, bairro: $bairro, fotoUrl: $fotoUrl, hasChanges: $hasChanges)';
   }
 
   @override
@@ -235,14 +299,20 @@ class _$ProfileSettingsImpl implements _ProfileSettings {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$ProfileSettingsImpl &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.username, username) ||
-                other.username == username) &&
+            (identical(other.nomeExibicao, nomeExibicao) ||
+                other.nomeExibicao == nomeExibicao) &&
+            (identical(other.nomeUsuario, nomeUsuario) ||
+                other.nomeUsuario == nomeUsuario) &&
             (identical(other.email, email) || other.email == email) &&
-            (identical(other.phone, phone) || other.phone == phone) &&
-            (identical(other.address, address) || other.address == address) &&
-            (identical(other.profileImagePath, profileImagePath) ||
-                other.profileImagePath == profileImagePath) &&
+            (identical(other.telefone, telefone) ||
+                other.telefone == telefone) &&
+            (identical(other.endereco, endereco) ||
+                other.endereco == endereco) &&
+            (identical(other.cep, cep) || other.cep == cep) &&
+            (identical(other.cidade, cidade) || other.cidade == cidade) &&
+            (identical(other.estado, estado) || other.estado == estado) &&
+            (identical(other.bairro, bairro) || other.bairro == bairro) &&
+            (identical(other.fotoUrl, fotoUrl) || other.fotoUrl == fotoUrl) &&
             (identical(other.hasChanges, hasChanges) ||
                 other.hasChanges == hasChanges));
   }
@@ -251,12 +321,16 @@ class _$ProfileSettingsImpl implements _ProfileSettings {
   @override
   int get hashCode => Object.hash(
     runtimeType,
-    name,
-    username,
+    nomeExibicao,
+    nomeUsuario,
     email,
-    phone,
-    address,
-    profileImagePath,
+    telefone,
+    endereco,
+    cep,
+    cidade,
+    estado,
+    bairro,
+    fotoUrl,
     hasChanges,
   );
 
@@ -277,32 +351,45 @@ class _$ProfileSettingsImpl implements _ProfileSettings {
   }
 }
 
-abstract class _ProfileSettings implements ProfileSettings {
+abstract class _ProfileSettings extends ProfileSettings {
   const factory _ProfileSettings({
-    required final String name,
-    required final String username,
+    required final String nomeExibicao,
+    required final String nomeUsuario,
     required final String email,
-    final String? phone,
-    final String? address,
-    final String? profileImagePath,
+    final String? telefone,
+    final String? endereco,
+    final String? cep,
+    final String? cidade,
+    final String? estado,
+    final String? bairro,
+    final String? fotoUrl,
     final bool hasChanges,
   }) = _$ProfileSettingsImpl;
+  const _ProfileSettings._() : super._();
 
   factory _ProfileSettings.fromJson(Map<String, dynamic> json) =
       _$ProfileSettingsImpl.fromJson;
 
   @override
-  String get name;
+  String get nomeExibicao;
   @override
-  String get username;
+  String get nomeUsuario;
   @override
   String get email;
   @override
-  String? get phone;
+  String? get telefone;
   @override
-  String? get address;
+  String? get endereco;
   @override
-  String? get profileImagePath;
+  String? get cep;
+  @override
+  String? get cidade;
+  @override
+  String? get estado;
+  @override
+  String? get bairro;
+  @override
+  String? get fotoUrl;
   @override
   bool get hasChanges;
 
