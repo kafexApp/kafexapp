@@ -119,7 +119,7 @@ class AddCafeViewModel extends ChangeNotifier {
       }
 
       _searchTimer?.cancel();
-      await Future.delayed(Duration(milliseconds: 500));
+      await Future.delayed(Duration(milliseconds: 300)); // Debounce reduzido
 
       _lastSearchQuery = query;
       _placeSuggestions = await _placesRepository.searchPlaces(query);
@@ -134,42 +134,71 @@ class AddCafeViewModel extends ChangeNotifier {
 
   Future<Result<void>> _selectPlace(PlaceDetails place) async {
     try {
-      print('📍 Selecionando lugar: ${place.name}');
-      
+      print('══════════════════════════════');
+      print('📍 SELEÇÃO DE LUGAR');
+      print('📝 Nome: ${place.name}');
+      print('🔑 PlaceId: ${place.placeId}');
+      print('══════════════════════════════');
+
       _showSuggestions = false;
       notifyListeners();
 
-      if (place.latitude != null && place.longitude != null) {
-        print('✅ Coordenadas já disponíveis');
-        _selectedPlace = place;
-        _placeSuggestions = [];
-        notifyListeners();
-        return Result.ok(null);
-      }
-
-      print('🌐 Buscando coordenadas no Google Places...');
+      // ✅ PASSO 1: BUSCAR COORDENADAS NO GOOGLE PLACES
+      print('🌐 [1/2] Buscando coordenadas no Google Places...');
+      
       final details = await _placesRepository.getPlaceDetails(place.placeId);
 
-      if (details != null && details.latitude != null && details.longitude != null) {
-        print('✅ Coordenadas obtidas: (${details.latitude}, ${details.longitude})');
-        
-        _selectedPlace = PlaceDetails(
-          placeId: place.placeId,
-          name: place.name,
-          address: place.address,
-          phone: place.phone,
-          website: place.website,
-          photoUrl: place.photoUrl,
-          latitude: details.latitude,
-          longitude: details.longitude,
+      if (details == null) {
+        print('❌ Não foi possível obter informações do lugar');
+        return Result.error(
+          Exception('Não foi possível obter as informações deste lugar. Tente outro.')
         );
+      }
+
+      if (details.latitude == null || details.longitude == null) {
+        print('❌ Coordenadas não disponíveis');
+        return Result.error(
+          Exception('Não foi possível obter as coordenadas deste lugar. Tente outro.')
+        );
+      }
+
+      print('✅ Coordenadas obtidas: (${details.latitude}, ${details.longitude})');
+
+      // ✅ PASSO 2: VERIFICAR DUPLICATA
+      print('🔍 [2/2] Verificando duplicatas no Supabase...');
+      
+      if (details.placeId.startsWith('cafe_')) {
+        print('⚠️ DUPLICATA DETECTADA!');
+        print('   Nome no sistema: ${details.name}');
+        print('══════════════════════════════');
         
+        // Limpar seleção
+        _selectedPlace = null;
         _placeSuggestions = [];
         notifyListeners();
-      } else {
-        print('⚠️ Não foi possível obter coordenadas');
-        return Result.error(Exception('Não foi possível obter as coordenadas do lugar'));
+        
+        return Result.error(
+          Exception('Ops! Esta cafeteria já está cadastrada no Kafex: "${details.name}"')
+        );
       }
+
+      print('✅ Local novo, pode cadastrar');
+      print('══════════════════════════════');
+
+      // ✅ PASSO 3: CONFIRMAR SELEÇÃO
+      _selectedPlace = PlaceDetails(
+        placeId: place.placeId,
+        name: place.name,
+        address: place.address,
+        phone: place.phone,
+        website: place.website,
+        photoUrl: place.photoUrl,
+        latitude: details.latitude,
+        longitude: details.longitude,
+      );
+      
+      _placeSuggestions = [];
+      notifyListeners();
 
       return Result.ok(null);
     } catch (e) {
@@ -237,6 +266,11 @@ class AddCafeViewModel extends ChangeNotifier {
         return Result.error(Exception('Nenhuma cafeteria selecionada'));
       }
 
+      print('══════════════════════════════');
+      print('📤 ENVIANDO CADASTRO');
+      print('📝 Cafeteria: ${_selectedPlace!.name}');
+      print('══════════════════════════════');
+
       final submission = CafeSubmission(
         placeId: _selectedPlace!.placeId,
         name: _selectedPlace!.name,
@@ -256,12 +290,16 @@ class AddCafeViewModel extends ChangeNotifier {
       
       if (result.isOk) {
         print('✅ Cafeteria enviada com sucesso!');
+        print('══════════════════════════════');
       } else {
         print('❌ Erro ao enviar cafeteria: ${result.asError.error}');
+        print('══════════════════════════════');
       }
       
       return result;
     } catch (e) {
+      print('❌ Erro ao enviar cafeteria: $e');
+      print('══════════════════════════════');
       return Result.error(Exception('Erro ao enviar cafeteria: $e'));
     }
   }

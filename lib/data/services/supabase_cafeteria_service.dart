@@ -124,31 +124,100 @@ class SupabaseCafeteriaService {
     }
   }
 
-  /// Verifica se uma cafeteria já existe pela referencia_mapa
+  /// Verifica se uma cafeteria já existe nas coordenadas
+  /// Considera duplicata se houver cafeteria num raio de 50 metros
   Future<Map<String, dynamic>?> checkCafeteriaExists({
     required double latitude,
     required double longitude,
   }) async {
     try {
-      final referenciaMapa = 'LatLng(lat: $latitude, lng: $longitude)';
-      
-      print('🔍 Verificando se cafeteria existe: $referenciaMapa');
+      print('');
+      print('╔════════════════════════════════════════════════════════════╗');
+      print('║         🔍 VERIFICAÇÃO DE DUPLICATA - INÍCIO               ║');
+      print('╚════════════════════════════════════════════════════════════╝');
+      print('📍 Buscando coordenadas: ($latitude, $longitude)');
+      print('⚡ Raio de verificação: 50 metros');
+      print('');
 
+      // Buscar todas as cafeterias (ativas e inativas para evitar duplicatas)
+      print('📦 Consultando banco de dados...');
       final response = await _client
           .from('cafeteria')
           .select()
-          .eq('referencia_mapa', referenciaMapa)
-          .maybeSingle();
+          .not('lat', 'is', null)
+          .not('lng', 'is', null);
 
-      if (response != null) {
-        print('⚠️ Cafeteria já existe! Nome: ${response['nome']}, ID: ${response['id']}');
-      } else {
-        print('✅ Cafeteria não encontrada, pode criar');
+      final allCafeterias = List<Map<String, dynamic>>.from(response);
+      print('✅ ${allCafeterias.length} cafeterias encontradas no banco');
+      print('');
+      print('🔄 Calculando distâncias...');
+      print('─────────────────────────────────────────────────────────────');
+
+      // Buscar cafeterias num raio de 50 metros (0.05 km)
+      const radiusKm = 0.05;
+      int checkedCount = 0;
+      
+      for (final cafe in allCafeterias) {
+        final cafeLat = cafe['lat'] as double?;
+        final cafeLng = cafe['lng'] as double?;
+
+        if (cafeLat == null || cafeLng == null) continue;
+
+        checkedCount++;
+
+        final distance = _calculateDistance(
+          latitude,
+          longitude,
+          cafeLat,
+          cafeLng,
+        );
+
+        final distanceMeters = distance * 1000;
+
+        // Mostrar todas cafeterias num raio de 5km para debug
+        if (distance < 5.0) {
+          final distStr = distanceMeters < 1000 
+              ? '${distanceMeters.toStringAsFixed(0)}m'
+              : '${distance.toStringAsFixed(2)}km';
+          print('   📍 ${cafe['nome']}: $distStr');
+        }
+
+        // VERIFICAR SE ESTÁ DENTRO DO RAIO DE 50M
+        if (distance <= radiusKm) {
+          print('');
+          print('╔════════════════════════════════════════════════════════════╗');
+          print('║            ⚠️  DUPLICATA DETECTADA! ⚠️                     ║');
+          print('╚════════════════════════════════════════════════════════════╝');
+          print('📏 Distância: ${distanceMeters.toStringAsFixed(2)}m');
+          print('📝 Nome: ${cafe['nome']}');
+          print('🆔 ID: ${cafe['id']}');
+          print('📊 Status: ${cafe['ativo'] ? '🟢 ATIVA' : '🟡 INATIVA'}');
+          print('🗺️  Coordenadas DB: (${cafeLat}, ${cafeLng})');
+          print('🗺️  Coordenadas Google: ($latitude, $longitude)');
+          print('📌 Ref: ${cafe['referencia_mapa']}');
+          print('════════════════════════════════════════════════════════════');
+          print('');
+          return cafe;
+        }
       }
 
-      return response;
+      print('');
+      print('─────────────────────────────────────────────────────────────');
+      print('✅ Verificação completa: $checkedCount cafeterias analisadas');
+      print('✅ Nenhuma duplicata encontrada no raio de 50m');
+      print('✅ Local LIBERADO para cadastro');
+      print('╚════════════════════════════════════════════════════════════╝');
+      print('');
+      
+      return null;
     } catch (e) {
-      print('❌ Erro ao verificar cafeteria: $e');
+      print('');
+      print('╔════════════════════════════════════════════════════════════╗');
+      print('║                   ❌ ERRO NA VERIFICAÇÃO                   ║');
+      print('╚════════════════════════════════════════════════════════════╝');
+      print('Erro: $e');
+      print('════════════════════════════════════════════════════════════');
+      print('');
       return null;
     }
   }
@@ -178,7 +247,7 @@ class SupabaseCafeteriaService {
       print('📍 Endereço: $endereco');
       print('══════════════');
 
-      // ✅ VALIDAR SE JÁ EXISTE
+      // ✅ VALIDAR SE JÁ EXISTE (raio de 50m)
       final existing = await checkCafeteriaExists(
         latitude: latitude,
         longitude: longitude,
@@ -186,7 +255,7 @@ class SupabaseCafeteriaService {
 
       if (existing != null) {
         print('❌ Cafeteria já cadastrada: ${existing['nome']}');
-        throw Exception('Ops! Esta cafeteria já está cadastrada no sistema.');
+        throw Exception('Ops! Já existe uma cafeteria cadastrada nesta localização: ${existing['nome']}');
       }
 
       final data = {

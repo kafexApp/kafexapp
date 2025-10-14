@@ -26,55 +26,45 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
     try {
       if (query.isEmpty) return [];
 
-      print('🔍 Buscando lugares: "$query"');
+      print('🔍 [Google Places] Buscando lugares: "$query"');
 
       final results = <PlaceDetails>[];
 
-      // 1️⃣ BUSCAR NO SUPABASE (cafeterias já cadastradas)
-      print('📦 Buscando cafeterias no Supabase...');
-      final cafeterias = await _cafeteriaService.searchCafeteriasByName(query);
-      print('✅ ${cafeterias.length} cafeterias encontradas no Supabase');
+      // ✅ BUSCAR APENAS NO GOOGLE PLACES (rápido e direto)
+      try {
+        final googleSuggestions = await _placesService.getPlaceSuggestions(query);
+        
+        if (googleSuggestions.isNotEmpty) {
+          print('✅ [Google Places] ${googleSuggestions.length} lugares encontrados');
 
-      // Converter cafeterias do Supabase para PlaceDetails
-      for (final cafe in cafeterias) {
-        results.add(PlaceDetails(
-          placeId: 'cafe_${cafe['id']}',
-          name: cafe['nome'] as String? ?? 'Sem nome',
-          address: _buildFullAddress(cafe),
-          phone: cafe['telefone'] as String?,
-          website: cafe['instagram'] as String?,
-          photoUrl: cafe['url_foto'] as String?,
-          latitude: cafe['lat'] as double?,
-          longitude: cafe['lng'] as double?,
-        ));
-      }
-
-      // 2️⃣ BUSCAR NO GOOGLE PLACES API (lugares novos)
-      print('🌐 Buscando no Google Places API...');
-      final googleSuggestions = await _placesService.getPlaceSuggestions(query);
-      print('✅ ${googleSuggestions.length} lugares encontrados no Google');
-
-      // Converter sugestões do Google para PlaceDetails (sem coordenadas ainda)
-      for (final suggestion in googleSuggestions) {
-        // Apenas adicionar se for um estabelecimento (café, restaurante, etc)
-        if (suggestion.isEstablishment) {
-          results.add(PlaceDetails(
-            placeId: suggestion.placeId,
-            name: suggestion.mainText,
-            address: suggestion.secondaryText,
-            phone: null,
-            website: null,
-            photoUrl: null,
-            latitude: null, // Será buscado depois no getPlaceDetails
-            longitude: null,
-          ));
+          // Converter sugestões do Google para PlaceDetails (sem coordenadas ainda)
+          for (final suggestion in googleSuggestions) {
+            // Apenas adicionar se for um estabelecimento (café, restaurante, etc)
+            if (suggestion.isEstablishment) {
+              results.add(PlaceDetails(
+                placeId: suggestion.placeId,
+                name: suggestion.mainText,
+                address: suggestion.secondaryText,
+                phone: null,
+                website: null,
+                photoUrl: null,
+                latitude: null, // Será buscado depois no getPlaceDetails
+                longitude: null,
+              ));
+            }
+          }
+        } else {
+          print('⚠️ [Google Places] Nenhum resultado ou timeout');
         }
+      } catch (e) {
+        print('❌ [Google Places] Erro ao buscar: $e');
+        return [];
       }
 
-      print('✅ Total: ${results.length} resultados (Supabase + Google)');
+      print('✅ Total: ${results.length} resultados');
       return results;
     } catch (e) {
-      print('❌ Erro ao buscar lugares: $e');
+      print('❌ Erro geral na busca: $e');
       return [];
     }
   }
@@ -82,48 +72,48 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
   @override
   Future<PlaceDetails?> getPlaceDetails(String placeId) async {
     try {
-      // Verificar se é uma cafeteria do Supabase (placeId começa com 'cafe_')
-      if (placeId.startsWith('cafe_')) {
-        final cafeIdStr = placeId.replaceFirst('cafe_', '');
-        final cafeId = int.tryParse(cafeIdStr);
-
-        if (cafeId == null) {
-          print('❌ ID inválido: $placeId');
-          return null;
-        }
-
-        print('🔍 Buscando detalhes da cafeteria ID: $cafeId');
-
-        final cafe = await _cafeteriaService.getCafeteriaById(cafeId);
-
-        if (cafe == null) {
-          print('⚠️ Cafeteria não encontrada');
-          return null;
-        }
-
-        return PlaceDetails(
-          placeId: placeId,
-          name: cafe['nome'] as String? ?? 'Sem nome',
-          address: _buildFullAddress(cafe),
-          phone: cafe['telefone'] as String?,
-          website: cafe['instagram'] as String?,
-          photoUrl: cafe['url_foto'] as String?,
-          latitude: cafe['lat'] as double?,
-          longitude: cafe['lng'] as double?,
-        );
-      }
-
-      // Se não for cafeteria, buscar coordenadas no Google Places
-      print('🌐 Buscando coordenadas no Google Places: $placeId');
+      print('🔍 [Google Places] Buscando detalhes: $placeId');
+      
+      // ✅ PASSO 1: BUSCAR COORDENADAS NO GOOGLE PLACES
       final coordinates = await _placesService.getPlaceCoordinates(placeId);
 
       if (coordinates == null) {
-        print('⚠️ Coordenadas não encontradas');
+        print('⚠️ [Google Places] Coordenadas não encontradas');
         return null;
       }
 
-      // Retornar PlaceDetails com coordenadas
-      // Nota: nome e endereço virão do searchPlaces anterior
+      print('✅ [Google Places] Coordenadas obtidas: (${coordinates.latitude}, ${coordinates.longitude})');
+
+      // ✅ PASSO 2: VERIFICAR SE JÁ EXISTE NO SUPABASE (duplicata)
+      print('🔍 [Supabase] Verificando duplicata...');
+      print('');
+      
+      final existing = await _cafeteriaService.checkCafeteriaExists(
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+      );
+
+      if (existing != null) {
+        print('⚠️ [Supabase] DUPLICATA CONFIRMADA: ${existing['nome']}');
+        print('');
+        
+        // Retornar com flag de duplicata usando prefixo 'cafe_'
+        return PlaceDetails(
+          placeId: 'cafe_${existing['id']}', // ⚠️ Marca como duplicata
+          name: existing['nome'] as String? ?? 'Sem nome',
+          address: _buildFullAddress(existing),
+          phone: existing['telefone'] as String?,
+          website: existing['instagram'] as String?,
+          photoUrl: existing['url_foto'] as String?,
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+        );
+      }
+
+      print('✅ [Supabase] Nenhuma duplicata - local novo, pode cadastrar');
+      print('');
+
+      // Retornar PlaceDetails com coordenadas (local novo)
       return PlaceDetails(
         placeId: placeId,
         name: '',  // Será preenchido pela seleção anterior
@@ -135,7 +125,7 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
         longitude: coordinates.longitude,
       );
     } catch (e) {
-      print('❌ Erro ao buscar detalhes: $e');
+      print('❌ [Place Details] Erro: $e');
       return null;
     }
   }

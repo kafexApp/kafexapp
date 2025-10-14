@@ -702,51 +702,105 @@ class _AddCafeScreenState extends State<AddCafeScreen>
         ),
         itemBuilder: (context, index) {
           final suggestion = viewModel.placeSuggestions[index];
-          return Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                viewModel.selectPlace.execute(suggestion);
-                _searchController.text = suggestion.name;
-                _searchFocusNode.unfocus();
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    Icon(
-                      AppIcons.storefront,
-                      size: 20,
-                      color: AppColors.papayaSensorial,
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            suggestion.name,
-                            style: GoogleFonts.albertSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.carbon,
+          final isAlreadyRegistered = suggestion.placeId.startsWith('cafe_');
+          
+          return ListenableBuilder(
+            listenable: viewModel.selectPlace,
+            builder: (context, _) {
+              // ✅ DETECTAR ERRO DE SELEÇÃO
+              if (viewModel.selectPlace.error) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (viewModel.selectPlace.result != null) {
+                    final errorMessage = viewModel.selectPlace.result!.asError.error.toString();
+                    
+                    // Extrair mensagem limpa
+                    String cleanMessage = errorMessage;
+                    if (errorMessage.contains('Exception:')) {
+                      final parts = errorMessage.split('Exception:');
+                      cleanMessage = parts.last.trim();
+                    }
+                    
+                    if (mounted) {
+                      CustomToast.showError(
+                        context,
+                        message: cleanMessage,
+                      );
+                    }
+                  }
+                });
+              }
+
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    viewModel.selectPlace.execute(suggestion);
+                    
+                    // Se não houve erro, atualizar campo de busca
+                    if (!isAlreadyRegistered) {
+                      _searchController.text = suggestion.name;
+                      _searchFocusNode.unfocus();
+                    }
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isAlreadyRegistered 
+                            ? Icons.info_outline 
+                            : AppIcons.storefront,
+                          size: 20,
+                          color: isAlreadyRegistered
+                            ? AppColors.grayScale2
+                            : AppColors.papayaSensorial,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                suggestion.name,
+                                style: GoogleFonts.albertSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.carbon,
+                                ),
+                              ),
+                              Text(
+                                suggestion.address,
+                                style: GoogleFonts.albertSans(
+                                  fontSize: 12,
+                                  color: AppColors.grayScale1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isAlreadyRegistered)
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.moonAsh,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Já cadastrada',
+                              style: GoogleFonts.albertSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.grayScale2,
+                              ),
                             ),
                           ),
-                          Text(
-                            suggestion.address,
-                            style: GoogleFonts.albertSans(
-                              fontSize: 12,
-                              color: AppColors.grayScale1,
-                            ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
