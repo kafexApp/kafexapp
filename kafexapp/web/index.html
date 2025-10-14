@@ -1,12 +1,11 @@
 <!DOCTYPE html>
-<html style="background-color: #333333;">
+<html>
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Um guia confiável para quem ama café especial">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -17,123 +16,13 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Kafex - Guia de Cafeterias Especiais</title>
+  <title>kafex</title>
   <link rel="manifest" href="manifest.json">
   
   <!-- Google Maps API -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB3s5D0-HxAGvqK9UlVfYeooYUsjbIZcJM"></script>
-  
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #333333;
-      overflow-x: hidden;
-    }
-
-    /* Força o wrapper do Flutter a ter largura máxima e centralizar */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #333333;
-      z-index: -1;
-    }
-
-    /* Desktop: largura fixa centralizada */
-    @media (min-width: 481px) {
-      body {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        min-height: 100vh;
-      }
-
-      flutter-view,
-      flt-glass-pane {
-        width: 460px !important;
-        max-width: 460px !important;
-        margin: 0 auto !important;
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.5) !important;
-      }
-    }
-
-    /* Mobile: largura total */
-    @media (max-width: 480px) {
-      flutter-view,
-      flt-glass-pane {
-        width: 100% !important;
-        max-width: 100% !important;
-      }
-    }
-
-    /* Loading */
-    #loading {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #333333;
-      z-index: 9999;
-    }
-
-    #loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #555;
-      border-top: 4px solid #FF6B35;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .loaded #loading {
-      display: none;
-    }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #333333;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: #555;
-      border-radius: 3px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: #777;
-    }
-  </style>
 </head>
 <body>
-  <div id="loading">
-    <div id="loading-spinner"></div>
-  </div>
-
   <script src="flutter_bootstrap.js" async></script>
-  
-  <script>
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        document.body.classList.add('loaded');
-      }, 1000);
-    });
-  </script>
 </body>
 </html>
