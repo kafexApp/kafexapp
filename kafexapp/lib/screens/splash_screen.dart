@@ -1,0 +1,362 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../utils/app_colors.dart';
+import '../services/update_service.dart';
+import 'welcome_screen.dart';
+
+class SplashScreen extends StatefulWidget {
+  @override
+  _SplashScreenState createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _logoController;
+  late AnimationController _backgroundController;
+  late AnimationController _textController;
+  late AnimationController _exitController;
+
+  late Animation<double> _logoOpacity;
+  
+  late Animation<double> _backgroundGradient;
+  late Animation<double> _textOpacity;
+  late Animation<Offset> _textSlide;
+  
+  late Animation<double> _exitFade;
+
+  bool _hasCheckedForUpdates = false;
+  String _appVersion = '...'; // Versão será carregada dinamicamente
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppVersion();
+    _initAnimations();
+    _startAnimationSequence();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      setState(() {
+        _appVersion = 'versão ${packageInfo.version}';
+      });
+    } catch (e) {
+      print('Erro ao carregar versão do app: $e');
+      setState(() {
+        _appVersion = 'versão 3.0.0'; // Fallback
+      });
+    }
+  }
+
+  void _initAnimations() {
+    // Controller para logo (800ms)
+    _logoController = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    // Controller para background (2 segundos)
+    _backgroundController = AnimationController(
+      duration: Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    // Controller para texto (1 segundo)
+    _textController = AnimationController(
+      duration: Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    // Controller para saída (500ms)
+    _exitController = AnimationController(
+      duration: Duration(milliseconds: 500),
+      vsync: this,
+    );
+
+    // Animações do logo
+    _logoOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _logoController,
+      curve: Curves.easeInOut,
+    ));
+
+    // Animação do background
+    _backgroundGradient = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _backgroundController,
+      curve: Curves.easeInOut,
+    ));
+
+    // Animações do texto
+    _textOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _textController,
+      curve: Curves.easeInOut,
+    ));
+
+    _textSlide = Tween<Offset>(
+      begin: Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _textController,
+      curve: Curves.easeOutQuart,
+    ));
+
+    // Animação de saída
+    _exitFade = Tween<double>(
+      begin: 1.0,
+      end: 0.0,
+    ).animate(CurvedAnimation(
+      parent: _exitController,
+      curve: Curves.easeInQuart,
+    ));
+  }
+
+  void _startAnimationSequence() async {
+    // Iniciar background imediatamente
+    _backgroundController.forward();
+    
+    // Aguardar 200ms e iniciar logo
+    await Future.delayed(Duration(milliseconds: 200));
+    _logoController.forward();
+    
+    // Aguardar 800ms e iniciar texto
+    await Future.delayed(Duration(milliseconds: 800));
+    _textController.forward();
+    
+    // Verificar atualizações em paralelo com as animações
+    _checkForUpdatesInBackground();
+    
+    // Aguardar mais 1.5 segundos e fazer transição
+    await Future.delayed(Duration(milliseconds: 1500));
+    
+    // Aguardar verificação de atualização completar
+    while (!_hasCheckedForUpdates) {
+      await Future.delayed(Duration(milliseconds: 100));
+    }
+    
+    // Iniciar animação de saída
+    _exitController.forward();
+    
+    // Navegar após animação de saída
+    await Future.delayed(Duration(milliseconds: 500));
+    
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => WelcomeScreen(),
+          transitionDuration: Duration(milliseconds: 400),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutQuart,
+                )),
+                child: child,
+              ),
+            );
+          },
+        ),
+      );
+    }
+  }
+
+  void _checkForUpdatesInBackground() async {
+    try {
+      // Verificar se há atualizações disponíveis
+      final hasUpdate = await KafexUpdateService.checkForUpdates();
+      
+      if (hasUpdate && mounted) {
+        // Obter versões
+        final currentVersion = await KafexUpdateService.getCurrentVersion();
+        final newVersion = await KafexUpdateService.getAvailableVersion();
+        
+        if (newVersion != null) {
+          // Mostrar dialog de atualização
+          KafexUpdateService.showCustomUpdateDialog(
+            context: context,
+            currentVersion: currentVersion,
+            newVersion: newVersion,
+            isRequired: false, // Defina como true se quiser tornar obrigatório
+            onUpdate: () {
+              // Fechar dialog e abrir loja
+              Navigator.of(context).pop();
+              // O upgrader vai abrir a loja automaticamente
+            },
+            onLater: () {
+              // Fechar dialog e continuar
+              Navigator.of(context).pop();
+            },
+          );
+        }
+      }
+    } catch (e) {
+      print('Erro ao verificar atualizações: $e');
+    } finally {
+      _hasCheckedForUpdates = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _logoController.dispose();
+    _backgroundController.dispose();
+    _textController.dispose();
+    _exitController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      body: KafexUpdateService.wrapWithUpdateChecker(
+        child: AnimatedBuilder(
+          animation: Listenable.merge([
+            _logoController,
+            _backgroundController,
+            _textController,
+            _exitController,
+          ]),
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _exitFade,
+              child: Container(
+                width: screenWidth,
+                height: screenHeight,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color.lerp(
+                        AppColors.velvetMerlot,
+                        AppColors.velvetBourbon,
+                        _backgroundGradient.value * 0.3,
+                      )!,
+                      AppColors.velvetMerlot,
+                      Color.lerp(
+                        AppColors.velvetMerlot,
+                        Colors.black,
+                        _backgroundGradient.value * 0.2,
+                      )!,
+                    ],
+                    stops: [0.0, 0.5, 1.0],
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    // Efeito de partículas de fundo
+                    ...List.generate(20, (index) {
+                      final delay = index * 0.1;
+                      final opacity = (_backgroundGradient.value - delay).clamp(0.0, 1.0);
+                      return Positioned(
+                        left: (index % 4) * screenWidth / 4 + (screenWidth / 8),
+                        top: (index ~/ 4) * screenHeight / 5 + (screenHeight / 10),
+                        child: Opacity(
+                          opacity: opacity * 0.1,
+                          child: Container(
+                            width: 2,
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: AppColors.roseClay,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.roseClay.withOpacity(0.3),
+                                  blurRadius: 4,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+
+                    // Área principal com logo
+                    SafeArea(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: FadeTransition(
+                                opacity: _logoOpacity,
+                                child: SvgPicture.asset(
+                                  'assets/images/kafex_logo_negative.svg',
+                                  width: 168,
+                                  height: 70,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Área do texto da versão e frase
+                          SlideTransition(
+                            position: _textSlide,
+                            child: FadeTransition(
+                              opacity: _textOpacity,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 60.0),
+                                child: Column(
+                                  children: [
+                                    // Texto da versão (dinâmico)
+                                    Text(
+                                      _appVersion,
+                                      style: TextStyle(
+                                        fontFamily: 'Albert Sans',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.normal,
+                                        color: AppColors.whiteWhite.withOpacity(0.7),
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                    
+                                    // Espaçamento entre versão e frase
+                                    SizedBox(height: 12),
+                                    
+                                    // Frase adicional
+                                    Text(
+                                      'Feito com muito ☕️ e IA para amantes de café.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontFamily: 'Albert Sans',
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w300,
+                                        color: AppColors.whiteWhite.withOpacity(0.6),
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
