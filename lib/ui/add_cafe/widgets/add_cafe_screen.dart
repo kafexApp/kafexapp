@@ -37,6 +37,8 @@ class _AddCafeScreenState extends State<AddCafeScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
+  bool _hasRedirected = false;
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +95,11 @@ class _AddCafeScreenState extends State<AddCafeScreen>
   void _onSearchChanged() {
     final viewModel = context.read<AddCafeViewModel>();
     final query = _searchController.text.trim();
+
+    // ✅ LIMPAR ERRO DO selectPlace quando começar a digitar
+    if (viewModel.selectPlace.error) {
+      viewModel.clearSelectionError();
+    }
 
     if (query.isNotEmpty) {
       viewModel.searchPlaces.execute(query);
@@ -211,14 +218,22 @@ class _AddCafeScreenState extends State<AddCafeScreen>
             listenable: viewModel.submitCafe,
             builder: (context, _) {
               // ============ LISTENER PARA SUBMIT - SUCESSO ============
-              if (viewModel.submitCafe.completed) {
+              if (viewModel.submitCafe.completed && !_hasRedirected) {
+                _hasRedirected = true;
+                
                 WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  
                   CustomToast.showSuccess(
                     context,
                     message: 'Sua cafeteria foi cadastrada com sucesso! Em breve ela estará disponível no nosso mapa.',
                   );
+                  
+                  print('✅ Toast de sucesso exibido, aguardando 3 segundos...');
+                  
                   Future.delayed(Duration(seconds: 3), () {
                     if (mounted) {
+                      print('🔄 Redirecionando para o mapa...');
                       Navigator.pop(context);
                     }
                   });
@@ -228,9 +243,10 @@ class _AddCafeScreenState extends State<AddCafeScreen>
               // ============ LISTENER PARA SUBMIT - ERRO ============
               if (viewModel.submitCafe.error) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  
                   final errorMessage = viewModel.submitCafe.result?.asError.error.toString() ?? 'Erro ao enviar cafeteria';
                   
-                  // Extrair mensagem limpa do erro
                   String cleanMessage = errorMessage;
                   if (errorMessage.contains('Exception:')) {
                     final parts = errorMessage.split('Exception:');
@@ -713,7 +729,6 @@ class _AddCafeScreenState extends State<AddCafeScreen>
                   if (viewModel.selectPlace.result != null) {
                     final errorMessage = viewModel.selectPlace.result!.asError.error.toString();
                     
-                    // Extrair mensagem limpa
                     String cleanMessage = errorMessage;
                     if (errorMessage.contains('Exception:')) {
                       final parts = errorMessage.split('Exception:');
@@ -737,7 +752,6 @@ class _AddCafeScreenState extends State<AddCafeScreen>
                   onTap: () {
                     viewModel.selectPlace.execute(suggestion);
                     
-                    // Se não houve erro, atualizar campo de busca
                     if (!isAlreadyRegistered) {
                       _searchController.text = suggestion.name;
                       _searchFocusNode.unfocus();

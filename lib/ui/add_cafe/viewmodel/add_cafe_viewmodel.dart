@@ -26,7 +26,7 @@ class AddCafeViewModel extends ChangeNotifier {
   List<PlaceDetails> get placeSuggestions => _placeSuggestions;
   
   String _lastSearchQuery = '';
-  Timer? _searchTimer;
+  Timer? _debounceTimer;
   bool _showSuggestions = false;
   bool get showSuggestions => _showSuggestions;
 
@@ -44,6 +44,13 @@ class AddCafeViewModel extends ChangeNotifier {
 
   bool _isVegFriendly = false;
   bool get isVegFriendly => _isVegFriendly;
+
+  bool _isSearching = false;
+  bool get isSearching => _isSearching;
+
+  // ✅ NOVO: Flag para controlar se erro de seleção já foi mostrado
+  bool _selectionErrorShown = false;
+  bool get selectionErrorShown => _selectionErrorShown;
 
   late final Command1<List<PlaceDetails>, String> searchPlaces =
       Command1(_searchPlaces);
@@ -105,30 +112,108 @@ class AddCafeViewModel extends ChangeNotifier {
 
   Future<Result<List<PlaceDetails>>> _searchPlaces(String query) async {
     try {
-      if (query.trim().isEmpty) {
+      final trimmedQuery = query.trim();
+
+      // ✅ VALIDAÇÃO 1: Query vazia
+      if (trimmedQuery.isEmpty) {
+        print('🔍 Query vazia, limpando sugestões');
+        _cancelDebounce();
         _placeSuggestions = [];
         _showSuggestions = false;
         _lastSearchQuery = '';
         _selectedPlace = null;
+        _isSearching = false;
         notifyListeners();
         return Result.ok([]);
       }
 
-      if (query == _lastSearchQuery) {
+      // ✅ VALIDAÇÃO 2: Mínimo de 3 caracteres
+      if (trimmedQuery.length < 3) {
+        print('⚠️ Query muito curta (${trimmedQuery.length} chars), aguardando mais caracteres...');
+        _cancelDebounce();
+        _placeSuggestions = [];
+        _showSuggestions = false;
+        _lastSearchQuery = '';
+        _isSearching = false;
+        notifyListeners();
+        return Result.ok([]);
+      }
+
+      // ✅ VALIDAÇÃO 3: Query já buscada (mesmo resultado)
+      if (trimmedQuery == _lastSearchQuery && _placeSuggestions.isNotEmpty) {
+        print('✅ Query já buscada recentemente, retornando cache');
         return Result.ok(_placeSuggestions);
       }
 
-      _searchTimer?.cancel();
-      await Future.delayed(Duration(milliseconds: 300)); // Debounce reduzido
-
-      _lastSearchQuery = query;
-      _placeSuggestions = await _placesRepository.searchPlaces(query);
-      _showSuggestions = _placeSuggestions.isNotEmpty;
+      // ✅ DEBOUNCE: Cancelar timer anterior e criar novo
+      _cancelDebounce();
+      print('⏱️ Iniciando debounce de 800ms para: "$trimmedQuery"');
+      
+      _isSearching = true;
       notifyListeners();
 
-      return Result.ok(_placeSuggestions);
+      // ✅ CRIAR COMPLETER para aguardar o debounce
+      final completer = Completer<Result<List<PlaceDetails>>>();
+
+      _debounceTimer = Timer(Duration(milliseconds: 800), () async {
+        try {
+          print('🔍 [Google Places] Executando busca: "$trimmedQuery"');
+          
+          _lastSearchQuery = trimmedQuery;
+          
+          // ✅ EXECUTAR BUSCA COM TIMEOUT DE 10 SEGUNDOS
+          final searchResult = await _placesRepository
+              .searchPlaces(trimmedQuery)
+              .timeout(
+                Duration(seconds: 10),
+                onTimeout: () {
+                  print('⏱️ Timeout na busca do Google Places');
+                  throw TimeoutException('A busca demorou muito. Tente novamente.');
+                },
+              );
+
+          _placeSuggestions = searchResult;
+          _showSuggestions = _placeSuggestions.isNotEmpty;
+          _isSearching = false;
+          
+          print('✅ Busca concluída: ${_placeSuggestions.length} resultados');
+          
+          notifyListeners();
+          completer.complete(Result.ok(_placeSuggestions));
+        } catch (e) {
+          print('❌ Erro na busca: $e');
+          _placeSuggestions = [];
+          _showSuggestions = false;
+          _isSearching = false;
+          notifyListeners();
+          
+          // ✅ TRATAR DIFERENTES TIPOS DE ERRO
+          String errorMessage = 'Erro ao buscar lugares';
+          if (e is TimeoutException) {
+            errorMessage = 'A busca demorou muito. Verifique sua conexão.';
+          } else if (e.toString().contains('Failed to fetch')) {
+            errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+          } else if (e.toString().contains('ClientException')) {
+            errorMessage = 'Erro de rede. Tente novamente em alguns segundos.';
+          }
+          
+          completer.complete(Result.error(Exception(errorMessage)));
+        }
+      });
+
+      return completer.future;
     } catch (e) {
-      return Result.error(Exception('Erro ao buscar lugares: $e'));
+      print('❌ Erro geral ao buscar lugares: $e');
+      _isSearching = false;
+      notifyListeners();
+      return Result.error(Exception('Erro ao buscar lugares'));
+    }
+  }
+
+  void _cancelDebounce() {
+    if (_debounceTimer != null && _debounceTimer!.isActive) {
+      print('🚫 Cancelando timer de debounce anterior');
+      _debounceTimer!.cancel();
     }
   }
 
@@ -141,6 +226,7 @@ class AddCafeViewModel extends ChangeNotifier {
       print('══════════════════════════════');
 
       _showSuggestions = false;
+      _selectionErrorShown = false; // ✅ Resetar flag ao tentar nova seleção
       notifyListeners();
 
       // ✅ PASSO 1: BUSCAR COORDENADAS NO GOOGLE PLACES
@@ -172,7 +258,6 @@ class AddCafeViewModel extends ChangeNotifier {
         print('   Nome no sistema: ${details.name}');
         print('══════════════════════════════');
         
-        // Limpar seleção
         _selectedPlace = null;
         _placeSuggestions = [];
         notifyListeners();
@@ -208,15 +293,32 @@ class AddCafeViewModel extends ChangeNotifier {
   }
 
   void clearSearch() {
+    _cancelDebounce();
     _placeSuggestions = [];
     _showSuggestions = false;
     _lastSearchQuery = '';
     _selectedPlace = null;
+    _isSearching = false;
+    _selectionErrorShown = false; // ✅ Limpar flag de erro
+    
     notifyListeners();
   }
 
   void hideSuggestions() {
     _showSuggestions = false;
+    notifyListeners();
+  }
+  
+  // ✅ NOVO MÉTODO: Limpar erro de seleção
+  void clearSelectionError() {
+    // Apenas marca que o erro foi visto e permite nova tentativa
+    _selectionErrorShown = false;
+    notifyListeners();
+  }
+  
+  // ✅ MÉTODO: Marcar erro como visualizado
+  void markSelectionErrorAsShown() {
+    _selectionErrorShown = true;
     notifyListeners();
   }
 
@@ -342,7 +444,7 @@ class AddCafeViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _searchTimer?.cancel();
+    _cancelDebounce();
     searchPlaces.dispose();
     selectPlace.dispose();
     submitCafe.dispose();
