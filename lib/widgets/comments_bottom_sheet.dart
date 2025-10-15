@@ -7,19 +7,21 @@ import '../utils/app_icons.dart';
 import '../models/comment_models.dart';
 import '../services/comments_service.dart';
 import '../backend/supabase/tables/comentario_com_usuario.dart';
+import 'common/alert_modal.dart';
+import 'common/success_modal.dart';
 
 class PostCommentsModal extends StatefulWidget {
   final String postId;
   final List<CommentData> initialComments;
   final Function(String)? onCommentAdded;
-  final String? highlightCommentId; // 🔔 NOVO: ID do comentário para destacar
+  final String? highlightCommentId;
 
   const PostCommentsModal({
     Key? key,
     required this.postId,
     this.initialComments = const [],
     this.onCommentAdded,
-    this.highlightCommentId, // 🔔 NOVO
+    this.highlightCommentId,
   }) : super(key: key);
 
   @override
@@ -49,7 +51,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     super.dispose();
   }
 
-  /// Carrega comentários do Supabase
   Future<void> _loadComments() async {
     setState(() {
       isLoading = true;
@@ -65,7 +66,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
         isLoading = false;
       });
 
-      // 🔔 NOVO: Se tem comentário para destacar, scroll até ele
       if (widget.highlightCommentId != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToHighlightedComment();
@@ -80,7 +80,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     }
   }
 
-  /// 🔔 NOVO: Scroll até o comentário destacado
   void _scrollToHighlightedComment() {
     if (widget.highlightCommentId == null) return;
 
@@ -89,10 +88,8 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     if (index != -1 && _scrollController.hasClients) {
       print('📍 Scrolling para comentário index: $index');
       
-      // Estimar a altura de cada item (aproximadamente 100px)
       final targetPosition = index * 100.0;
       
-      // 🔧 CORRIGIDO: Usar jumpTo ao invés de animateTo para scroll instantâneo
       _scrollController.jumpTo(
         targetPosition.clamp(
           0.0,
@@ -102,7 +99,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     }
   }
 
-  /// Adiciona novo comentário
   Future<void> _postComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty || isPosting) return;
@@ -205,12 +201,10 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
           comments.removeWhere((comment) => comment.id == commentId);
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Comentário excluído!'),
-            backgroundColor: AppColors.carbon,
-            duration: Duration(seconds: 2),
-          ),
+        await SuccessModal.show(
+          context: context,
+          title: 'Comentário excluído!',
+          message: 'Seu comentário foi removido com sucesso.',
         );
       } else {
         _showErrorSnackBar('Erro ao excluir comentário');
@@ -386,32 +380,19 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
     );
   }
 
-  void _showDeleteConfirmDialog(String commentId) {
-    showDialog(
+  Future<void> _showDeleteConfirmDialog(String commentId) async {
+    final confirmed = await AlertModal.show(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Excluir comentário'),
-          content: Text(
-            'Tem certeza que deseja excluir este comentário? Esta ação não pode ser desfeita.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _deleteComment(commentId);
-              },
-              style: TextButton.styleFrom(foregroundColor: AppColors.spiced),
-              child: Text('Excluir'),
-            ),
-          ],
-        );
-      },
+      title: 'Excluir comentário?',
+      message: 'Tem certeza que deseja excluir este comentário? Esta ação não pode ser desfeita.',
+      type: AlertType.warning,
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
     );
+
+    if (confirmed == true) {
+      _deleteComment(commentId);
+    }
   }
 
   void _showReportDialog(CommentData comment) {
@@ -574,7 +555,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
   }
 
   Widget _buildCommentItem(CommentData comment) {
-    // 🔔 NOVO: Destacar comentário se for o que veio da notificação
     final isHighlighted = widget.highlightCommentId == comment.id;
 
     return Container(
@@ -639,32 +619,6 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
                     color: AppColors.textPrimary,
                     height: 1.4,
                   ),
-                ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: null,
-                      child: Row(
-                        children: [
-                          Icon(
-                            AppIcons.heart,
-                            color: AppColors.grayScale2.withOpacity(0.5),
-                            size: 16,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Curtir',
-                            style: GoogleFonts.albertSans(
-                              fontSize: 12,
-                              color: AppColors.grayScale2.withOpacity(0.5),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -831,13 +785,12 @@ class _PostCommentsModalState extends State<PostCommentsModal> {
   }
 }
 
-// 🔔 ATUALIZADO: Função helper com highlightCommentId
 void showCommentsModal(
   BuildContext context, {
   required String postId,
   List<CommentData> comments = const [],
   Function(String)? onCommentAdded,
-  String? highlightCommentId, // 🔔 NOVO parâmetro
+  String? highlightCommentId,
 }) {
   showModalBottomSheet(
     context: context,
@@ -848,7 +801,7 @@ void showCommentsModal(
       postId: postId,
       initialComments: comments,
       onCommentAdded: onCommentAdded,
-      highlightCommentId: highlightCommentId, // 🔔 NOVO
+      highlightCommentId: highlightCommentId,
     ),
   );
 }

@@ -184,13 +184,28 @@ class CommentsService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return false;
 
+      print('🗑️ Iniciando exclusão do comentário: $commentId');
+
+      // 1️⃣ PRIMEIRO: Deletar notificações relacionadas ao comentário
+      print('🔔 Deletando notificações relacionadas...');
+      await SupaClient.client
+          .from('notificacao')
+          .delete()
+          .eq('comentario_id', commentId);
+
+      print('✅ Notificações deletadas com sucesso');
+
+      // 2️⃣ DEPOIS: Deletar o comentário
+      print('💬 Deletando o comentário...');
       await SupaClient.client
           .from('comentario')
           .delete()
           .eq('id', commentId)
           .eq('user_ref', user.uid);
 
-      // Atualizar contador no post
+      print('✅ Comentário deletado com sucesso');
+
+      // 3️⃣ Atualizar contador no post
       await _updatePostCommentsCount(postId);
 
       return true;
