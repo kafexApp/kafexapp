@@ -182,6 +182,7 @@ class _AddCafeScreenState extends State<AddCafeScreen>
   }
 
   void _handleSubmitCallbacks(AddCafeViewModel viewModel) {
+    // Callback de submit
     if (viewModel.submitCafe.completed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         CustomToast.showSuccess(
@@ -202,5 +203,8 @@ class _AddCafeScreenState extends State<AddCafeScreen>
         );
       });
     }
+
+    // NÃO mostrar toast para erro de seleção (duplicata)
+    // O erro é mostrado no box dentro do SearchStep
   }
 }

@@ -48,14 +48,13 @@ class AddCafeViewModel extends ChangeNotifier {
   bool _isSearching = false;
   bool get isSearching => _isSearching;
 
-  // ✅ NOVO: Flag para controlar se erro de seleção já foi mostrado
   bool _selectionErrorShown = false;
   bool get selectionErrorShown => _selectionErrorShown;
 
   late final Command1<List<PlaceDetails>, String> searchPlaces =
       Command1(_searchPlaces);
 
-  late final Command1<void, PlaceDetails> selectPlace = Command1(_selectPlace);
+  late Command1<void, PlaceDetails> selectPlace = Command1(_selectPlace);
 
   late final Command0<void> submitCafe = Command0(_submitCafe);
 
@@ -114,7 +113,6 @@ class AddCafeViewModel extends ChangeNotifier {
     try {
       final trimmedQuery = query.trim();
 
-      // ✅ VALIDAÇÃO 1: Query vazia
       if (trimmedQuery.isEmpty) {
         print('🔍 Query vazia, limpando sugestões');
         _cancelDebounce();
@@ -127,7 +125,6 @@ class AddCafeViewModel extends ChangeNotifier {
         return Result.ok([]);
       }
 
-      // ✅ VALIDAÇÃO 2: Mínimo de 3 caracteres
       if (trimmedQuery.length < 3) {
         print('⚠️ Query muito curta (${trimmedQuery.length} chars), aguardando mais caracteres...');
         _cancelDebounce();
@@ -139,20 +136,17 @@ class AddCafeViewModel extends ChangeNotifier {
         return Result.ok([]);
       }
 
-      // ✅ VALIDAÇÃO 3: Query já buscada (mesmo resultado)
       if (trimmedQuery == _lastSearchQuery && _placeSuggestions.isNotEmpty) {
         print('✅ Query já buscada recentemente, retornando cache');
         return Result.ok(_placeSuggestions);
       }
 
-      // ✅ DEBOUNCE: Cancelar timer anterior e criar novo
       _cancelDebounce();
       print('⏱️ Iniciando debounce de 800ms para: "$trimmedQuery"');
       
       _isSearching = true;
       notifyListeners();
 
-      // ✅ CRIAR COMPLETER para aguardar o debounce
       final completer = Completer<Result<List<PlaceDetails>>>();
 
       _debounceTimer = Timer(Duration(milliseconds: 800), () async {
@@ -161,7 +155,6 @@ class AddCafeViewModel extends ChangeNotifier {
           
           _lastSearchQuery = trimmedQuery;
           
-          // ✅ EXECUTAR BUSCA COM TIMEOUT DE 10 SEGUNDOS
           final searchResult = await _placesRepository
               .searchPlaces(trimmedQuery)
               .timeout(
@@ -187,7 +180,6 @@ class AddCafeViewModel extends ChangeNotifier {
           _isSearching = false;
           notifyListeners();
           
-          // ✅ TRATAR DIFERENTES TIPOS DE ERRO
           String errorMessage = 'Erro ao buscar lugares';
           if (e is TimeoutException) {
             errorMessage = 'A busca demorou muito. Verifique sua conexão.';
@@ -226,10 +218,9 @@ class AddCafeViewModel extends ChangeNotifier {
       print('══════════════════════════════');
 
       _showSuggestions = false;
-      _selectionErrorShown = false; // ✅ Resetar flag ao tentar nova seleção
+      _selectionErrorShown = false;
       notifyListeners();
 
-      // ✅ PASSO 1: BUSCAR COORDENADAS NO GOOGLE PLACES
       print('🌐 [1/2] Buscando coordenadas no Google Places...');
       
       final details = await _placesRepository.getPlaceDetails(place.placeId);
@@ -250,7 +241,6 @@ class AddCafeViewModel extends ChangeNotifier {
 
       print('✅ Coordenadas obtidas: (${details.latitude}, ${details.longitude})');
 
-      // ✅ PASSO 2: VERIFICAR DUPLICATA
       print('🔍 [2/2] Verificando duplicatas no Supabase...');
       
       if (details.placeId.startsWith('cafe_')) {
@@ -270,7 +260,6 @@ class AddCafeViewModel extends ChangeNotifier {
       print('✅ Local novo, pode cadastrar');
       print('══════════════════════════════');
 
-      // ✅ PASSO 3: CONFIRMAR SELEÇÃO
       _selectedPlace = PlaceDetails(
         placeId: place.placeId,
         name: place.name,
@@ -299,8 +288,17 @@ class AddCafeViewModel extends ChangeNotifier {
     _lastSearchQuery = '';
     _selectedPlace = null;
     _isSearching = false;
-    _selectionErrorShown = false; // ✅ Limpar flag de erro
+    _selectionErrorShown = false;
     
+    notifyListeners();
+  }
+
+  void resetSelectionError() {
+    // Recria o Command para resetar o estado de erro
+    selectPlace = Command1(_selectPlace);
+    _selectedPlace = null;
+    _placeSuggestions = [];
+    _showSuggestions = false;
     notifyListeners();
   }
 
@@ -309,14 +307,11 @@ class AddCafeViewModel extends ChangeNotifier {
     notifyListeners();
   }
   
-  // ✅ NOVO MÉTODO: Limpar erro de seleção
   void clearSelectionError() {
-    // Apenas marca que o erro foi visto e permite nova tentativa
     _selectionErrorShown = false;
     notifyListeners();
   }
   
-  // ✅ MÉTODO: Marcar erro como visualizado
   void markSelectionErrorAsShown() {
     _selectionErrorShown = true;
     notifyListeners();

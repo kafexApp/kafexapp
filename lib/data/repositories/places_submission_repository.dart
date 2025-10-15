@@ -72,30 +72,39 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
   @override
   Future<PlaceDetails?> getPlaceDetails(String placeId) async {
     try {
-      print('🔍 [Google Places] Buscando detalhes: $placeId');
+      print('══════════════════════════════');
+      print('🔍 VALIDANDO LOCAL SELECIONADO');
+      print('🔑 Place ID: $placeId');
+      print('══════════════════════════════');
       
-      // ✅ PASSO 1: BUSCAR COORDENADAS NO GOOGLE PLACES
+      // ✅ PASSO 1: BUSCAR COORDENADAS NO GOOGLE PLACES PRIMEIRO
+      print('🌐 [Google Places] Buscando coordenadas...');
+      
       final coordinates = await _placesService.getPlaceCoordinates(placeId);
 
       if (coordinates == null) {
         print('⚠️ [Google Places] Coordenadas não encontradas');
+        print('══════════════════════════════');
         return null;
       }
 
-      print('✅ [Google Places] Coordenadas obtidas: (${coordinates.latitude}, ${coordinates.longitude})');
-
-      // ✅ PASSO 2: VERIFICAR SE JÁ EXISTE NO SUPABASE (duplicata)
-      print('🔍 [Supabase] Verificando duplicata...');
-      print('');
+      print('✅ [Google Places] Coordenadas: (${coordinates.latitude}, ${coordinates.longitude})');
+      
+      // ✅ PASSO 2: VERIFICAR SE JÁ EXISTE NO SUPABASE POR COORDENADAS (raio de 50m)
+      print('🔍 [Supabase] Verificando duplicata por coordenadas...');
       
       final existing = await _cafeteriaService.checkCafeteriaExists(
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
+        radiusKm: 0.05, // 50 metros de raio
       );
 
       if (existing != null) {
-        print('⚠️ [Supabase] DUPLICATA CONFIRMADA: ${existing['nome']}');
-        print('');
+        print('⚠️ [Supabase] DUPLICATA DETECTADA!');
+        print('   Nome: ${existing['nome']}');
+        print('   Endereço: ${existing['endereco']}');
+        print('   ID: ${existing['id']}');
+        print('══════════════════════════════');
         
         // Retornar com flag de duplicata usando prefixo 'cafe_'
         return PlaceDetails(
@@ -110,8 +119,9 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
         );
       }
 
-      print('✅ [Supabase] Nenhuma duplicata - local novo, pode cadastrar');
-      print('');
+      print('✅ [Supabase] Local novo - não existe no banco');
+      print('✅ Local validado - pode cadastrar!');
+      print('══════════════════════════════');
 
       // Retornar PlaceDetails com coordenadas (local novo)
       return PlaceDetails(
@@ -126,6 +136,7 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
       );
     } catch (e) {
       print('❌ [Place Details] Erro: $e');
+      print('══════════════════════════════');
       return null;
     }
   }
