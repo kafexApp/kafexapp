@@ -1,3 +1,5 @@
+// lib/widgets/cafe_evaluation_modal.dart
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -5,31 +7,20 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
-
-void showCafeEvaluationModal(
-  BuildContext context, {
-  required String cafeName,
-  required String cafeId,
-}) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) => CafeEvaluationModal(
-      cafeName: cafeName,
-      cafeId: cafeId,
-    ),
-  );
-}
+import '../data/repositories/avaliacao_repository.dart';
 
 class CafeEvaluationModal extends StatefulWidget {
   final String cafeName;
-  final String cafeId;
+  final int cafeId;
+  final String cafeRef;
+  final VoidCallback? onEvaluationSubmitted;
 
   const CafeEvaluationModal({
     Key? key,
     required this.cafeName,
     required this.cafeId,
+    required this.cafeRef,
+    this.onEvaluationSubmitted,
   }) : super(key: key);
 
   @override
@@ -38,66 +29,57 @@ class CafeEvaluationModal extends StatefulWidget {
 
 class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
   final TextEditingController _reviewController = TextEditingController();
-  final FocusNode _reviewFocusNode = FocusNode();
-  final ImagePicker _imagePicker = ImagePicker();
-  
-  double _rating = 0;
-  File? _selectedImage;
-  bool _isSubmitting = false;
+  final ImagePicker _picker = ImagePicker();
+  final AvaliacaoRepository _avaliacaoRepository = AvaliacaoRepositoryImpl();
 
-  @override
-  void initState() {
-    super.initState();
-    _reviewFocusNode.addListener(() {
-      setState(() {});
-    });
-  }
+  int _rating = 0;
+  XFile? _selectedImage;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
     _reviewController.dispose();
-    _reviewFocusNode.dispose();
     super.dispose();
   }
 
   void _setRating(int rating) {
     setState(() {
-      _rating = rating.toDouble();
+      _rating = rating;
     });
   }
 
   Future<void> _pickImageFromGallery() async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
+      final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1080,
+        maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         setState(() {
-          _selectedImage = File(image.path);
+          _selectedImage = image;
         });
       }
     } catch (e) {
-      print('Erro ao selecionar imagem da galeria: $e');
+      print('Erro ao selecionar imagem: $e');
       _showErrorSnackBar('Erro ao selecionar imagem');
     }
   }
 
   Future<void> _pickImageFromCamera() async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
+      final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1080,
+        maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
       );
-      
+
       if (image != null) {
         setState(() {
-          _selectedImage = File(image.path);
+          _selectedImage = image;
         });
       }
     } catch (e) {
@@ -106,7 +88,7 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
     }
   }
 
-  void _showImagePickerOptions() {
+  void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -119,7 +101,6 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle visual
               Container(
                 margin: EdgeInsets.symmetric(vertical: 12),
                 width: 40,
@@ -129,35 +110,17 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
               Padding(
                 padding: EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    Text(
-                      'Selecionar foto',
-                      style: GoogleFonts.albertSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.carbon,
-                      ),
-                    ),
-                    
-                    SizedBox(height: 20),
-                    
-                    // Opção Câmera
-                    GestureDetector(
+                    InkWell(
                       onTap: () {
                         Navigator.pop(context);
                         _pickImageFromCamera();
                       },
                       child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.moonAsh,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         child: Row(
                           children: [
                             Icon(
@@ -178,22 +141,14 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                         ),
                       ),
                     ),
-                    
-                    SizedBox(height: 12),
-                    
-                    // Opção Galeria
-                    GestureDetector(
+                    Divider(),
+                    InkWell(
                       onTap: () {
                         Navigator.pop(context);
                         _pickImageFromGallery();
                       },
                       child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.moonAsh,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         child: Row(
                           children: [
                             Icon(
@@ -214,7 +169,6 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                         ),
                       ),
                     ),
-                    
                     SizedBox(height: 20),
                   ],
                 ),
@@ -236,7 +190,17 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
     );
   }
 
-  void _submitEvaluation() async {
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.pear,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _submitEvaluation() async {
     // Validações
     if (_rating == 0) {
       _showErrorSnackBar('Por favor, selecione uma avaliação');
@@ -253,32 +217,42 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
     });
 
     try {
-      // TODO: Implementar envio da avaliação
-      print('Enviando avaliação:');
-      print('Cafeteria: ${widget.cafeName}');
-      print('ID: ${widget.cafeId}');
-      print('Avaliação: $_rating');
-      print('Texto: ${_reviewController.text}');
-      print('Imagem: ${_selectedImage?.path ?? 'Nenhuma'}');
+      print('📝 Enviando avaliação:');
+      print('  Cafeteria: ${widget.cafeName}');
+      print('  ID: ${widget.cafeId}');
+      print('  Ref: ${widget.cafeRef}');
+      print('  Avaliação: $_rating grãos');
+      print('  Texto: ${_reviewController.text}');
+      print('  Imagem: ${_selectedImage?.path ?? 'Nenhuma'}');
 
-      // Simular delay de envio
-      await Future.delayed(Duration(seconds: 2));
+      // Chama o repositório para criar a avaliação
+      final result = await _avaliacaoRepository.createAvaliacao(
+        cafeteriaId: widget.cafeId,
+        cafeteriaRef: widget.cafeRef,
+        nota: _rating.toDouble(),
+        descricao: _reviewController.text.trim(),
+        foto: _selectedImage,
+      );
+
+      if (result.isError) {
+        throw result.asError.error;
+      }
+
+      final avaliacaoId = result.asOk.value;
+      print('✅ Avaliação criada com ID: $avaliacaoId');
 
       // Fechar modal
       if (mounted) {
         Navigator.pop(context);
-        
+
+        // Chamar callback se fornecido
+        widget.onEvaluationSubmitted?.call();
+
         // Mostrar sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Avaliação enviada com sucesso!'),
-            backgroundColor: AppColors.pear,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        _showSuccessSnackBar('Avaliação enviada com sucesso!');
       }
     } catch (e) {
-      print('Erro ao enviar avaliação: $e');
+      print('❌ Erro ao enviar avaliação: $e');
       _showErrorSnackBar('Erro ao enviar avaliação. Tente novamente.');
     } finally {
       if (mounted) {
@@ -291,8 +265,6 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isFocused = _reviewFocusNode.hasFocus;
-    
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: BoxDecoration(
@@ -312,7 +284,7 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            
+
             // Header
             Padding(
               padding: EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -339,7 +311,7 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                 ],
               ),
             ),
-            
+
             // Conteúdo scrollável
             Expanded(
               child: SingleChildScrollView(
@@ -356,7 +328,9 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                           height: 1.4,
                         ),
                         children: [
-                          TextSpan(text: 'Compartilhe como foi sua experiência na '),
+                          TextSpan(
+                            text: 'Compartilhe como foi sua experiência na ',
+                          ),
                           TextSpan(
                             text: widget.cafeName,
                             style: TextStyle(fontWeight: FontWeight.w600),
@@ -365,9 +339,9 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                         ],
                       ),
                     ),
-                    
+
                     SizedBox(height: 32),
-                    
+
                     // Sistema de avaliação com grãos
                     Text(
                       'Como você avalia a cafeteria?',
@@ -377,9 +351,9 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                         color: AppColors.carbon,
                       ),
                     ),
-                    
+
                     SizedBox(height: 16),
-                    
+
                     Row(
                       children: List.generate(5, (index) {
                         return GestureDetector(
@@ -392,8 +366,8 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                               height: 32,
                               colorFilter: ColorFilter.mode(
                                 index < _rating
-                                  ? AppColors.papayaSensorial
-                                  : AppColors.grayScale2,
+                                    ? AppColors.papayaSensorial
+                                    : AppColors.grayScale2,
                                 BlendMode.srcIn,
                               ),
                             ),
@@ -401,10 +375,10 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                         );
                       }),
                     ),
-                    
+
                     SizedBox(height: 32),
-                    
-                    // Campo de texto para avaliação com design atualizado
+
+                    // Campo de texto para avaliação
                     Text(
                       'Conte mais sobre sua experiência',
                       style: GoogleFonts.albertSans(
@@ -413,59 +387,37 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                         color: AppColors.carbon,
                       ),
                     ),
-                    
+
                     SizedBox(height: 12),
-                    
-                    AnimatedContainer(
-                      duration: Duration(milliseconds: 200),
+
+                    Container(
                       decoration: BoxDecoration(
-                        color: AppColors.whiteWhite,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isFocused 
-                              ? AppColors.papayaSensorial 
-                              : AppColors.grayScale2.withOpacity(0.3),
-                          width: isFocused ? 2 : 1,
-                        ),
-                        boxShadow: isFocused
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.papayaSensorial.withOpacity(0.1),
-                                  blurRadius: 12,
-                                  offset: Offset(0, 4),
-                                ),
-                              ]
-                            : [],
+                        color: AppColors.moonAsh,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: TextField(
                         controller: _reviewController,
-                        focusNode: _reviewFocusNode,
                         maxLines: 6,
                         style: GoogleFonts.albertSans(
-                          fontSize: 16,
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          color: AppColors.carbon,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Qual café você experimentou? Conte mais detalhes sobre a sua experiência.',
+                          hintText:
+                              'Qual café você experimentou? Conte mais detalhes sobre a sua experiência.',
                           hintStyle: GoogleFonts.albertSans(
-                            fontSize: 16,
-                            color: AppColors.textSecondary.withOpacity(0.6),
-                            fontWeight: FontWeight.w400,
+                            fontSize: 14,
+                            color: AppColors.grayScale2,
                           ),
-                          filled: true,
-                          fillColor: Colors.transparent,
                           border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                          contentPadding: EdgeInsets.all(16),
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(height: 32),
-                    
-                    // Seleção de foto
+
+                    // Adicionar foto
                     Text(
                       'Adicionar foto (opcional)',
                       style: GoogleFonts.albertSans(
@@ -474,118 +426,122 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                         color: AppColors.carbon,
                       ),
                     ),
-                    
+
                     SizedBox(height: 12),
-                    
+
                     GestureDetector(
-                      onTap: _showImagePickerOptions,
+                      onTap: _showImageSourceDialog,
                       child: Container(
-                        width: double.infinity,
-                        height: _selectedImage != null ? 200 : 120,
+                        height: 120,
                         decoration: BoxDecoration(
                           color: AppColors.moonAsh,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.grayScale2.withOpacity(0.3),
+                            color: AppColors.grayScale2,
                             width: 1,
                           ),
                         ),
                         child: _selectedImage != null
-                          ? Stack(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.file(
-                                    _selectedImage!,
-                                    width: double.infinity,
-                                    height: 200,
-                                    fit: BoxFit.cover,
+                            ? Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.file(
+                                      File(_selectedImage!.path),
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
-                                ),
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedImage = null;
-                                      });
-                                    },
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.carbon.withOpacity(0.8),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        AppIcons.close,
-                                        color: AppColors.whiteWhite,
-                                        size: 16,
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedImage = null;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.carbon
+                                              .withOpacity(0.7),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.close,
+                                          color: AppColors.whiteWhite,
+                                          size: 16,
+                                        ),
                                       ),
                                     ),
                                   ),
+                                ],
+                              )
+                            : Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      AppIcons.camera,
+                                      color: AppColors.grayScale2,
+                                      size: 32,
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Adicionar foto',
+                                      style: GoogleFonts.albertSans(
+                                        fontSize: 14,
+                                        color: AppColors.grayScale2,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            )
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  AppIcons.camera,
-                                  color: AppColors.grayScale1,
-                                  size: 32,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Adicionar foto',
-                                  style: GoogleFonts.albertSans(
-                                    fontSize: 14,
-                                    color: AppColors.grayScale1,
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
                       ),
                     ),
-                    
-                    SizedBox(height: 40),
+
+                    SizedBox(height: 32),
                   ],
                 ),
               ),
             ),
-            
-            // Botão de envio
+
+            // Botão de enviar
             Padding(
               padding: EdgeInsets.all(20),
-              child: GestureDetector(
-                onTap: _isSubmitting ? null : _submitEvaluation,
-                child: Container(
-                  width: double.infinity,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: _isSubmitting 
-                      ? AppColors.grayScale2 
-                      : AppColors.velvetMerlot,
-                    borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitEvaluation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.velvetMerlot,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
                   ),
-                  child: Center(
-                    child: _isSubmitting
-                      ? CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.whiteWhite,
+                  child: _isSubmitting
+                      ? SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.whiteWhite,
+                            ),
                           ),
                         )
                       : Text(
                           'Enviar avaliação',
                           style: GoogleFonts.albertSans(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.papayaSensorial,
+                            color: AppColors.whiteWhite,
                           ),
                         ),
-                  ),
                 ),
               ),
             ),
@@ -594,4 +550,27 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
       ),
     );
   }
+}
+
+/// Função helper para mostrar o modal de avaliação
+void showCafeEvaluationModal(
+  BuildContext context, {
+  required String cafeName,
+  required int cafeId,
+  required String cafeRef,
+  VoidCallback? onEvaluationSubmitted,
+}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    isDismissible: true,
+    enableDrag: true,
+    builder: (context) => CafeEvaluationModal(
+      cafeName: cafeName,
+      cafeId: cafeId,
+      cafeRef: cafeRef,
+      onEvaluationSubmitted: onEvaluationSubmitted,
+    ),
+  );
 }

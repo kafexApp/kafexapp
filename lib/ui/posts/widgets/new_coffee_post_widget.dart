@@ -139,10 +139,22 @@ class _NewCoffeePostWidgetState
   }
 
   void _openEvaluationModal(PostActionsViewModel viewModel) {
+    // ✅ CORREÇÃO: Converter String para int
+    final cafeIdInt = int.tryParse(viewModel.coffeeId ?? '0');
+    
+    if (cafeIdInt == null || cafeIdInt == 0) {
+      print('⚠️ ID da cafeteria inválido: ${viewModel.coffeeId}');
+      return;
+    }
+
     showCafeEvaluationModal(
       context,
-      cafeName: viewModel.coffeeName ?? '',
-      cafeId: viewModel.coffeeId ?? '',
+      cafeName: viewModel.coffeeName ?? 'Cafeteria',
+      cafeId: cafeIdInt,
+      cafeRef: viewModel.coffeeId ?? '0',
+      onEvaluationSubmitted: () {
+        print('✅ Avaliação submetida com sucesso');
+      },
     );
   }
 
