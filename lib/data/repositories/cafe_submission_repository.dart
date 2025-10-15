@@ -50,12 +50,11 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
       // 2. Obter user_id do Supabase
       final userId = await _getUserIdFromSupabase(usuarioUid);
 
-      // 3. Upload da foto (se fornecida) - suporte para web e mobile
+      // 3. Upload da foto (se fornecida)
       String? urlFoto = submission.photoUrl;
       if (customPhoto != null) {
         print('📸 Fazendo upload da foto...');
         
-        // Aceita tanto File quanto XFile
         if (customPhoto is XFile) {
           final uploadResult = await _uploadPhotoFromXFile(
             customPhoto,
@@ -85,14 +84,52 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
         print('✅ Foto enviada: $urlFoto');
       }
 
-      // 4. Parsear endereço
-      final addressParts = _parseAddress(submission.address);
+      // 4. Usar componentes segmentados do endereço (vindos do Google Places)
+      print('📍 Componentes do endereço:');
+      print('   Rua: ${submission.street}');
+      print('   Número: ${submission.streetNumber}');
+      print('   Bairro: ${submission.neighborhood}');
+      print('   Cidade: ${submission.city}');
+      print('   Estado: ${submission.state}');
+      print('   País: ${submission.country}');
+
+      // Montar endereço completo se não vier preenchido
+      String fullAddress = submission.address;
+      if (fullAddress.isEmpty && submission.street != null) {
+        final parts = <String>[];
+        
+        if (submission.street != null) {
+          String streetPart = submission.street!;
+          if (submission.streetNumber != null) {
+            streetPart += ', ${submission.streetNumber}';
+          }
+          parts.add(streetPart);
+        }
+        
+        if (submission.neighborhood != null) {
+          parts.add(submission.neighborhood!);
+        }
+        
+        if (submission.city != null) {
+          if (submission.state != null) {
+            parts.add('${submission.city} - ${submission.state}');
+          } else {
+            parts.add(submission.city!);
+          }
+        }
+        
+        if (submission.country != null) {
+          parts.add(submission.country!);
+        }
+        
+        fullAddress = parts.join(', ');
+      }
 
       // 5. Criar cafeteria no Supabase
       print('💾 Salvando cafeteria no Supabase...');
       final cafeteriaId = await _cafeteriaService.createCafeteria(
         nome: submission.name,
-        endereco: submission.address,
+        endereco: fullAddress,
         latitude: submission.latitude ?? 0.0,
         longitude: submission.longitude ?? 0.0,
         usuarioUid: usuarioUid,
@@ -100,9 +137,10 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
         telefone: submission.phone,
         instagram: submission.website,
         urlFoto: urlFoto,
-        bairro: addressParts['bairro'],
-        cidade: addressParts['cidade'],
-        estado: addressParts['estado'],
+        bairro: submission.neighborhood,
+        cidade: submission.city,
+        estado: submission.state,
+        pais: submission.country,
         petFriendly: submission.isPetFriendly,
         opcaoVegana: submission.isVegFriendly,
         officeFriendly: submission.isOfficeFriendly,
@@ -138,9 +176,7 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
 
       final storageRef = _firebaseStorage.ref().child(fileName);
 
-      // Upload diferente para web e mobile
       if (kIsWeb) {
-        // WEB: usar putData com bytes
         final bytes = await photo.readAsBytes();
         final uploadTask = await storageRef.putData(
           bytes,
@@ -150,7 +186,6 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
         print('✅ Upload concluído (web): $downloadUrl');
         return Result.ok(downloadUrl);
       } else {
-        // MOBILE: usar putFile
         final file = File(photo.path);
         final uploadTask = await storageRef.putFile(file);
         final downloadUrl = await uploadTask.ref.getDownloadURL();
@@ -206,46 +241,6 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
     } catch (e) {
       print('❌ Erro ao buscar user_id: $e');
       return 0;
-    }
-  }
-
-  /// Parse do endereço
-  Map<String, String?> _parseAddress(String address) {
-    try {
-      String? estado;
-      String? cidade;
-      String? bairro;
-
-      final estadoRegex = RegExp(r',\s*([A-Z]{2})(?:,|\s|$)');
-      final estadoMatch = estadoRegex.firstMatch(address);
-      if (estadoMatch != null) {
-        estado = estadoMatch.group(1);
-      }
-
-      final cidadeRegex = RegExp(r',\s*([^,]+?)\s*-\s*[A-Z]{2}');
-      final cidadeMatch = cidadeRegex.firstMatch(address);
-      if (cidadeMatch != null) {
-        cidade = cidadeMatch.group(1)?.trim();
-      }
-
-      final bairroRegex = RegExp(r'-\s*([^,]+?)(?:,|$)');
-      final bairroMatch = bairroRegex.firstMatch(address);
-      if (bairroMatch != null) {
-        bairro = bairroMatch.group(1)?.trim();
-      }
-
-      return {
-        'bairro': bairro,
-        'cidade': cidade,
-        'estado': estado,
-      };
-    } catch (e) {
-      print('⚠️ Erro ao fazer parse do endereço: $e');
-      return {
-        'bairro': null,
-        'cidade': null,
-        'estado': null,
-      };
     }
   }
 

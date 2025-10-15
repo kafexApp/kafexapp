@@ -10,6 +10,7 @@ class WizardNavigation extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onPrevious;
   final VoidCallback onSubmit;
+  final VoidCallback onNewSubmission;
 
   const WizardNavigation({
     Key? key,
@@ -17,6 +18,7 @@ class WizardNavigation extends StatelessWidget {
     required this.onNext,
     required this.onPrevious,
     required this.onSubmit,
+    required this.onNewSubmission,
   }) : super(key: key);
 
   @override
@@ -25,6 +27,7 @@ class WizardNavigation extends StatelessWidget {
     final canProceed = viewModel.canProceedFromCurrentStep();
     final isLastStep = wizardState.isLastStep;
     final isSubmitting = viewModel.submitCafe.running;
+    final submissionSuccess = viewModel.submissionSuccess;
 
     return Container(
       padding: EdgeInsets.fromLTRB(20, 20, 20, 110),
@@ -40,7 +43,8 @@ class WizardNavigation extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (wizardState.canGoBack) ...[
+          // Mostrar botão voltar apenas se não for sucesso
+          if (wizardState.canGoBack && !submissionSuccess) ...[
             Expanded(
               flex: 1,
               child: _BackButton(onPressed: onPrevious),
@@ -48,13 +52,15 @@ class WizardNavigation extends StatelessWidget {
             SizedBox(width: 12),
           ],
           Expanded(
-            flex: wizardState.canGoBack ? 2 : 1,
-            child: _NextButton(
-              isLastStep: isLastStep,
-              canProceed: canProceed,
-              isSubmitting: isSubmitting,
-              onPressed: isLastStep ? onSubmit : onNext,
-            ),
+            flex: wizardState.canGoBack && !submissionSuccess ? 2 : 1,
+            child: submissionSuccess
+                ? _NewSubmissionButton(onPressed: onNewSubmission)
+                : _NextButton(
+                    isLastStep: isLastStep,
+                    canProceed: canProceed,
+                    isSubmitting: isSubmitting,
+                    onPressed: isLastStep ? onSubmit : onNext,
+                  ),
           ),
         ],
       ),
@@ -137,7 +143,7 @@ class _NextButton extends StatelessWidget {
                 ),
               )
             : Text(
-                isLastStep ? 'Enviar cadastro' : 'Continuar',
+                isLastStep ? 'Enviar cafeteria' : 'Continuar',
                 style: GoogleFonts.albertSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -146,6 +152,43 @@ class _NextButton extends StatelessWidget {
                       : AppColors.whiteWhite,
                 ),
               ),
+      ),
+    );
+  }
+}
+
+class _NewSubmissionButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _NewSubmissionButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(
+          Icons.add_circle_outline,
+          size: 20,
+          color: AppColors.velvetMerlot,
+        ),
+        label: Text(
+          'Cadastrar nova',
+          style: GoogleFonts.albertSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.velvetMerlot,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.papayaSensorial,
+          foregroundColor: AppColors.velvetMerlot,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
       ),
     );
   }

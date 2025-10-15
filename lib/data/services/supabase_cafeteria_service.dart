@@ -144,7 +144,7 @@ class SupabaseCafeteriaService {
     String? nome,
     double? latitude,
     double? longitude,
-    double radiusKm = 0.05, // 50 metros
+    double radiusKm = 0.05,
   }) async {
     try {
       print('══════════════════════════════');
@@ -176,7 +176,6 @@ class SupabaseCafeteriaService {
         double? cafeLat;
         double? cafeLng;
         
-        // Tentar pegar de lat/lng primeiro
         cafeLat = (cafe['lat'] as num?)?.toDouble();
         cafeLng = (cafe['lng'] as num?)?.toDouble();
         
@@ -184,7 +183,6 @@ class SupabaseCafeteriaService {
           comLatLng++;
         }
         
-        // Se não tiver, extrair de referencia_mapa
         if ((cafeLat == null || cafeLng == null) && cafe['referencia_mapa'] != null) {
           final refMapa = cafe['referencia_mapa'] as String;
           final coords = _extractCoordinatesFromReferenciaMapa(refMapa);
@@ -193,7 +191,6 @@ class SupabaseCafeteriaService {
             cafeLng = coords['lng'];
             comReferenciaMapa++;
             
-            // Debug para Andante
             if (cafe['nome'].toString().toLowerCase().contains('andante')) {
               print('🔍 ENCONTREI ANDANTE!');
               print('   Nome: ${cafe['nome']}');
@@ -209,7 +206,6 @@ class SupabaseCafeteriaService {
 
         final distance = _calculateDistance(latitude, longitude, cafeLat, cafeLng);
         
-        // Mostrar próximas (1km)
         if (distance <= 1.0) {
           print('   📍 ${cafe['nome']} - ${(distance * 1000).toInt()}m');
         }
@@ -252,6 +248,7 @@ class SupabaseCafeteriaService {
     String? bairro,
     String? cidade,
     String? estado,
+    String? pais,
     bool petFriendly = false,
     bool opcaoVegana = false,
     bool officeFriendly = false,
@@ -271,6 +268,7 @@ class SupabaseCafeteriaService {
         'bairro': bairro,
         'cidade': cidade,
         'estado': estado,
+        'pais': pais,
         'pet_friendly': petFriendly,
         'opcao_vegana': opcaoVegana,
         'office_friendly': officeFriendly,

@@ -30,16 +30,13 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
 
       final results = <PlaceDetails>[];
 
-      // ✅ BUSCAR APENAS NO GOOGLE PLACES (rápido e direto)
       try {
         final googleSuggestions = await _placesService.getPlaceSuggestions(query);
         
         if (googleSuggestions.isNotEmpty) {
           print('✅ [Google Places] ${googleSuggestions.length} lugares encontrados');
 
-          // Converter sugestões do Google para PlaceDetails (sem coordenadas ainda)
           for (final suggestion in googleSuggestions) {
-            // Apenas adicionar se for um estabelecimento (café, restaurante, etc)
             if (suggestion.isEstablishment) {
               results.add(PlaceDetails(
                 placeId: suggestion.placeId,
@@ -48,7 +45,7 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
                 phone: null,
                 website: null,
                 photoUrl: null,
-                latitude: null, // Será buscado depois no getPlaceDetails
+                latitude: null,
                 longitude: null,
               ));
             }
@@ -77,7 +74,7 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
       print('🔑 Place ID: $placeId');
       print('══════════════════════════════');
       
-      // ✅ PASSO 1: BUSCAR COORDENADAS NO GOOGLE PLACES PRIMEIRO
+      // PASSO 1: Buscar coordenadas
       print('🌐 [Google Places] Buscando coordenadas...');
       
       final coordinates = await _placesService.getPlaceCoordinates(placeId);
@@ -90,13 +87,30 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
 
       print('✅ [Google Places] Coordenadas: (${coordinates.latitude}, ${coordinates.longitude})');
       
-      // ✅ PASSO 2: VERIFICAR SE JÁ EXISTE NO SUPABASE POR COORDENADAS (raio de 50m)
+      // PASSO 2: Buscar componentes do endereço
+      print('🏠 [Google Places] Buscando componentes do endereço...');
+      
+      final addressComponents = await _placesService.getAddressComponents(placeId);
+      
+      if (addressComponents != null) {
+        print('✅ [Google Places] Componentes obtidos:');
+        print('   Rua: ${addressComponents.street}');
+        print('   Número: ${addressComponents.streetNumber}');
+        print('   Bairro: ${addressComponents.neighborhood}');
+        print('   Cidade: ${addressComponents.city}');
+        print('   Estado: ${addressComponents.state}');
+        print('   País: ${addressComponents.country}');
+      } else {
+        print('⚠️ [Google Places] Não foi possível obter componentes do endereço');
+      }
+      
+      // PASSO 3: Verificar duplicata no Supabase
       print('🔍 [Supabase] Verificando duplicata por coordenadas...');
       
       final existing = await _cafeteriaService.checkCafeteriaExists(
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
-        radiusKm: 0.05, // 50 metros de raio
+        radiusKm: 0.05,
       );
 
       if (existing != null) {
@@ -106,9 +120,8 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
         print('   ID: ${existing['id']}');
         print('══════════════════════════════');
         
-        // Retornar com flag de duplicata usando prefixo 'cafe_'
         return PlaceDetails(
-          placeId: 'cafe_${existing['id']}', // ⚠️ Marca como duplicata
+          placeId: 'cafe_${existing['id']}',
           name: existing['nome'] as String? ?? 'Sem nome',
           address: _buildFullAddress(existing),
           phone: existing['telefone'] as String?,
@@ -123,16 +136,22 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
       print('✅ Local validado - pode cadastrar!');
       print('══════════════════════════════');
 
-      // Retornar PlaceDetails com coordenadas (local novo)
       return PlaceDetails(
         placeId: placeId,
-        name: '',  // Será preenchido pela seleção anterior
-        address: '',
+        name: '',
+        address: addressComponents?.formattedAddress ?? '',
         phone: null,
         website: null,
         photoUrl: null,
         latitude: coordinates.latitude,
         longitude: coordinates.longitude,
+        street: addressComponents?.street,
+        streetNumber: addressComponents?.streetNumber,
+        neighborhood: addressComponents?.neighborhood,
+        city: addressComponents?.city,
+        state: addressComponents?.state,
+        country: addressComponents?.country,
+        postalCode: addressComponents?.postalCode,
       );
     } catch (e) {
       print('❌ [Place Details] Erro: $e');
@@ -141,7 +160,6 @@ class PlacesSubmissionRepositoryImpl implements PlacesSubmissionRepository {
     }
   }
 
-  /// Constrói endereço completo a partir dos dados da cafeteria
   String _buildFullAddress(Map<String, dynamic> cafe) {
     final parts = <String>[];
 

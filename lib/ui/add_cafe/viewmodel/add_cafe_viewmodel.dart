@@ -51,12 +51,16 @@ class AddCafeViewModel extends ChangeNotifier {
   bool _selectionErrorShown = false;
   bool get selectionErrorShown => _selectionErrorShown;
 
+  // NOVO: Estado de sucesso do cadastro
+  bool _submissionSuccess = false;
+  bool get submissionSuccess => _submissionSuccess;
+
   late final Command1<List<PlaceDetails>, String> searchPlaces =
       Command1(_searchPlaces);
 
   late Command1<void, PlaceDetails> selectPlace = Command1(_selectPlace);
 
-  late final Command0<void> submitCafe = Command0(_submitCafe);
+  late Command0<void> submitCafe = Command0(_submitCafe);
 
   void nextStep() {
     if (_wizardState.canGoNext) {
@@ -94,6 +98,26 @@ class AddCafeViewModel extends ChangeNotifier {
       print('🔄 Wizard foi para step $stepIndex: ${_wizardState.currentStep}');
       notifyListeners();
     }
+  }
+
+  // NOVO: Resetar wizard para cadastrar nova cafeteria
+  void resetWizard() {
+    _wizardState = AddCafeWizardState();
+    _selectedPlace = null;
+    _customPhoto = null;
+    _isOfficeFriendly = false;
+    _isPetFriendly = false;
+    _isVegFriendly = false;
+    _placeSuggestions = [];
+    _showSuggestions = false;
+    _lastSearchQuery = '';
+    _submissionSuccess = false;
+    
+    // Resetar command de submit
+    submitCafe = Command0(_submitCafe);
+    
+    print('🔄 Wizard resetado para novo cadastro');
+    notifyListeners();
   }
 
   bool canProceedFromCurrentStep() {
@@ -269,6 +293,13 @@ class AddCafeViewModel extends ChangeNotifier {
         photoUrl: place.photoUrl,
         latitude: details.latitude,
         longitude: details.longitude,
+        street: details.street,
+        streetNumber: details.streetNumber,
+        neighborhood: details.neighborhood,
+        city: details.city,
+        state: details.state,
+        country: details.country,
+        postalCode: details.postalCode,
       );
       
       _placeSuggestions = [];
@@ -294,7 +325,6 @@ class AddCafeViewModel extends ChangeNotifier {
   }
 
   void resetSelectionError() {
-    // Recria o Command para resetar o estado de erro
     selectPlace = Command1(_selectPlace);
     _selectedPlace = null;
     _placeSuggestions = [];
@@ -381,6 +411,13 @@ class AddCafeViewModel extends ChangeNotifier {
         isPetFriendly: _isPetFriendly,
         isVegFriendly: _isVegFriendly,
         customPhotoPath: _customPhoto?.path,
+        street: _selectedPlace!.street,
+        streetNumber: _selectedPlace!.streetNumber,
+        neighborhood: _selectedPlace!.neighborhood,
+        city: _selectedPlace!.city,
+        state: _selectedPlace!.state,
+        country: _selectedPlace!.country,
+        postalCode: _selectedPlace!.postalCode,
       );
 
       final result = await _submissionRepository.submitCafe(submission, _customPhoto);
@@ -388,6 +425,8 @@ class AddCafeViewModel extends ChangeNotifier {
       if (result.isOk) {
         print('✅ Cafeteria enviada com sucesso!');
         print('══════════════════════════════');
+        _submissionSuccess = true;
+        notifyListeners();
       } else {
         print('❌ Erro ao enviar cafeteria: ${result.asError.error}');
         print('══════════════════════════════');

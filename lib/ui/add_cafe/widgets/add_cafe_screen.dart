@@ -27,6 +27,8 @@ class _AddCafeScreenState extends State<AddCafeScreen>
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
+  bool _toastShown = false;
+
   @override
   void initState() {
     super.initState();
@@ -106,8 +108,29 @@ class _AddCafeScreenState extends State<AddCafeScreen>
     viewModel.submitCafe.execute();
   }
 
+  void _handleNewSubmission() {
+    final viewModel = context.read<AddCafeViewModel>();
+    
+    // Resetar wizard
+    viewModel.resetWizard();
+    _toastShown = false;
+    
+    // Voltar para primeira página
+    _pageController.jumpToPage(0);
+    
+    print('🔄 Iniciando novo cadastro');
+  }
+
   void _handleBackPress() {
     final viewModel = context.read<AddCafeViewModel>();
+    
+    // Se o cadastro foi enviado com sucesso, voltar para tela anterior
+    if (viewModel.submissionSuccess) {
+      Navigator.pop(context);
+      return;
+    }
+    
+    // Senão, comportamento normal de navegação do wizard
     if (viewModel.wizardState.canGoBack) {
       _previousStep();
     } else {
@@ -152,6 +175,7 @@ class _AddCafeScreenState extends State<AddCafeScreen>
                     onNext: _nextStep,
                     onPrevious: _previousStep,
                     onSubmit: _submitCafe,
+                    onNewSubmission: _handleNewSubmission,
                   ),
                 ],
               ),
@@ -182,20 +206,19 @@ class _AddCafeScreenState extends State<AddCafeScreen>
   }
 
   void _handleSubmitCallbacks(AddCafeViewModel viewModel) {
-    // Callback de submit
-    if (viewModel.submitCafe.completed) {
+    // Toast de sucesso (mostrar apenas uma vez)
+    if (viewModel.submitCafe.completed && !_toastShown) {
+      _toastShown = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         CustomToast.showSuccess(
           context,
-          message: 'Cafeteria enviada com sucesso!',
+          message: 'Cafeteria enviada com sucesso! Aguarde aprovação.',
         );
-        Future.delayed(Duration(seconds: 2), () {
-          Navigator.pop(context);
-        });
       });
     }
 
-    if (viewModel.submitCafe.error) {
+    // Toast de erro
+    if (viewModel.submitCafe.error && !_toastShown) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         CustomToast.showError(
           context,
@@ -203,8 +226,5 @@ class _AddCafeScreenState extends State<AddCafeScreen>
         );
       });
     }
-
-    // NÃO mostrar toast para erro de seleção (duplicata)
-    // O erro é mostrado no box dentro do SearchStep
   }
 }
