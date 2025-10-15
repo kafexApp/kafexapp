@@ -30,9 +30,8 @@ class CafeExplorerViewModel extends ChangeNotifier {
     searchPlaces = Command1(_searchPlaces);
     selectPlace = Command1(_selectPlace);
 
-    // Verificar se deve mostrar diálogo de localização
-    debugPrint('🟢 Chamando _checkLocationDialogStatus');
-    _checkLocationDialogStatus();
+    // Carregar localização salva
+    _loadSavedLocation();
 
     // Carregar cafés automaticamente
     debugPrint('🟢 Carregando cafés');
@@ -56,9 +55,7 @@ class CafeExplorerViewModel extends ChangeNotifier {
   String _lastSearchQuery = '';
   Timer? _searchTimer;
 
-  // === Controle do diálogo de localização ===
-  bool _shouldShowLocationDialog = false;
-  static const String _locationDialogKey = 'location_dialog_shown';
+  // === Chaves do SharedPreferences ===
   static const String _savedLatitudeKey = 'saved_latitude';
   static const String _savedLongitudeKey = 'saved_longitude';
 
@@ -79,74 +76,43 @@ class CafeExplorerViewModel extends ChangeNotifier {
   bool get isShowingSearchResults => _isShowingSearchResults;
 
   bool get hasSuggestions => _suggestions.isNotEmpty;
-  bool get shouldShowLocationDialog => _shouldShowLocationDialog;
 
   // === Commands ===
   late Command0<void> loadCafes;
   late Command1<void, String> searchPlaces;
   late Command1<void, PlaceSuggestion> selectPlace;
 
-  // === Verificar se deve mostrar o diálogo ===
-  Future<void> _checkLocationDialogStatus() async {
+  // === Carregar localização salva ===
+  Future<void> _loadSavedLocation() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final hasShown = prefs.getBool(_locationDialogKey) ?? false;
+      final savedLat = prefs.getDouble(_savedLatitudeKey);
+      final savedLng = prefs.getDouble(_savedLongitudeKey);
 
-      debugPrint('🗺️ Verificando status do diálogo de localização: $hasShown');
-
-      if (!hasShown) {
-        // Nunca foi mostrado - mostrar diálogo
-        _shouldShowLocationDialog = true;
+      if (savedLat != null && savedLng != null) {
+        _currentPosition = LatLng(savedLat, savedLng);
+        debugPrint('📍 Localização carregada: $savedLat, $savedLng');
         notifyListeners();
-        debugPrint('✅ Diálogo de localização será exibido');
       } else {
-        // Já foi mostrado - carregar localização salva
-        debugPrint('⏭️ Diálogo já foi exibido, carregando localização salva');
-        final savedLat = prefs.getDouble(_savedLatitudeKey);
-        final savedLng = prefs.getDouble(_savedLongitudeKey);
-
-        if (savedLat != null && savedLng != null) {
-          _currentPosition = LatLng(savedLat, savedLng);
-          debugPrint('📍 Localização carregada: $savedLat, $savedLng');
-          notifyListeners();
-        } else {
-          debugPrint('⚠️ Nenhuma localização salva encontrada');
-        }
+        debugPrint('⚠️ Nenhuma localização salva encontrada');
       }
     } catch (e) {
-      debugPrint('❌ Erro ao verificar status do diálogo: $e');
+      debugPrint('❌ Erro ao carregar localização: $e');
     }
   }
 
-  // === Pular solicitação de localização ===
-  Future<void> skipLocationRequest() async {
+  // === Salvar localização do usuário ===
+  Future<void> saveUserLocation(LatLng location) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_locationDialogKey, true);
-
-      _shouldShowLocationDialog = false;
-      notifyListeners();
-
-      debugPrint('⏭️ Usuário optou por pular a localização');
-    } catch (e) {
-      debugPrint('❌ Erro ao salvar preferência: $e');
-    }
-  }
-
-  // === Aceitar solicitação de localização ===
-  Future<void> acceptLocationRequest(LatLng location) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_locationDialogKey, true);
       await prefs.setDouble(_savedLatitudeKey, location.latitude);
       await prefs.setDouble(_savedLongitudeKey, location.longitude);
 
-      _shouldShowLocationDialog = false;
       _currentPosition = location;
       notifyListeners();
 
       debugPrint(
-        '✅ Localização aceita e salva: ${location.latitude}, ${location.longitude}',
+        '✅ Localização salva: ${location.latitude}, ${location.longitude}',
       );
     } catch (e) {
       debugPrint('❌ Erro ao salvar localização: $e');

@@ -13,10 +13,10 @@ import '../../../widgets/custom_bottom_navbar.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/custom_boxcafe_minicard.dart';
 import '../../../widgets/side_menu_overlay.dart';
-import '../../../widgets/location_permission_dialog.dart';
 import '../../../models/cafe_model.dart';
 import '../../../data/services/clustering_service.dart';
 import '../../../data/models/domain/cafe.dart';
+import '../../../services/location_service.dart';
 import '../viewmodel/cafe_explorer_viewmodel.dart';
 
 class CafeExplorerScreen extends StatefulWidget {
@@ -40,7 +40,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   Timer? _clusterIconTimer;
   Map<String, BitmapDescriptor> _clusterIconCache = {};
   bool _isMapMoving = false;
-  bool _hasCheckedLocationDialog = false;
+  bool _hasRequestedLocation = false;
 
   @override
   void initState() {
@@ -49,93 +49,10 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onFocusChanged);
 
-    // Aguardar o próximo frame para ter certeza que o Provider está disponível
+    // Solicitar localização nativa ao entrar na tela
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final viewModel = context.read<CafeExplorerViewModel>();
-
-      // Escutar mudanças no ViewModel
-      void locationListener() {
-        if (!_hasCheckedLocationDialog && viewModel.shouldShowLocationDialog) {
-          debugPrint('🎧 Listener detectou shouldShowLocationDialog = true');
-          _hasCheckedLocationDialog = true;
-
-          // Remover listener após primeira detecção
-          viewModel.removeListener(locationListener);
-
-          // Mostrar diálogo após pequeno delay
-          Future.delayed(Duration(milliseconds: 300), () {
-            if (mounted) {
-              _showLocationPermissionDialog();
-            }
-          });
-        }
-      }
-
-      viewModel.addListener(locationListener);
-
-      // Verificar imediatamente também (caso já esteja true)
-      if (viewModel.shouldShowLocationDialog && !_hasCheckedLocationDialog) {
-        debugPrint('✅ shouldShowLocationDialog já é true');
-        locationListener();
-      }
+      _requestNativeLocation();
     });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    debugPrint('🔵 didChangeDependencies chamado');
-  }
-
-  void _showLocationPermissionDialog() {
-    // IMPORTANTE: Capturar o ViewModel ANTES do showDialog
-    final viewModel = context.read<CafeExplorerViewModel>();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => LocationPermissionDialog(
-        onLocationResult: (location) async {
-          // Usar o viewModel capturado, NÃO o dialogContext
-
-          if (location != null) {
-            debugPrint(
-              '✅ Localização recebida no explorador: ${location.displayLocation}',
-            );
-            debugPrint(
-              '📍 Lat: ${location.latitude}, Lng: ${location.longitude}',
-            );
-
-            // Atualizar o ViewModel com a nova localização
-            debugPrint('💾 Chamando acceptLocationRequest...');
-            await viewModel.acceptLocationRequest(
-              LatLng(location.latitude, location.longitude),
-            );
-            debugPrint('✅ acceptLocationRequest concluído');
-
-            // Animar o mapa para a nova posição
-            if (_mapController != null) {
-              debugPrint('🗺️ Animando câmera para nova localização');
-              await _mapController!.animateCamera(
-                CameraUpdate.newLatLngZoom(
-                  LatLng(location.latitude, location.longitude),
-                  15.0,
-                ),
-              );
-              debugPrint('✅ Câmera animada com sucesso');
-            } else {
-              debugPrint(
-                '⚠️ MapController ainda é null, mas a posição foi salva no ViewModel',
-              );
-            }
-          } else {
-            debugPrint('⏭️ Usuário optou por não compartilhar localização');
-            await viewModel.skipLocationRequest();
-          }
-        },
-      ),
-    );
   }
 
   @override
@@ -147,6 +64,36 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     _pageController.dispose();
     _horizontalScrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _requestNativeLocation() async {
+    if (_hasRequestedLocation) return;
+    _hasRequestedLocation = true;
+
+    try {
+      debugPrint('📍 Solicitando localização nativa...');
+      
+      final location = await LocationService.instance.getCurrentLocation();
+      
+      if (location != null && mounted) {
+        final viewModel = context.read<CafeExplorerViewModel>();
+        final position = LatLng(location.latitude, location.longitude);
+        
+        debugPrint('✅ Localização obtida: ${location.latitude}, ${location.longitude}');
+        
+        // Salvar no ViewModel
+        await viewModel.saveUserLocation(position);
+        
+        // Mover câmera para a localização
+        if (_mapController != null) {
+          await _mapController!.animateCamera(
+            CameraUpdate.newLatLngZoom(position, 15.0),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Erro ao obter localização: $e');
+    }
   }
 
   Future<void> _loadCustomPin() async {
@@ -281,7 +228,7 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
   List<PinGroup> _getOptimizedPinGroups(List<Cafe> cafes, double currentZoom) {
     final double clusterDistanceKm = _getClusterDistance(currentZoom);
-    const double minZoomForClustering = 17.0; // Aumentado para 17
+    const double minZoomForClustering = 17.0;
 
     if (currentZoom >= minZoomForClustering) {
       return cafes.map((cafe) => PinGroup.single(cafe)).toList();
@@ -359,7 +306,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     return degrees * (math.pi / 180);
   }
 
-  // NOVO: Atualizar labels apenas após 1 segundo parado
   void _scheduleLabelUpdate() {
     _labelTimer?.cancel();
     _labelTimer = Timer(Duration(milliseconds: 800), () {
@@ -377,7 +323,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
     print('🏷️ _updatePinLabels chamado - Zoom: ${viewModel.currentZoom}');
 
-    // Apenas em zoom alto
     if (viewModel.currentZoom < 14.0) {
       print(
         '🏷️ Zoom muito baixo (${viewModel.currentZoom}), não mostrar labels',
@@ -397,7 +342,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     int labelCount = 0;
     const int maxLabels = 20;
 
-    // Mostrar labels para TODOS os cafés visíveis, não apenas os não-clusterizados
     for (var cafe in viewModel.visibleCafes) {
       if (labelCount >= maxLabels) break;
 
@@ -561,11 +505,9 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     _mapController = controller;
     _updateMarkers();
 
-    // Verificar se há uma posição customizada do ViewModel
     final viewModel = context.read<CafeExplorerViewModel>();
     debugPrint('📍 Posição atual do ViewModel: ${viewModel.currentPosition}');
 
-    // Se a posição for diferente da default, mover para ela
     if (viewModel.currentPosition.latitude != -23.5505 ||
         viewModel.currentPosition.longitude != -46.6333) {
       debugPrint('🗺️ Movendo mapa para posição customizada');
@@ -578,7 +520,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   }
 
   void _onCameraMove(CameraPosition position) {
-    // Esconder labels durante movimento
     _isMapMoving = true;
     if (_pinLabels.isNotEmpty) {
       setState(() {
@@ -596,7 +537,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     _updateMarkers();
     _updateCafesInViewport();
 
-    // Forçar atualização imediata de labels para debug
     Future.delayed(Duration(milliseconds: 500), () {
       if (mounted && !_isMapMoving) {
         _updatePinLabels();
@@ -980,10 +920,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                     _searchController.text = suggestion.description;
                     _searchFocusNode.unfocus();
 
-                    // Executar seleção e aguardar
                     await viewModel.selectPlace.execute(suggestion);
 
-                    // Se modo mapa, mover câmera
                     if (viewModel.isMapView && _mapController != null) {
                       _mapController!.animateCamera(
                         CameraUpdate.newLatLngZoom(

@@ -21,6 +21,7 @@ class LocationService {
       // Verifica permissões
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
+        print('🔐 Solicitando permissão de localização...');
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           print('❌ Permissão negada pelo usuário');
@@ -33,39 +34,48 @@ class LocationService {
         return null;
       }
 
-      // Obtém posição atual
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
-        timeLimit: Duration(seconds: 10),
-      );
+      print('✅ Permissão concedida, obtendo posição...');
+
+      // Primeiro tenta pegar a última localização conhecida (mais rápido)
+      Position? position;
+      try {
+        position = await Geolocator.getLastKnownPosition();
+        if (position != null) {
+          print('📍 Usando última localização conhecida: ${position.latitude}, ${position.longitude}');
+        }
+      } catch (e) {
+        print('⚠️ Última localização não disponível');
+      }
+
+      // Se não tiver última localização, obtém posição atual
+      if (position == null) {
+        print('🔄 Obtendo posição atual...');
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 30),
+        ).timeout(
+          Duration(seconds: 30),
+          onTimeout: () {
+            print('⏱️ Timeout na obtenção de localização');
+            throw TimeoutException('Timeout ao obter localização');
+          },
+        );
+      }
 
       print('📍 Coordenadas obtidas: ${position.latitude}, ${position.longitude}');
 
-      // Tenta converter coordenadas em endereço com fallback inteligente
-      String city = 'São Paulo'; // Fallback baseado nas coordenadas
+      // Tenta converter coordenadas em endereço (sem bloquear)
+      String city = 'São Paulo';
       String state = 'SP';
       String country = 'Brasil';
       String address = 'Localização atual';
 
-      try {
-        List<Placemark> placemarks = await placemarkFromCoordinates(
-          position.latitude,
-          position.longitude,
-        );
-
-        if (placemarks.isNotEmpty) {
-          Placemark place = placemarks.first;
-          city = place.locality ?? place.administrativeArea ?? city;
-          state = place.administrativeArea ?? state;
-          country = place.country ?? country;
-          address = '${place.thoroughfare ?? ''} ${place.subThoroughfare ?? ''}'.trim();
-          if (address.isEmpty) address = 'Localização atual';
-          
-          print('🏠 Endereço obtido: $city, $state');
+      // Faz o geocoding de forma assíncrona, mas não aguarda para não bloquear
+      _getAddressAsync(position.latitude, position.longitude).then((placemark) {
+        if (placemark != null) {
+          print('🏠 Endereço obtido: ${placemark.locality}, ${placemark.administrativeArea}');
         }
-      } catch (geocodingError) {
-        print('⚠️ Geocoding indisponível, usando localização padrão');
-      }
+      });
 
       final userLocation = UserLocation(
         latitude: position.latitude,
@@ -79,8 +89,27 @@ class LocationService {
       print('✅ Localização configurada: ${userLocation.displayLocation}');
       return userLocation;
       
+    } on TimeoutException {
+      print('❌ Timeout ao obter localização');
+      return null;
     } catch (e) {
       print('❌ Erro ao obter localização: $e');
+      return null;
+    }
+  }
+
+  // Método auxiliar para geocoding assíncrono
+  Future<Placemark?> _getAddressAsync(double lat, double lng) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(lat, lng)
+          .timeout(Duration(seconds: 5));
+
+      if (placemarks.isNotEmpty) {
+        return placemarks.first;
+      }
+      return null;
+    } catch (e) {
+      print('⚠️ Geocoding indisponível: $e');
       return null;
     }
   }
@@ -91,4 +120,12 @@ class LocationService {
   ) {
     return Geolocator.distanceBetween(lat1, lon1, lat2, lon2);
   }
+}
+
+class TimeoutException implements Exception {
+  final String message;
+  TimeoutException(this.message);
+
+  @override
+  String toString() => message;
 }
