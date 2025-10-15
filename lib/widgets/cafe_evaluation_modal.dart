@@ -1,6 +1,7 @@
 // lib/widgets/cafe_evaluation_modal.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
@@ -114,34 +115,37 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                 padding: EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    InkWell(
-                      onTap: () {
-                        Navigator.pop(context);
-                        _pickImageFromCamera();
-                      },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Row(
-                          children: [
-                            Icon(
-                              AppIcons.camera,
-                              color: AppColors.carbon,
-                              size: 24,
-                            ),
-                            SizedBox(width: 16),
-                            Text(
-                              'Tirar foto',
-                              style: GoogleFonts.albertSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
+                    // Câmera (não disponível na Web)
+                    if (!kIsWeb)
+                      InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _pickImageFromCamera();
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Row(
+                            children: [
+                              Icon(
+                                AppIcons.camera,
                                 color: AppColors.carbon,
+                                size: 24,
                               ),
-                            ),
-                          ],
+                              SizedBox(width: 16),
+                              Text(
+                                'Tirar foto',
+                                style: GoogleFonts.albertSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.carbon,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    Divider(),
+                    if (!kIsWeb) Divider(),
+                    // Galeria
                     InkWell(
                       onTap: () {
                         Navigator.pop(context);
@@ -158,7 +162,7 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                             ),
                             SizedBox(width: 16),
                             Text(
-                              'Escolher da galeria',
+                              kIsWeb ? 'Escolher imagem' : 'Escolher da galeria',
                               style: GoogleFonts.albertSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -261,6 +265,85 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
         });
       }
     }
+  }
+
+  // ✅ Widget para mostrar preview da imagem (compatível com Web)
+  Widget _buildImagePreview() {
+    if (_selectedImage == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              AppIcons.camera,
+              color: AppColors.grayScale2,
+              size: 32,
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Adicionar foto',
+              style: GoogleFonts.albertSans(
+                fontSize: 14,
+                color: AppColors.grayScale2,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: kIsWeb
+              ? Image.network(
+                  _selectedImage!.path,
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Center(
+                      child: Icon(
+                        Icons.error_outline,
+                        color: AppColors.spiced,
+                        size: 32,
+                      ),
+                    );
+                  },
+                )
+              : Image.file(
+                  File(_selectedImage!.path),
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedImage = null;
+              });
+            },
+            child: Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.carbon.withOpacity(0.7),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.close,
+                color: AppColors.whiteWhite,
+                size: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -441,64 +524,7 @@ class _CafeEvaluationModalState extends State<CafeEvaluationModal> {
                             width: 1,
                           ),
                         ),
-                        child: _selectedImage != null
-                            ? Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.file(
-                                      File(_selectedImage!.path),
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedImage = null;
-                                        });
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.carbon
-                                              .withOpacity(0.7),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.close,
-                                          color: AppColors.whiteWhite,
-                                          size: 16,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      AppIcons.camera,
-                                      color: AppColors.grayScale2,
-                                      size: 32,
-                                    ),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Adicionar foto',
-                                      style: GoogleFonts.albertSans(
-                                        fontSize: 14,
-                                        color: AppColors.grayScale2,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                        child: _buildImagePreview(), // ✅ Usa o novo widget
                       ),
                     ),
 
