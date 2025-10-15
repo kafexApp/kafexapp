@@ -20,17 +20,107 @@ class PhotoStep extends StatelessWidget {
     required this.imagePicker,
   }) : super(key: key);
 
+  bool _isMobileWeb() {
+    if (!kIsWeb) return false;
+    // Detectar se é mobile web checando user agent ou largura da tela
+    // Simplificado: considerar mobile se largura < 768px
+    return false; // Por enquanto, sempre retorna false no web
+  }
+
   Future<void> _selectImageFromSource(
     BuildContext context,
     ImageSource source,
   ) async {
     try {
-      Permission permission =
-          source == ImageSource.camera ? Permission.camera : Permission.photos;
+      print('📸 Iniciando seleção de imagem...');
+      print('📱 Plataforma: ${kIsWeb ? "Web" : Platform.operatingSystem}');
+      print('🔍 Source: ${source == ImageSource.camera ? "Camera" : "Gallery"}');
 
-      final status = await permission.request();
-      if (!status.isGranted) return;
+      // Web não precisa de permissões
+      if (kIsWeb) {
+        print('🌐 Executando no Web, pulando verificação de permissão');
+        await _pickImage(context, source);
+        return;
+      }
 
+      // Android e iOS: verificar permissões
+      Permission permission;
+      
+      if (source == ImageSource.camera) {
+        permission = Permission.camera;
+      } else {
+        // Para galeria, usar permissão específica por plataforma
+        if (Platform.isAndroid) {
+          // Android 13+ usa photos, versões antigas usam storage
+          final androidInfo = await _getAndroidVersion();
+          if (androidInfo >= 33) {
+            permission = Permission.photos;
+          } else {
+            permission = Permission.storage;
+          }
+        } else {
+          // iOS sempre usa photos
+          permission = Permission.photos;
+        }
+      }
+
+      print('🔐 Verificando permissão: ${permission.toString()}');
+
+      // Verificar status atual
+      final status = await permission.status;
+      print('📊 Status atual: ${status.toString()}');
+
+      if (status.isDenied) {
+        print('❓ Permissão negada, solicitando...');
+        final result = await permission.request();
+        print('📊 Resultado da solicitação: ${result.toString()}');
+        
+        if (!result.isGranted) {
+          print('❌ Permissão não concedida');
+          
+          if (result.isPermanentlyDenied) {
+            _showPermissionDialog(context, source);
+            return;
+          }
+          
+          CustomToast.showError(
+            context,
+            message: 'Permissão necessária para acessar ${source == ImageSource.camera ? "a câmera" : "a galeria"}',
+          );
+          return;
+        }
+      } else if (status.isPermanentlyDenied) {
+        print('⛔ Permissão permanentemente negada');
+        _showPermissionDialog(context, source);
+        return;
+      }
+
+      print('✅ Permissão concedida, selecionando imagem...');
+      await _pickImage(context, source);
+
+    } catch (e) {
+      print('❌ Erro ao processar imagem: $e');
+      CustomToast.showError(
+        context,
+        message: 'Erro ao selecionar foto. Tente novamente.',
+      );
+    }
+  }
+
+  Future<int> _getAndroidVersion() async {
+    try {
+      if (!Platform.isAndroid) return 0;
+      // Retorna versão genérica para Android
+      return 33; // Assumir Android 13+ por padrão
+    } catch (e) {
+      return 33;
+    }
+  }
+
+  Future<void> _pickImage(BuildContext context, ImageSource source) async {
+    try {
+      print('🖼️ Abrindo picker de imagem...');
+      
       final XFile? pickedFile = await imagePicker.pickImage(
         source: source,
         maxWidth: 1024,
@@ -39,7 +129,9 @@ class PhotoStep extends StatelessWidget {
       );
 
       if (pickedFile != null) {
-        // Armazenar diretamente como XFile
+        print('✅ Imagem selecionada: ${pickedFile.path}');
+        print('📏 Tamanho: ${await pickedFile.length()} bytes');
+        
         viewModel.setCustomPhoto(pickedFile);
 
         CustomToast.showSuccess(
@@ -48,18 +140,63 @@ class PhotoStep extends StatelessWidget {
               ? 'Foto capturada com sucesso!'
               : 'Foto selecionada com sucesso!',
         );
+      } else {
+        print('⚠️ Nenhuma imagem foi selecionada');
       }
     } catch (e) {
-      print('Erro ao selecionar imagem: $e');
-      CustomToast.showError(
-        context,
-        message: 'Erro ao selecionar foto. Tente novamente.',
-      );
+      print('❌ Erro no picker: $e');
+      throw e;
     }
+  }
+
+  void _showPermissionDialog(BuildContext context, ImageSource source) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Permissão necessária',
+          style: GoogleFonts.albertSans(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          'Para ${source == ImageSource.camera ? "tirar fotos" : "acessar sua galeria"}, precisamos da sua permissão. '
+          'Por favor, ative nas configurações do seu dispositivo.',
+          style: GoogleFonts.albertSans(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancelar',
+              style: GoogleFonts.albertSans(
+                color: AppColors.grayScale1,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings();
+            },
+            child: Text(
+              'Abrir configurações',
+              style: GoogleFonts.albertSans(
+                color: AppColors.papayaSensorial,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // No Web Desktop, esconder botão de câmera
+    final showCameraButton = !kIsWeb || _isMobileWeb();
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(20),
       child: Column(
@@ -71,28 +208,39 @@ class PhotoStep extends StatelessWidget {
                 'Ao incluir uma foto você ajuda nossos usuários a reconhecerem o local com mais facilidade.',
             height: 160,
           ),
-          SizedBox(height: 20),
-          _buildPhotoPreview(),
-          SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _PhotoActionButton(
-                  icon: AppIcons.camera,
-                  title: 'Tirar foto',
-                  onTap: () => _selectImageFromSource(context, ImageSource.camera),
+          if (viewModel.customPhoto != null) ...[
+            SizedBox(height: 20),
+            _buildPhotoPreview(),
+            SizedBox(height: 20),
+          ] else
+            SizedBox(height: 20),
+          if (showCameraButton)
+            Row(
+              children: [
+                Expanded(
+                  child: _PhotoActionButton(
+                    icon: AppIcons.camera,
+                    title: 'Tirar foto',
+                    onTap: () => _selectImageFromSource(context, ImageSource.camera),
+                  ),
                 ),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: _PhotoActionButton(
-                  icon: AppIcons.image,
-                  title: 'Galeria',
-                  onTap: () => _selectImageFromSource(context, ImageSource.gallery),
+                SizedBox(width: 16),
+                Expanded(
+                  child: _PhotoActionButton(
+                    icon: AppIcons.image,
+                    title: 'Galeria',
+                    onTap: () => _selectImageFromSource(context, ImageSource.gallery),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            // Web Desktop: apenas galeria
+            _PhotoActionButton(
+              icon: AppIcons.image,
+              title: 'Selecionar foto',
+              onTap: () => _selectImageFromSource(context, ImageSource.gallery),
+            ),
           if (viewModel.customPhoto != null) ...[
             SizedBox(height: 8),
             SizedBox(
@@ -117,35 +265,30 @@ class PhotoStep extends StatelessWidget {
   }
 
   Widget _buildPhotoPreview() {
-    final hasPhoto = viewModel.customPhoto != null;
-    
     return Container(
       width: double.infinity,
       height: 160,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: hasPhoto ? null : AppColors.moonAsh.withOpacity(0.3),
       ),
-      child: hasPhoto
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: kIsWeb
-                  ? Image.network(
-                      viewModel.customPhoto!.path,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildEmptyPhotoPlaceholder();
-                      },
-                    )
-                  : Image.file(
-                      File(viewModel.customPhoto!.path),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildEmptyPhotoPlaceholder();
-                      },
-                    ),
-            )
-          : _buildEmptyPhotoPlaceholder(),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: kIsWeb
+            ? Image.network(
+                viewModel.customPhoto!.path,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildEmptyPhotoPlaceholder();
+                },
+              )
+            : Image.file(
+                File(viewModel.customPhoto!.path),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildEmptyPhotoPlaceholder();
+                },
+              ),
+      ),
     );
   }
 
