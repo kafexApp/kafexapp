@@ -32,7 +32,15 @@ mixin _$CafeSubmission {
   bool get isOfficeFriendly => throw _privateConstructorUsedError;
   bool get isPetFriendly => throw _privateConstructorUsedError;
   bool get isVegFriendly => throw _privateConstructorUsedError;
-  String? get customPhotoPath => throw _privateConstructorUsedError;
+  String? get customPhotoPath =>
+      throw _privateConstructorUsedError; // Novos campos de endereço segmentado
+  String? get street => throw _privateConstructorUsedError;
+  String? get streetNumber => throw _privateConstructorUsedError;
+  String? get neighborhood => throw _privateConstructorUsedError;
+  String? get city => throw _privateConstructorUsedError;
+  String? get state => throw _privateConstructorUsedError;
+  String? get country => throw _privateConstructorUsedError;
+  String? get postalCode => throw _privateConstructorUsedError;
 
   /// Serializes this CafeSubmission to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -64,6 +72,13 @@ abstract class $CafeSubmissionCopyWith<$Res> {
     bool isPetFriendly,
     bool isVegFriendly,
     String? customPhotoPath,
+    String? street,
+    String? streetNumber,
+    String? neighborhood,
+    String? city,
+    String? state,
+    String? country,
+    String? postalCode,
   });
 }
 
@@ -94,6 +109,13 @@ class _$CafeSubmissionCopyWithImpl<$Res, $Val extends CafeSubmission>
     Object? isPetFriendly = null,
     Object? isVegFriendly = null,
     Object? customPhotoPath = freezed,
+    Object? street = freezed,
+    Object? streetNumber = freezed,
+    Object? neighborhood = freezed,
+    Object? city = freezed,
+    Object? state = freezed,
+    Object? country = freezed,
+    Object? postalCode = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -145,6 +167,34 @@ class _$CafeSubmissionCopyWithImpl<$Res, $Val extends CafeSubmission>
                 ? _value.customPhotoPath
                 : customPhotoPath // ignore: cast_nullable_to_non_nullable
                       as String?,
+            street: freezed == street
+                ? _value.street
+                : street // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            streetNumber: freezed == streetNumber
+                ? _value.streetNumber
+                : streetNumber // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            neighborhood: freezed == neighborhood
+                ? _value.neighborhood
+                : neighborhood // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            city: freezed == city
+                ? _value.city
+                : city // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            state: freezed == state
+                ? _value.state
+                : state // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            country: freezed == country
+                ? _value.country
+                : country // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            postalCode: freezed == postalCode
+                ? _value.postalCode
+                : postalCode // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -173,6 +223,13 @@ abstract class _$$CafeSubmissionImplCopyWith<$Res>
     bool isPetFriendly,
     bool isVegFriendly,
     String? customPhotoPath,
+    String? street,
+    String? streetNumber,
+    String? neighborhood,
+    String? city,
+    String? state,
+    String? country,
+    String? postalCode,
   });
 }
 
@@ -202,6 +259,13 @@ class __$$CafeSubmissionImplCopyWithImpl<$Res>
     Object? isPetFriendly = null,
     Object? isVegFriendly = null,
     Object? customPhotoPath = freezed,
+    Object? street = freezed,
+    Object? streetNumber = freezed,
+    Object? neighborhood = freezed,
+    Object? city = freezed,
+    Object? state = freezed,
+    Object? country = freezed,
+    Object? postalCode = freezed,
   }) {
     return _then(
       _$CafeSubmissionImpl(
@@ -253,6 +317,34 @@ class __$$CafeSubmissionImplCopyWithImpl<$Res>
             ? _value.customPhotoPath
             : customPhotoPath // ignore: cast_nullable_to_non_nullable
                   as String?,
+        street: freezed == street
+            ? _value.street
+            : street // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        streetNumber: freezed == streetNumber
+            ? _value.streetNumber
+            : streetNumber // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        neighborhood: freezed == neighborhood
+            ? _value.neighborhood
+            : neighborhood // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        city: freezed == city
+            ? _value.city
+            : city // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        state: freezed == state
+            ? _value.state
+            : state // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        country: freezed == country
+            ? _value.country
+            : country // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        postalCode: freezed == postalCode
+            ? _value.postalCode
+            : postalCode // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -274,6 +366,13 @@ class _$CafeSubmissionImpl implements _CafeSubmission {
     this.isPetFriendly = false,
     this.isVegFriendly = false,
     this.customPhotoPath,
+    this.street,
+    this.streetNumber,
+    this.neighborhood,
+    this.city,
+    this.state,
+    this.country,
+    this.postalCode,
   });
 
   factory _$CafeSubmissionImpl.fromJson(Map<String, dynamic> json) =>
@@ -306,10 +405,25 @@ class _$CafeSubmissionImpl implements _CafeSubmission {
   final bool isVegFriendly;
   @override
   final String? customPhotoPath;
+  // Novos campos de endereço segmentado
+  @override
+  final String? street;
+  @override
+  final String? streetNumber;
+  @override
+  final String? neighborhood;
+  @override
+  final String? city;
+  @override
+  final String? state;
+  @override
+  final String? country;
+  @override
+  final String? postalCode;
 
   @override
   String toString() {
-    return 'CafeSubmission(placeId: $placeId, name: $name, address: $address, phone: $phone, website: $website, photoUrl: $photoUrl, latitude: $latitude, longitude: $longitude, isOfficeFriendly: $isOfficeFriendly, isPetFriendly: $isPetFriendly, isVegFriendly: $isVegFriendly, customPhotoPath: $customPhotoPath)';
+    return 'CafeSubmission(placeId: $placeId, name: $name, address: $address, phone: $phone, website: $website, photoUrl: $photoUrl, latitude: $latitude, longitude: $longitude, isOfficeFriendly: $isOfficeFriendly, isPetFriendly: $isPetFriendly, isVegFriendly: $isVegFriendly, customPhotoPath: $customPhotoPath, street: $street, streetNumber: $streetNumber, neighborhood: $neighborhood, city: $city, state: $state, country: $country, postalCode: $postalCode)';
   }
 
   @override
@@ -335,12 +449,22 @@ class _$CafeSubmissionImpl implements _CafeSubmission {
             (identical(other.isVegFriendly, isVegFriendly) ||
                 other.isVegFriendly == isVegFriendly) &&
             (identical(other.customPhotoPath, customPhotoPath) ||
-                other.customPhotoPath == customPhotoPath));
+                other.customPhotoPath == customPhotoPath) &&
+            (identical(other.street, street) || other.street == street) &&
+            (identical(other.streetNumber, streetNumber) ||
+                other.streetNumber == streetNumber) &&
+            (identical(other.neighborhood, neighborhood) ||
+                other.neighborhood == neighborhood) &&
+            (identical(other.city, city) || other.city == city) &&
+            (identical(other.state, state) || other.state == state) &&
+            (identical(other.country, country) || other.country == country) &&
+            (identical(other.postalCode, postalCode) ||
+                other.postalCode == postalCode));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     runtimeType,
     placeId,
     name,
@@ -354,7 +478,14 @@ class _$CafeSubmissionImpl implements _CafeSubmission {
     isPetFriendly,
     isVegFriendly,
     customPhotoPath,
-  );
+    street,
+    streetNumber,
+    neighborhood,
+    city,
+    state,
+    country,
+    postalCode,
+  ]);
 
   /// Create a copy of CafeSubmission
   /// with the given fields replaced by the non-null parameter values.
@@ -387,6 +518,13 @@ abstract class _CafeSubmission implements CafeSubmission {
     final bool isPetFriendly,
     final bool isVegFriendly,
     final String? customPhotoPath,
+    final String? street,
+    final String? streetNumber,
+    final String? neighborhood,
+    final String? city,
+    final String? state,
+    final String? country,
+    final String? postalCode,
   }) = _$CafeSubmissionImpl;
 
   factory _CafeSubmission.fromJson(Map<String, dynamic> json) =
@@ -415,7 +553,21 @@ abstract class _CafeSubmission implements CafeSubmission {
   @override
   bool get isVegFriendly;
   @override
-  String? get customPhotoPath;
+  String? get customPhotoPath; // Novos campos de endereço segmentado
+  @override
+  String? get street;
+  @override
+  String? get streetNumber;
+  @override
+  String? get neighborhood;
+  @override
+  String? get city;
+  @override
+  String? get state;
+  @override
+  String? get country;
+  @override
+  String? get postalCode;
 
   /// Create a copy of CafeSubmission
   /// with the given fields replaced by the non-null parameter values.
@@ -438,7 +590,15 @@ mixin _$PlaceDetails {
   String? get website => throw _privateConstructorUsedError;
   String? get photoUrl => throw _privateConstructorUsedError;
   double? get latitude => throw _privateConstructorUsedError;
-  double? get longitude => throw _privateConstructorUsedError;
+  double? get longitude =>
+      throw _privateConstructorUsedError; // Novos campos de endereço segmentado
+  String? get street => throw _privateConstructorUsedError;
+  String? get streetNumber => throw _privateConstructorUsedError;
+  String? get neighborhood => throw _privateConstructorUsedError;
+  String? get city => throw _privateConstructorUsedError;
+  String? get state => throw _privateConstructorUsedError;
+  String? get country => throw _privateConstructorUsedError;
+  String? get postalCode => throw _privateConstructorUsedError;
 
   /// Serializes this PlaceDetails to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -466,6 +626,13 @@ abstract class $PlaceDetailsCopyWith<$Res> {
     String? photoUrl,
     double? latitude,
     double? longitude,
+    String? street,
+    String? streetNumber,
+    String? neighborhood,
+    String? city,
+    String? state,
+    String? country,
+    String? postalCode,
   });
 }
 
@@ -492,6 +659,13 @@ class _$PlaceDetailsCopyWithImpl<$Res, $Val extends PlaceDetails>
     Object? photoUrl = freezed,
     Object? latitude = freezed,
     Object? longitude = freezed,
+    Object? street = freezed,
+    Object? streetNumber = freezed,
+    Object? neighborhood = freezed,
+    Object? city = freezed,
+    Object? state = freezed,
+    Object? country = freezed,
+    Object? postalCode = freezed,
   }) {
     return _then(
       _value.copyWith(
@@ -527,6 +701,34 @@ class _$PlaceDetailsCopyWithImpl<$Res, $Val extends PlaceDetails>
                 ? _value.longitude
                 : longitude // ignore: cast_nullable_to_non_nullable
                       as double?,
+            street: freezed == street
+                ? _value.street
+                : street // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            streetNumber: freezed == streetNumber
+                ? _value.streetNumber
+                : streetNumber // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            neighborhood: freezed == neighborhood
+                ? _value.neighborhood
+                : neighborhood // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            city: freezed == city
+                ? _value.city
+                : city // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            state: freezed == state
+                ? _value.state
+                : state // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            country: freezed == country
+                ? _value.country
+                : country // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            postalCode: freezed == postalCode
+                ? _value.postalCode
+                : postalCode // ignore: cast_nullable_to_non_nullable
+                      as String?,
           )
           as $Val,
     );
@@ -551,6 +753,13 @@ abstract class _$$PlaceDetailsImplCopyWith<$Res>
     String? photoUrl,
     double? latitude,
     double? longitude,
+    String? street,
+    String? streetNumber,
+    String? neighborhood,
+    String? city,
+    String? state,
+    String? country,
+    String? postalCode,
   });
 }
 
@@ -576,6 +785,13 @@ class __$$PlaceDetailsImplCopyWithImpl<$Res>
     Object? photoUrl = freezed,
     Object? latitude = freezed,
     Object? longitude = freezed,
+    Object? street = freezed,
+    Object? streetNumber = freezed,
+    Object? neighborhood = freezed,
+    Object? city = freezed,
+    Object? state = freezed,
+    Object? country = freezed,
+    Object? postalCode = freezed,
   }) {
     return _then(
       _$PlaceDetailsImpl(
@@ -611,6 +827,34 @@ class __$$PlaceDetailsImplCopyWithImpl<$Res>
             ? _value.longitude
             : longitude // ignore: cast_nullable_to_non_nullable
                   as double?,
+        street: freezed == street
+            ? _value.street
+            : street // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        streetNumber: freezed == streetNumber
+            ? _value.streetNumber
+            : streetNumber // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        neighborhood: freezed == neighborhood
+            ? _value.neighborhood
+            : neighborhood // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        city: freezed == city
+            ? _value.city
+            : city // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        state: freezed == state
+            ? _value.state
+            : state // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        country: freezed == country
+            ? _value.country
+            : country // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        postalCode: freezed == postalCode
+            ? _value.postalCode
+            : postalCode // ignore: cast_nullable_to_non_nullable
+                  as String?,
       ),
     );
   }
@@ -628,6 +872,13 @@ class _$PlaceDetailsImpl implements _PlaceDetails {
     this.photoUrl,
     this.latitude,
     this.longitude,
+    this.street,
+    this.streetNumber,
+    this.neighborhood,
+    this.city,
+    this.state,
+    this.country,
+    this.postalCode,
   });
 
   factory _$PlaceDetailsImpl.fromJson(Map<String, dynamic> json) =>
@@ -649,10 +900,25 @@ class _$PlaceDetailsImpl implements _PlaceDetails {
   final double? latitude;
   @override
   final double? longitude;
+  // Novos campos de endereço segmentado
+  @override
+  final String? street;
+  @override
+  final String? streetNumber;
+  @override
+  final String? neighborhood;
+  @override
+  final String? city;
+  @override
+  final String? state;
+  @override
+  final String? country;
+  @override
+  final String? postalCode;
 
   @override
   String toString() {
-    return 'PlaceDetails(placeId: $placeId, name: $name, address: $address, phone: $phone, website: $website, photoUrl: $photoUrl, latitude: $latitude, longitude: $longitude)';
+    return 'PlaceDetails(placeId: $placeId, name: $name, address: $address, phone: $phone, website: $website, photoUrl: $photoUrl, latitude: $latitude, longitude: $longitude, street: $street, streetNumber: $streetNumber, neighborhood: $neighborhood, city: $city, state: $state, country: $country, postalCode: $postalCode)';
   }
 
   @override
@@ -670,7 +936,17 @@ class _$PlaceDetailsImpl implements _PlaceDetails {
             (identical(other.latitude, latitude) ||
                 other.latitude == latitude) &&
             (identical(other.longitude, longitude) ||
-                other.longitude == longitude));
+                other.longitude == longitude) &&
+            (identical(other.street, street) || other.street == street) &&
+            (identical(other.streetNumber, streetNumber) ||
+                other.streetNumber == streetNumber) &&
+            (identical(other.neighborhood, neighborhood) ||
+                other.neighborhood == neighborhood) &&
+            (identical(other.city, city) || other.city == city) &&
+            (identical(other.state, state) || other.state == state) &&
+            (identical(other.country, country) || other.country == country) &&
+            (identical(other.postalCode, postalCode) ||
+                other.postalCode == postalCode));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -685,6 +961,13 @@ class _$PlaceDetailsImpl implements _PlaceDetails {
     photoUrl,
     latitude,
     longitude,
+    street,
+    streetNumber,
+    neighborhood,
+    city,
+    state,
+    country,
+    postalCode,
   );
 
   /// Create a copy of PlaceDetails
@@ -711,6 +994,13 @@ abstract class _PlaceDetails implements PlaceDetails {
     final String? photoUrl,
     final double? latitude,
     final double? longitude,
+    final String? street,
+    final String? streetNumber,
+    final String? neighborhood,
+    final String? city,
+    final String? state,
+    final String? country,
+    final String? postalCode,
   }) = _$PlaceDetailsImpl;
 
   factory _PlaceDetails.fromJson(Map<String, dynamic> json) =
@@ -731,7 +1021,21 @@ abstract class _PlaceDetails implements PlaceDetails {
   @override
   double? get latitude;
   @override
-  double? get longitude;
+  double? get longitude; // Novos campos de endereço segmentado
+  @override
+  String? get street;
+  @override
+  String? get streetNumber;
+  @override
+  String? get neighborhood;
+  @override
+  String? get city;
+  @override
+  String? get state;
+  @override
+  String? get country;
+  @override
+  String? get postalCode;
 
   /// Create a copy of PlaceDetails
   /// with the given fields replaced by the non-null parameter values.

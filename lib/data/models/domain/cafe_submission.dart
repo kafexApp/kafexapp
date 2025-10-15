@@ -19,7 +19,15 @@ class CafeSubmission with _$CafeSubmission {
     @Default(false) bool isOfficeFriendly,
     @Default(false) bool isPetFriendly,
     @Default(false) bool isVegFriendly,
-    String? customPhotoPath, // Path da foto customizada (não serializa para JSON)
+    String? customPhotoPath,
+    // Novos campos de endereço segmentado
+    String? street,
+    String? streetNumber,
+    String? neighborhood,
+    String? city,
+    String? state,
+    String? country,
+    String? postalCode,
   }) = _CafeSubmission;
 
   factory CafeSubmission.fromJson(Map<String, dynamic> json) =>
@@ -38,6 +46,14 @@ class PlaceDetails with _$PlaceDetails {
     String? photoUrl,
     double? latitude,
     double? longitude,
+    // Novos campos de endereço segmentado
+    String? street,
+    String? streetNumber,
+    String? neighborhood,
+    String? city,
+    String? state,
+    String? country,
+    String? postalCode,
   }) = _PlaceDetails;
 
   factory PlaceDetails.fromJson(Map<String, dynamic> json) =>

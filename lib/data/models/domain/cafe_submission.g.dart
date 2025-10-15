@@ -20,6 +20,13 @@ _$CafeSubmissionImpl _$$CafeSubmissionImplFromJson(Map<String, dynamic> json) =>
       isPetFriendly: json['isPetFriendly'] as bool? ?? false,
       isVegFriendly: json['isVegFriendly'] as bool? ?? false,
       customPhotoPath: json['customPhotoPath'] as String?,
+      street: json['street'] as String?,
+      streetNumber: json['streetNumber'] as String?,
+      neighborhood: json['neighborhood'] as String?,
+      city: json['city'] as String?,
+      state: json['state'] as String?,
+      country: json['country'] as String?,
+      postalCode: json['postalCode'] as String?,
     );
 
 Map<String, dynamic> _$$CafeSubmissionImplToJson(
@@ -37,6 +44,13 @@ Map<String, dynamic> _$$CafeSubmissionImplToJson(
   'isPetFriendly': instance.isPetFriendly,
   'isVegFriendly': instance.isVegFriendly,
   'customPhotoPath': instance.customPhotoPath,
+  'street': instance.street,
+  'streetNumber': instance.streetNumber,
+  'neighborhood': instance.neighborhood,
+  'city': instance.city,
+  'state': instance.state,
+  'country': instance.country,
+  'postalCode': instance.postalCode,
 };
 
 _$PlaceDetailsImpl _$$PlaceDetailsImplFromJson(Map<String, dynamic> json) =>
@@ -49,6 +63,13 @@ _$PlaceDetailsImpl _$$PlaceDetailsImplFromJson(Map<String, dynamic> json) =>
       photoUrl: json['photoUrl'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
+      street: json['street'] as String?,
+      streetNumber: json['streetNumber'] as String?,
+      neighborhood: json['neighborhood'] as String?,
+      city: json['city'] as String?,
+      state: json['state'] as String?,
+      country: json['country'] as String?,
+      postalCode: json['postalCode'] as String?,
     );
 
 Map<String, dynamic> _$$PlaceDetailsImplToJson(_$PlaceDetailsImpl instance) =>
@@ -61,4 +82,11 @@ Map<String, dynamic> _$$PlaceDetailsImplToJson(_$PlaceDetailsImpl instance) =>
       'photoUrl': instance.photoUrl,
       'latitude': instance.latitude,
       'longitude': instance.longitude,
+      'street': instance.street,
+      'streetNumber': instance.streetNumber,
+      'neighborhood': instance.neighborhood,
+      'city': instance.city,
+      'state': instance.state,
+      'country': instance.country,
+      'postalCode': instance.postalCode,
     };
