@@ -73,16 +73,21 @@ class GooglePlacesService {
     return null;
   }
 
-  /// Buscar sugestões de endereços e estabelecimentos
+  /// Buscar sugestões de endereços e estabelecimentos NO MUNDO TODO
+  /// 
+  /// NOTA: O Google Places Autocomplete API retorna no máximo 5 resultados por padrão.
+  /// Essa é uma limitação da API que não pode ser alterada.
+  /// Para obter mais resultados, seria necessário usar a Text Search API (paga).
   Future<List<PlaceSuggestion>> getPlaceSuggestions(String input) async {
     if (input.trim().isEmpty) return [];
 
-    print('🔍 [Google Places] Buscando lugares: "$input"');
+    print('🔍 [Google Places] Buscando lugares GLOBALMENTE: "$input"');
+    print('ℹ️ [Limitação API] Máximo de 5 resultados (padrão Google Places Autocomplete)');
 
+    // ✅ REMOVIDA A RESTRIÇÃO 'components=country:br' PARA BUSCAR NO MUNDO TODO
     final String url = '$_baseUrl/autocomplete/json'
         '?input=${Uri.encodeComponent(input)}'
-        '&types=establishment|geocode'
-        '&components=country:br'
+        '&types=establishment'
         '&language=pt-BR'
         '&key=$_apiKey';
 
@@ -90,7 +95,7 @@ class GooglePlacesService {
       final response = await _makeRequestWithRetry(url);
 
       if (response == null) {
-        print('! [Google Places] Nenhum resultado ou timeout');
+        print('❌ [Google Places] Nenhum resultado ou timeout');
         return [];
       }
 
@@ -104,7 +109,7 @@ class GooglePlacesService {
           suggestions.add(PlaceSuggestion.fromGooglePlacesJson(prediction));
         }
         
-        print('✅ [Google Places] ${suggestions.length} lugares encontrados');
+        print('✅ [Google Places] ${suggestions.length} lugares encontrados GLOBALMENTE');
         return suggestions;
       } else {
         print('⚠️ [Google Places] Status: ${data['status']}');
