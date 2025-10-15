@@ -108,8 +108,8 @@ class _CustomAppBarState extends State<CustomAppBar> {
                       onTap: () => _navigateToHome(context),
                       child: SvgPicture.asset(
                         'assets/images/kafex_logo_positive.svg',
-                        width: 140,
-                        height: 40,
+                        width: 160,
+                        height: 46,
                       ),
                     ),
 
@@ -121,9 +121,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
                     clipBehavior: Clip.none,
                     children: [
                       Icon(
-                        _notificationCount > 0 
-                          ? AppIcons.notificationFill 
-                          : AppIcons.notification,
+                        AppIcons.notification,
                         size: 24,
                         color: AppColors.textPrimary,
                       ),

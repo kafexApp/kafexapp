@@ -29,7 +29,7 @@ void main() async {
   );
 
   print('🔍 Diagnóstico - kIsWeb: $kIsWeb');
-  
+
   runApp(KafexApp());
 }
 
@@ -57,7 +57,7 @@ class KafexApp extends StatelessWidget {
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
                 print('📏 Largura detectada: $width');
-                
+
                 if (kIsWeb && width > 600) {
                   print('✅ Aplicando centralização - Desktop detectado');
                   return Container(
@@ -75,7 +75,7 @@ class KafexApp extends StatelessWidget {
                     ),
                   );
                 }
-                
+
                 print('📱 Layout mobile mantido');
                 return child ?? const SizedBox();
               },

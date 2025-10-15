@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../../../utils/app_colors.dart';
-import '../../../utils/user_manager.dart';
 import '../../../widgets/custom_bottom_navbar.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/side_menu_overlay.dart';
 import '../../posts/factories/post_card_factory.dart';
-import '../../../widgets/common/user_avatar.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../viewmodel/home_feed_viewmodel.dart';
 import '../../../utils/sync_user_photo_helper.dart';
+import 'welcome_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -188,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         // Primeiro item: Welcome Section
         if (index == 0) {
-          return _buildWelcomeSection();
+          return WelcomeSection();
         }
 
         // Últimos posts
@@ -240,105 +237,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildWelcomeSection() {
-    return Builder(
-      builder: (context) {
-        final User? currentUser = FirebaseAuth.instance.currentUser;
-        final String firstName = _getFirstName(currentUser?.displayName);
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          height: 130,
-          child: Stack(
-            children: [
-              Container(
-                margin: EdgeInsets.only(top: 25),
-                padding: EdgeInsets.only(
-                  left: 12,
-                  right: 20,
-                  top: 20,
-                  bottom: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.whiteWhite,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    UserAvatar(user: currentUser, size: 84),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          RichText(
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Olá, ',
-                                  style: GoogleFonts.albertSans(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w400,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: '$firstName!',
-                                  style: GoogleFonts.albertSans(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.papayaSensorial,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            UserManager.instance.hasLocation
-                                ? 'Em ${UserManager.instance.locationDisplay}'
-                                : 'Que tal um cafezinho?',
-                            style: GoogleFonts.albertSans(
-                              fontSize: 16,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 95),
-                  ],
-                ),
-              ),
-              Positioned(
-                right: 15,
-                bottom: 0,
-                child: SvgPicture.asset(
-                  'assets/images/hand-coffee.svg',
-                  width: 95.32,
-                  height: 142.09,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _getFirstName(String? fullName) {
-    if (fullName == null || fullName.isEmpty) return 'Usuário';
-    return fullName.split(' ').first;
   }
 
   void _handleComment(String postId) {

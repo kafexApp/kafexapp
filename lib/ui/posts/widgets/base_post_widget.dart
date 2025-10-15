@@ -510,7 +510,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     return Consumer<PostActionsViewModel>(
       builder: (context, viewModel, _) {
         return Container(
-          margin: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
             color: AppColors.whiteWhite,
             borderRadius: BorderRadius.circular(24),
