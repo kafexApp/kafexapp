@@ -28,12 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _setupScrollListener();
   }
 
-  /// Configura o listener do scroll para detectar quando chegar ao fim
   void _setupScrollListener() {
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 200) {
-        // Quando estiver a 200px do fim, carrega mais posts
         final viewModel = context.read<HomeFeedViewModel>();
         if (viewModel.hasMorePosts && !viewModel.isLoadingMore) {
           viewModel.loadMorePosts.execute();
@@ -42,13 +40,11 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  /// Executa a sincronização da foto apenas uma vez
   Future<void> _syncUserPhotoOnce() async {
     if (_photoSyncExecuted) return;
 
     _photoSyncExecuted = true;
 
-    // Aguarda um pouco para garantir que tudo está inicializado
     await Future.delayed(Duration(milliseconds: 500));
 
     try {
@@ -178,17 +174,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildFeed(BuildContext context, HomeFeedViewModel viewModel) {
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 110),
+      padding: const EdgeInsets.only(bottom: 120, top: 0, left: 0, right: 0),
       itemCount:
           viewModel.posts.length +
-          2, // +2 para welcome section e loading indicator
+          2,
       itemBuilder: (context, index) {
-        // Primeiro item: Welcome Section
         if (index == 0) {
           return WelcomeSection();
         }
 
-        // Últimos posts
         if (index <= viewModel.posts.length) {
           final post = viewModel.posts[index - 1];
           return PostCardFactory.create(
@@ -200,7 +194,6 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        // Último item: Loading indicator ou mensagem de fim
         if (viewModel.isLoadingMore) {
           return _buildLoadingIndicator();
         } else if (!viewModel.hasMorePosts) {

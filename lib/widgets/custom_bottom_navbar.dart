@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
-import '../ui/add_cafe/widgets/add_cafe_provider.dart'; // IMPORT NOVO
+import '../ui/add_cafe/widgets/add_cafe_provider.dart';
 import 'side_menu_overlay.dart';
 
 class CustomBottomNavbar extends StatelessWidget {
@@ -42,7 +42,7 @@ class CustomBottomNavbar extends StatelessWidget {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => AddCafeProvider(), // ROTA ATUALIZADA
+          builder: (context) => AddCafeProvider(),
         ),
       ).then((value) {
         print('✅ Navegação para cadastro concluída com sucesso!');
@@ -62,11 +62,12 @@ class CustomBottomNavbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 90,
       color: Colors.transparent,
       child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        top: false,
+        child: Container(
+          height: 90,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Row(
             children: [
               // Botão principal - alterna entre "Encontrar cafeterias" e "Cadastrar cafeteria"
@@ -82,7 +83,6 @@ class CustomBottomNavbar extends StatelessWidget {
                         print('🔥 Botão "Encontrar cafeterias" clicado!');
                         print('🔍 onSearchPressed é null? ${onSearchPressed == null}');
                         
-                        // Se houver um callback personalizado, usa ele, senão navega para CafeExplorerProvider
                         if (onSearchPressed != null) {
                           print('📞 Executando onSearchPressed personalizado...');
                           onSearchPressed!();
@@ -109,7 +109,7 @@ class CustomBottomNavbar extends StatelessWidget {
                         Container(
                           width: 68,
                           height: 68,
-                          margin: EdgeInsets.all(2),
+                          margin: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
                             color: AppColors.whiteWhite,
                             borderRadius: BorderRadius.circular(15),
@@ -145,14 +145,13 @@ class CustomBottomNavbar extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: 16),
+              const SizedBox(width: 16),
               
               // Botão Menu
               GestureDetector(
                 onTap: () {
                   print('📱 Menu clicado!');
                   
-                  // Se houver callback personalizado, usar ele; senão abrir sidemenu
                   if (onMenuPressed != null) {
                     print('📞 Executando onMenuPressed personalizado...');
                     onMenuPressed!();
