@@ -108,6 +108,17 @@
           }
         },
         {
+<<<<<<< HEAD
+=======
+          "client_id": "1011389832396-9qhqcb2832pd05ft7d4gv343dpvgc3p0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kafex.co",
+            "certificate_hash": "7099a3b0f4fef991961259406a15fe4cc3a83819"
+          }
+        },
+        {
+>>>>>>> fa81989 (fix: Corrige package name e adiciona configuração do Google Maps para Android)
           "client_id": "1011389832396-l2ho2l0537v5l3t3d6fpqvg71d3jp0hi.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

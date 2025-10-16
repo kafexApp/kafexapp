@@ -1,4 +1,4 @@
-package com.example.kafex
+package com.kafex.co
 
 import io.flutter.embedding.android.FlutterActivity
 
