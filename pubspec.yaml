@@ -59,6 +59,7 @@ dev_dependencies:
 
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.3
   
   # Code Generation - NOVAS DEPENDÊNCIAS
   build_runner: ^2.4.7
@@ -90,3 +91,21 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "app_icon/icon.png"
+
+# Configuração da Splash Screen
+flutter_native_splash:
+  color: "#45242D"
+  image: assets/images/kafex_logo_negative.png
+  color_dark: "#45242D"
+  image_dark: assets/images/kafex_logo_negative.png
+  
+  android_12:
+    color: "#45242D"
+    image: assets/images/kafex_logo_negative.png
+    icon_background_color: "#45242D"
+  
+  android: true
+  ios: true
+  web: true
+  
+  fullscreen: true
