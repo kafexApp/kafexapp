@@ -242,6 +242,7 @@ class SupabaseCafeteriaService {
     required String usuarioUid,
     required int userId,
     String? referenciaMapa,
+    String? ref,
     String? telefone,
     String? instagram,
     String? urlFoto,
@@ -249,6 +250,7 @@ class SupabaseCafeteriaService {
     String? cidade,
     String? estado,
     String? pais,
+    String? cep,
     bool petFriendly = false,
     bool opcaoVegana = false,
     bool officeFriendly = false,
@@ -260,6 +262,7 @@ class SupabaseCafeteriaService {
         'lat': latitude,
         'lng': longitude,
         'referencia_mapa': referenciaMapa,
+        'ref': ref,
         'usuario_uid': usuarioUid,
         'user_id': userId,
         'telefone': telefone,
@@ -269,6 +272,7 @@ class SupabaseCafeteriaService {
         'cidade': cidade,
         'estado': estado,
         'pais': pais,
+        'cep': cep,
         'pet_friendly': petFriendly,
         'opcao_vegana': opcaoVegana,
         'office_friendly': officeFriendly,
@@ -277,15 +281,25 @@ class SupabaseCafeteriaService {
         'avaliacoes': 0,
       };
 
+      print('📦 Dados sendo inseridos:');
+      print('   Nome: $nome');
+      print('   Lat/Lng: ($latitude, $longitude)');
+      print('   referencia_mapa: $referenciaMapa');
+      print('   ref: $ref');
+      print('   cep: $cep');
+
       final response = await _client
           .from('cafeteria')
           .insert(data)
           .select('id')
           .single();
 
-      return response['id'] as int;
+      final cafeteriaId = response['id'] as int;
+      print('✅ Cafeteria inserida com ID: $cafeteriaId');
+      
+      return cafeteriaId;
     } catch (e) {
-      print('❌ Erro ao criar: $e');
+      print('❌ Erro ao criar cafeteria: $e');
       rethrow;
     }
   }

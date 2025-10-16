@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/domain/cafe_submission.dart';
 import '../services/supabase_cafeteria_service.dart';
 import '../../services/user_profile_service.dart';
@@ -125,8 +126,19 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
         fullAddress = parts.join(', ');
       }
 
-      // 5. Criar cafeteria no Supabase
+      // 5. Criar LatLng e converter para string no formato esperado
+      final latLng = LatLng(
+        submission.latitude ?? 0.0,
+        submission.longitude ?? 0.0,
+      );
+      
+      // Formato automático: "LatLng(lat: -3.7327203, lng: -38.5270134)"
+      final referenciaMapa = latLng.toString();
+      
       print('💾 Salvando cafeteria no Supabase...');
+      print('📍 referencia_mapa: $referenciaMapa');
+      print('🔑 ref (Place ID): ${submission.placeId}');
+      
       final cafeteriaId = await _cafeteriaService.createCafeteria(
         nome: submission.name,
         endereco: fullAddress,
@@ -134,6 +146,8 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
         longitude: submission.longitude ?? 0.0,
         usuarioUid: usuarioUid,
         userId: userId,
+        referenciaMapa: referenciaMapa, // ✅ "LatLng(lat: X, lng: Y)"
+        ref: submission.placeId, // ✅ Place ID do Google (ChIJxxx...)
         telefone: submission.phone,
         instagram: submission.website,
         urlFoto: urlFoto,
@@ -141,6 +155,7 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
         cidade: submission.city,
         estado: submission.state,
         pais: submission.country,
+        cep: submission.postalCode,
         petFriendly: submission.isPetFriendly,
         opcaoVegana: submission.isVegFriendly,
         officeFriendly: submission.isOfficeFriendly,
@@ -153,52 +168,42 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
       }
 
       print('✅ Cafeteria criada com sucesso! ID: $cafeteriaId');
+      print('══════════════════════════════');
+
       return Result.ok(cafeteriaId);
     } catch (e, stackTrace) {
       print('❌ Erro ao submeter cafeteria: $e');
       print('Stack trace: $stackTrace');
-      return Result.error(Exception('Erro ao enviar cafeteria: $e'));
+      return Result.error(
+        Exception('Erro ao enviar cafeteria: ${e.toString()}'),
+      );
     }
   }
 
-  /// Upload de foto a partir de XFile (funciona em web e mobile)
-  Future<Result<String>> _uploadPhotoFromXFile(
-    XFile photo,
-    String usuarioUid,
-    String cafeName,
-  ) async {
+  Future<int> _getUserIdFromSupabase(String usuarioUid) async {
     try {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName =
-          'cafeterias/$usuarioUid/${timestamp}_${_sanitizeFileName(cafeName)}.jpg';
+      print('🔍 Buscando user_id no Supabase para UID: $usuarioUid');
+      
+      final userProfile = await UserProfileService.getUserProfile(usuarioUid);
 
-      print('📤 Fazendo upload: $fileName');
-
-      final storageRef = _firebaseStorage.ref().child(fileName);
-
-      if (kIsWeb) {
-        final bytes = await photo.readAsBytes();
-        final uploadTask = await storageRef.putData(
-          bytes,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-        final downloadUrl = await uploadTask.ref.getDownloadURL();
-        print('✅ Upload concluído (web): $downloadUrl');
-        return Result.ok(downloadUrl);
-      } else {
-        final file = File(photo.path);
-        final uploadTask = await storageRef.putFile(file);
-        final downloadUrl = await uploadTask.ref.getDownloadURL();
-        print('✅ Upload concluído (mobile): $downloadUrl');
-        return Result.ok(downloadUrl);
+      if (userProfile == null) {
+        throw Exception('Perfil de usuário não encontrado no Supabase');
       }
+
+      final userId = userProfile.id;
+      
+      if (userId == null) {
+        throw Exception('user_id não encontrado no perfil');
+      }
+
+      print('✅ user_id encontrado: $userId');
+      return userId;
     } catch (e) {
-      print('❌ Erro no upload da foto: $e');
-      return Result.error(Exception('Erro ao fazer upload da foto: $e'));
+      print('❌ Erro ao buscar user_id: $e');
+      rethrow;
     }
   }
 
-  /// Upload de foto a partir de File (legacy - apenas mobile)
   Future<Result<String>> _uploadPhoto(
     File photo,
     String usuarioUid,
@@ -206,49 +211,58 @@ class CafeSubmissionRepositoryImpl implements CafeSubmissionRepository {
   ) async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName =
-          'cafeterias/$usuarioUid/${timestamp}_${_sanitizeFileName(cafeName)}.jpg';
+      final sanitizedName = cafeName.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
+      final fileName = '${sanitizedName}_$timestamp.jpg';
+      final path = 'cafeterias/$usuarioUid/$fileName';
 
-      print('📤 Fazendo upload: $fileName');
+      print('📤 Iniciando upload para: $path');
 
-      final storageRef = _firebaseStorage.ref().child(fileName);
-      final uploadTask = await storageRef.putFile(photo);
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      final ref = _firebaseStorage.ref().child(path);
+      await ref.putFile(photo);
 
+      final downloadUrl = await ref.getDownloadURL();
+      
       print('✅ Upload concluído: $downloadUrl');
       return Result.ok(downloadUrl);
     } catch (e) {
-      print('❌ Erro no upload da foto: $e');
-      return Result.error(Exception('Erro ao fazer upload da foto: $e'));
+      print('❌ Erro no upload: $e');
+      return Result.error(
+        Exception('Erro ao fazer upload da foto: ${e.toString()}'),
+      );
     }
   }
 
-  /// Busca o ID do usuário no Supabase
-  Future<int> _getUserIdFromSupabase(String firebaseUid) async {
+  Future<Result<String>> _uploadPhotoFromXFile(
+    XFile photo,
+    String usuarioUid,
+    String cafeName,
+  ) async {
     try {
-      print('🔍 Buscando user_id do Supabase...');
-      
-      final profile = await UserProfileService.getUserProfile(firebaseUid);
-      
-      if (profile == null) {
-        print('⚠️ Perfil não encontrado, usando 0 como fallback');
-        return 0;
-      }
-      
-      final userId = profile.id;
-      print('✅ user_id encontrado: $userId');
-      return userId ?? 0;
-    } catch (e) {
-      print('❌ Erro ao buscar user_id: $e');
-      return 0;
-    }
-  }
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final sanitizedName = cafeName.replaceAll(RegExp(r'[^\w\s-]'), '').trim();
+      final fileName = '${sanitizedName}_$timestamp.jpg';
+      final path = 'cafeterias/$usuarioUid/$fileName';
 
-  /// Remove caracteres especiais do nome do arquivo
-  String _sanitizeFileName(String fileName) {
-    return fileName
-        .replaceAll(RegExp(r'[^\w\s-]'), '')
-        .replaceAll(RegExp(r'\s+'), '_')
-        .toLowerCase();
+      print('📤 Iniciando upload XFile para: $path');
+
+      final ref = _firebaseStorage.ref().child(path);
+      
+      if (kIsWeb) {
+        final bytes = await photo.readAsBytes();
+        await ref.putData(bytes);
+      } else {
+        await ref.putFile(File(photo.path));
+      }
+
+      final downloadUrl = await ref.getDownloadURL();
+      
+      print('✅ Upload XFile concluído: $downloadUrl');
+      return Result.ok(downloadUrl);
+    } catch (e) {
+      print('❌ Erro no upload XFile: $e');
+      return Result.error(
+        Exception('Erro ao fazer upload da foto: ${e.toString()}'),
+      );
+    }
   }
 }
