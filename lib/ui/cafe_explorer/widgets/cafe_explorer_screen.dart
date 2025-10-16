@@ -46,7 +46,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   void initState() {
     super.initState();
     _loadCustomPin();
-    _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onFocusChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -101,19 +100,22 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     _updateMarkers();
   }
 
-  void _onSearchChanged() {
-    final viewModel = context.read<CafeExplorerViewModel>();
-    final query = _searchController.text.trim();
-
-    if (query.isNotEmpty) {
-      viewModel.searchPlaces.execute(query);
-    } else {
+  void _onFocusChanged() {
+    if (!_searchFocusNode.hasFocus) {
+      // Quando perde o foco, limpar sugestões
+      final viewModel = context.read<CafeExplorerViewModel>();
       viewModel.clearSuggestions();
     }
   }
 
-  void _onFocusChanged() {
-    // Mantém sugestões visíveis quando campo tem foco
+  void _performSearch() {
+    final viewModel = context.read<CafeExplorerViewModel>();
+    final query = _searchController.text.trim();
+
+    if (query.isNotEmpty) {
+      _searchFocusNode.unfocus();
+      viewModel.searchPlaces.execute(query);
+    }
   }
 
   void _updateMarkers() async {
@@ -681,76 +683,111 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
   }
 
   Widget _buildSearchBar(CafeExplorerViewModel viewModel) {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        color: AppColors.whiteWhite,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.only(left: 16),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                decoration: InputDecoration(
-                  hintText: 'Busque endereços, cafés ou estabelecimentos',
-                  hintStyle: GoogleFonts.albertSans(
-                    color: AppColors.grayScale2,
-                    fontSize: 16,
-                  ),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  errorBorder: InputBorder.none,
-                  disabledBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  fillColor: Colors.transparent,
-                  filled: false,
-                ),
-                style: GoogleFonts.albertSans(
-                  fontSize: 16,
-                  color: AppColors.carbon,
-                ),
-                cursorColor: AppColors.papayaSensorial,
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        _searchFocusNode,
+        viewModel.searchPlaces,
+        _searchController,
+      ]),
+      builder: (context, _) {
+        final isFocused = _searchFocusNode.hasFocus;
+        final isSearching = viewModel.searchPlaces.running;
+        final hasText = _searchController.text.isNotEmpty;
+
+        return AnimatedContainer(
+          duration: Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: AppColors.whiteWhite,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isFocused 
+                  ? AppColors.papayaSensorial 
+                  : Colors.transparent,
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: Offset(0, 2),
               ),
-            ),
+            ],
           ),
-          Container(
-            width: 40,
-            height: 40,
-            margin: EdgeInsets.only(right: 5),
-            decoration: BoxDecoration(
-              color: AppColors.papayaSensorial,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ListenableBuilder(
-              listenable: viewModel.searchPlaces,
-              builder: (context, _) {
-                return Material(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.only(left: 16),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Busque endereços, cafés ou estabelecimentos',
+                      hintStyle: GoogleFonts.albertSans(
+                        color: AppColors.grayScale2,
+                        fontSize: 16,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      fillColor: Colors.transparent,
+                      filled: false,
+                    ),
+                    style: GoogleFonts.albertSans(
+                      fontSize: 16,
+                      color: AppColors.carbon,
+                    ),
+                    cursorColor: AppColors.papayaSensorial,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (_) => _performSearch(),
+                  ),
+                ),
+              ),
+              // Botão X (limpar) - aparece quando tem texto
+              if (hasText)
+                Container(
+                  width: 40,
+                  height: 40,
+                  margin: EdgeInsets.only(right: 5),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        _searchController.clear();
+                        viewModel.clearSuggestions();
+                        viewModel.clearSearch();
+                        _searchFocusNode.unfocus();
+                      },
+                      child: Center(
+                        child: Icon(
+                          Icons.close,
+                          size: 20,
+                          color: AppColors.grayScale2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // Botão de buscar
+              Container(
+                width: 40,
+                height: 40,
+                margin: EdgeInsets.only(right: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.papayaSensorial,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Material(
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(8),
-                    onTap: viewModel.searchPlaces.running
-                        ? null
-                        : () {
-                            if (viewModel.suggestions.isNotEmpty) {
-                              viewModel.selectPlace.execute(
-                                viewModel.suggestions.first,
-                              );
-                            }
-                          },
+                    onTap: isSearching ? null : _performSearch,
                     child: Center(
-                      child: viewModel.searchPlaces.running
+                      child: isSearching
                           ? SizedBox(
                               width: 16,
                               height: 16,
@@ -772,12 +809,12 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
                             ),
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -899,99 +936,121 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
             color: AppColors.whiteWhite,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: viewModel.suggestions.length > 5
-                ? 5
-                : viewModel.suggestions.length,
-            separatorBuilder: (context, index) =>
-                Divider(height: 1, color: AppColors.moonAsh),
-            itemBuilder: (context, index) {
-              final suggestion = viewModel.suggestions[index];
-              return Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: () async {
-                    _searchController.text = suggestion.description;
-                    _searchFocusNode.unfocus();
-
-                    await viewModel.selectPlace.execute(suggestion);
-
-                    if (viewModel.isMapView && _mapController != null) {
-                      _mapController!.animateCamera(
-                        CameraUpdate.newLatLngZoom(
-                          viewModel.currentPosition,
-                          15.0,
-                        ),
-                      );
-                    }
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Row(
-                      children: [
-                        SvgPicture.asset(
-                          suggestion.iconPath,
-                          width: 20,
-                          height: 20,
-                          colorFilter: ColorFilter.mode(
-                            suggestion.isEstablishment
-                                ? AppColors.papayaSensorial
-                                : AppColors.grayScale1,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                suggestion.mainText,
-                                style: GoogleFonts.albertSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.carbon,
-                                ),
-                              ),
-                              if (suggestion.secondaryText.isNotEmpty)
-                                Text(
-                                  suggestion.secondaryText,
-                                  style: GoogleFonts.albertSans(
-                                    fontSize: 12,
-                                    color: AppColors.grayScale1,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        if (suggestion.isEstablishment)
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.papayaSensorial.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'Local',
-                              style: GoogleFonts.albertSans(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.papayaSensorial,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Resultados encontrados (${viewModel.suggestions.length > 10 ? 10 : viewModel.suggestions.length})',
+                  style: GoogleFonts.albertSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.carbon,
                   ),
                 ),
-              );
-            },
+              ),
+              Divider(height: 1, color: AppColors.moonAsh),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: viewModel.suggestions.length > 10
+                    ? 10
+                    : viewModel.suggestions.length,
+                separatorBuilder: (context, index) =>
+                    Divider(height: 1, color: AppColors.moonAsh),
+                itemBuilder: (context, index) {
+                  final suggestion = viewModel.suggestions[index];
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () async {
+                        _searchController.text = suggestion.description;
+                        _searchFocusNode.unfocus();
+
+                        await viewModel.selectPlace.execute(suggestion);
+
+                        if (viewModel.isMapView && _mapController != null) {
+                          await _mapController!.animateCamera(
+                            CameraUpdate.newLatLngZoom(
+                              viewModel.currentPosition,
+                              16.0,
+                            ),
+                          );
+                          
+                          // Aguardar mapa estabilizar e atualizar cafés no viewport
+                          Future.delayed(Duration(milliseconds: 800), () {
+                            _updateCafesInViewport();
+                          });
+                        }
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: [
+                            SvgPicture.asset(
+                              suggestion.iconPath,
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                suggestion.isEstablishment
+                                    ? AppColors.papayaSensorial
+                                    : AppColors.grayScale1,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    suggestion.mainText,
+                                    style: GoogleFonts.albertSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.carbon,
+                                    ),
+                                  ),
+                                  if (suggestion.secondaryText.isNotEmpty)
+                                    Text(
+                                      suggestion.secondaryText,
+                                      style: GoogleFonts.albertSans(
+                                        fontSize: 12,
+                                        color: AppColors.grayScale1,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            if (suggestion.isEstablishment)
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.papayaSensorial.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Local',
+                                  style: GoogleFonts.albertSans(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.papayaSensorial,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),

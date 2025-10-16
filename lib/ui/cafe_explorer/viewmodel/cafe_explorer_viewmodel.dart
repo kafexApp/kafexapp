@@ -139,7 +139,7 @@ class CafeExplorerViewModel extends ChangeNotifier {
     }
   }
 
-  /// Buscar lugares (híbrido: cafeterias + Google Places)
+  /// Buscar lugares (híbrido: regiões + cafeterias locais + estabelecimentos)
   Future<Result<void>> _searchPlaces(String query) async {
     if (query.trim().isEmpty) {
       clearSuggestions();
@@ -157,19 +157,32 @@ class CafeExplorerViewModel extends ChangeNotifier {
       try {
         debugPrint('🔍 Buscando: "$query"');
 
-        // Buscar em paralelo: cafeterias cadastradas + Google Places
-        final results = await Future.wait([
-          _searchCafeteriasByName(query),
-          _placesRepository.searchPlaces(query),
-        ]);
+        // Buscar do Google Places (inclui regiões e estabelecimentos)
+        final placeSuggestions = await _placesRepository.searchPlaces(query);
+        
+        // Buscar cafeterias locais
+        final cafeSuggestions = await _searchCafeteriasByName(query);
 
-        final cafeSuggestions = results[0] as List<PlaceSuggestion>;
-        final placeSuggestions = results[1] as List<PlaceSuggestion>;
+        // Separar regiões de estabelecimentos
+        final regions = placeSuggestions.where((s) => 
+          s.types.contains('geocode') || s.types.contains('region')
+        ).toList();
+        
+        final establishments = placeSuggestions.where((s) => 
+          !s.types.contains('geocode') && !s.types.contains('region')
+        ).toList();
 
-        // Combinar resultados (cafeterias primeiro)
-        _suggestions = [...cafeSuggestions, ...placeSuggestions];
+        // ORDEM CORRETA: Regiões → Cafeterias Locais → Estabelecimentos Google
+        _suggestions = [
+          ...regions,
+          ...cafeSuggestions,
+          ...establishments,
+        ];
 
         debugPrint('✅ ${_suggestions.length} sugestões encontradas');
+        debugPrint('   📍 Regiões: ${regions.length}');
+        debugPrint('   ☕ Cafeterias locais: ${cafeSuggestions.length}');
+        debugPrint('   🏪 Estabelecimentos: ${establishments.length}');
 
         notifyListeners();
       } catch (e) {
@@ -189,7 +202,10 @@ class CafeExplorerViewModel extends ChangeNotifier {
           cafe.address.toLowerCase().contains(lowerQuery);
     }).toList();
 
-    return matchingCafes.map((cafe) {
+    // Limitar a 5 cafeterias locais
+    final limitedCafes = matchingCafes.take(5).toList();
+
+    return limitedCafes.map((cafe) {
       return PlaceSuggestion(
         placeId: 'cafe_${cafe.id}',
         description: cafe.name,
@@ -212,38 +228,51 @@ class CafeExplorerViewModel extends ChangeNotifier {
         final cafeId = suggestion.placeId.replaceFirst('cafe_', '');
         final cafe = _allCafes.firstWhere((c) => c.id == cafeId);
 
-        if (_isMapView) {
-          // Modo mapa: apenas atualizar posição (o widget move a câmera)
-          _currentPosition = cafe.position;
-          notifyListeners();
-        } else {
+        // Sempre mover para a cafeteria específica
+        _currentPosition = cafe.position;
+        
+        if (!_isMapView) {
           // Modo lista: filtrar para mostrar apenas este café
           _visibleCafes = [cafe];
           _searchLocation = cafe.position;
           _searchAddress = cafe.address;
           _isShowingSearchResults = true;
-          notifyListeners();
         }
+        
+        notifyListeners();
       } else {
-        // É um lugar do Google Places: buscar coordenadas
+        // É um lugar do Google Places (região, endereço, etc)
         final coordinates = await _placesRepository.getCoordinatesFromPlaceId(
           suggestion.placeId,
         );
 
         if (coordinates != null) {
-          if (_isMapView) {
-            // Modo mapa: apenas atualizar posição (o widget move a câmera)
-            _currentPosition = coordinates;
-            notifyListeners();
+          // Atualizar posição do mapa
+          _currentPosition = coordinates;
+          _searchLocation = coordinates;
+          _searchAddress = suggestion.description;
+          
+          // Filtrar cafés próximos à região (tanto para mapa quanto lista)
+          final nearbyCafes = await _cafeRepository.getCafesNearLocation(coordinates);
+          
+          if (nearbyCafes.isNotEmpty) {
+            _visibleCafes = nearbyCafes;
+            _isShowingSearchResults = true;
+            debugPrint('✅ ${nearbyCafes.length} cafeterias encontradas próximas a ${suggestion.description}');
           } else {
-            // Modo lista: filtrar cafés próximos
-            await _filterCafesByLocation(coordinates, suggestion.description);
+            // Nenhuma cafeteria próxima - mostrar todas mas marcar que é resultado de busca
+            _visibleCafes = List.from(_allCafes);
+            _isShowingSearchResults = true;
+            debugPrint('⚠️ Nenhuma cafeteria próxima a ${suggestion.description}');
           }
+          
+          notifyListeners();
         }
       }
 
       return Result.ok(null);
     } catch (e) {
+      debugPrint('❌ Erro ao selecionar lugar: $e');
       return Result.error(Exception('Erro ao selecionar lugar: $e'));
     }
   }

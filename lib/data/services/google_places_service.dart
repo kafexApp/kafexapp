@@ -8,6 +8,7 @@ import '../models/domain/place_suggestion.dart';
 class GooglePlacesService {
   static const String _apiKey = 'AIzaSyB3s5D0-HxAGvqK9UlVfYeooYUsjbIZcJM';
   static const String _baseUrl = 'https://maps.googleapis.com/maps/api/place';
+  static const String _geocodingUrl = 'https://maps.googleapis.com/maps/api/geocode';
   
   static const List<String> _corsProxies = [
     'https://corsproxy.io/?',
@@ -71,8 +72,86 @@ class GooglePlacesService {
   Future<List<PlaceSuggestion>> getPlaceSuggestions(String input) async {
     if (input.trim().isEmpty) return [];
 
-    print('🔍 [Google Places] Buscando lugares GLOBALMENTE: "$input"');
-    print('ℹ️ [Limitação API] Máximo de 5 resultados (padrão Google Places Autocomplete)');
+    print('🔍 [Google Places] Buscando lugares e regiões: "$input"');
+
+    // Fazer duas buscas em paralelo:
+    // 1. Busca de regiões usando Places Autocomplete (sem filtro de tipo)
+    // 2. Busca de estabelecimentos usando Places Autocomplete (com filtro)
+    final results = await Future.wait([
+      _searchRegionsAutocomplete(input),
+      _searchEstablishments(input),
+    ]);
+
+    final regionSuggestions = results[0] as List<PlaceSuggestion>;
+    final establishmentSuggestions = results[1] as List<PlaceSuggestion>;
+
+    // Combinar: regiões primeiro, depois estabelecimentos
+    final allSuggestions = [...regionSuggestions, ...establishmentSuggestions];
+
+    print('✅ Total de resultados: ${allSuggestions.length}');
+    print('   📍 Regiões: ${regionSuggestions.length}');
+    print('   ☕ Estabelecimentos: ${establishmentSuggestions.length}');
+
+    return allSuggestions;
+  }
+
+  /// Buscar regiões usando Places Autocomplete (sem filtro de estabelecimento)
+  Future<List<PlaceSuggestion>> _searchRegionsAutocomplete(String input) async {
+    print('📍 [Places Regions] Buscando regiões para: "$input"');
+
+    // Buscar sem filtro de tipo para pegar regiões, bairros, cidades
+    final String url = '$_baseUrl/autocomplete/json'
+        '?input=${Uri.encodeComponent(input)}'
+        '&types=(regions)'
+        '&language=pt-BR'
+        '&key=$_apiKey';
+
+    try {
+      final response = await _makeRequestWithRetry(url);
+
+      if (response == null) {
+        print('❌ [Places Regions] Nenhum resultado');
+        return [];
+      }
+
+      final data = json.decode(response.body);
+
+      if (data['status'] == 'OK') {
+        final predictions = data['predictions'] as List;
+        
+        List<PlaceSuggestion> suggestions = [];
+        int count = 0;
+        
+        for (var prediction in predictions) {
+          if (count >= 5) break;
+          
+          // Marcar como região adicionando type 'geocode'
+          final suggestion = PlaceSuggestion.fromGooglePlacesJson(prediction);
+          suggestions.add(PlaceSuggestion(
+            placeId: suggestion.placeId,
+            description: suggestion.description,
+            mainText: suggestion.mainText,
+            secondaryText: suggestion.secondaryText,
+            types: [...suggestion.types, 'geocode', 'region'],
+          ));
+          count++;
+        }
+        
+        print('✅ [Places Regions] ${suggestions.length} regiões encontradas');
+        return suggestions;
+      } else {
+        print('⚠️ [Places Regions] Status: ${data['status']}');
+        return [];
+      }
+    } catch (e) {
+      print('❌ Erro ao buscar regiões: $e');
+      return [];
+    }
+  }
+
+  /// Buscar estabelecimentos usando Places Autocomplete
+  Future<List<PlaceSuggestion>> _searchEstablishments(String input) async {
+    print('☕ [Places] Buscando estabelecimentos para: "$input"');
 
     final String url = '$_baseUrl/autocomplete/json'
         '?input=${Uri.encodeComponent(input)}'
@@ -84,7 +163,7 @@ class GooglePlacesService {
       final response = await _makeRequestWithRetry(url);
 
       if (response == null) {
-        print('❌ [Google Places] Nenhum resultado ou timeout');
+        print('❌ [Places] Nenhum resultado');
         return [];
       }
 
@@ -94,18 +173,22 @@ class GooglePlacesService {
         final predictions = data['predictions'] as List;
         
         List<PlaceSuggestion> suggestions = [];
+        // Limitar a 5 estabelecimentos
+        int count = 0;
         for (var prediction in predictions) {
+          if (count >= 5) break;
           suggestions.add(PlaceSuggestion.fromGooglePlacesJson(prediction));
+          count++;
         }
         
-        print('✅ [Google Places] ${suggestions.length} lugares encontrados GLOBALMENTE');
+        print('✅ [Places] ${suggestions.length} estabelecimentos encontrados');
         return suggestions;
       } else {
-        print('⚠️ [Google Places] Status: ${data['status']}');
+        print('⚠️ [Places] Status: ${data['status']}');
         return [];
       }
     } catch (e) {
-      print('❌ Erro ao buscar sugestões: $e');
+      print('❌ Erro ao buscar estabelecimentos: $e');
       return [];
     }
   }
@@ -113,8 +196,13 @@ class GooglePlacesService {
   Future<LatLng?> getPlaceCoordinates(String placeId) async {
     print('📍 [Google Places] Buscando coordenadas para: $placeId');
 
+    // Se for um place_id do geocoding, remover o prefixo
+    final cleanPlaceId = placeId.startsWith('geocode_') 
+        ? placeId.replaceFirst('geocode_', '')
+        : placeId;
+
     final String url = '$_baseUrl/details/json'
-        '?place_id=$placeId'
+        '?place_id=$cleanPlaceId'
         '&fields=geometry'
         '&key=$_apiKey';
 
@@ -147,8 +235,13 @@ class GooglePlacesService {
   Future<AddressComponents?> getAddressComponents(String placeId) async {
     print('🏠 [Google Places] Buscando componentes do endereço para: $placeId');
 
+    // Se for um place_id do geocoding, remover o prefixo
+    final cleanPlaceId = placeId.startsWith('geocode_') 
+        ? placeId.replaceFirst('geocode_', '')
+        : placeId;
+
     final String url = '$_baseUrl/details/json'
-        '?place_id=$placeId'
+        '?place_id=$cleanPlaceId'
         '&fields=address_components,formatted_address'
         '&language=pt-BR'
         '&key=$_apiKey';
@@ -240,8 +333,13 @@ class GooglePlacesService {
   Future<Map<String, dynamic>?> getPlaceDetailsWithPhoto(String placeId) async {
     print('📄 [Google Places] Buscando detalhes completos para: $placeId');
 
+    // Se for um place_id do geocoding, remover o prefixo
+    final cleanPlaceId = placeId.startsWith('geocode_') 
+        ? placeId.replaceFirst('geocode_', '')
+        : placeId;
+
     final String url = '$_baseUrl/details/json'
-        '?place_id=$placeId'
+        '?place_id=$cleanPlaceId'
         '&fields=name,formatted_address,formatted_phone_number,website,geometry,photos'
         '&language=pt-BR'
         '&key=$_apiKey';
