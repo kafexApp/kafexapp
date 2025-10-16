@@ -51,5 +51,34 @@
 	<string>O Kafex precisa da sua localização para encontrar cafeterias próximas e personalizar suas recomendações.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>O Kafex precisa da sua localização para encontrar cafeterias próximas e personalizar suas recomendações.</string>
+	
+	<!-- Configuração para Google Sign In e Apple Sign In -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1011389832396-eevl9n172sab1th9k28dt9gqffdh7kh2</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.lucasvieira.kafex</string>
+			</array>
+		</dict>
+	</array>
+	
+	<!-- Queries schemes necessários -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>googlechromes</string>
+		<string>googlechrome</string>
+		<string>comgooglemaps</string>
+	</array>
 </dict>
 </plist>

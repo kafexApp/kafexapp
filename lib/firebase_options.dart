@@ -28,10 +28,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -45,40 +42,53 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyB3s5D0-HxAGvqK9UlVfYeooYUsjbIZcJM',
-    appId: '1:1011389832396:web:992448b7ebcfa5e0977669',
+    apiKey: 'AIzaSyC1p31nX0guUnaJH3W5a3Nk1ZeRmkpBnpg',
+    appId: '1:1011389832396:web:4665de7a34adc391977669',
     messagingSenderId: '1011389832396',
     projectId: 'kafexapp',
     authDomain: 'kafexapp.firebaseapp.com',
     storageBucket: 'kafexapp.appspot.com',
-    measurementId: 'G-X85SVED8XX',
+    measurementId: 'G-28V0VLD67E',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB3s5D0-HxAGvqK9UlVfYeooYUsjbIZcJM',
-    appId: '1:1011389832396:android:ANDROID_APP_ID', // Você precisa do app ID Android real
+    apiKey: 'AIzaSyDiWyJL4F1ccDvmC_ygJ2y64wSdLwk5TUA',
+    appId: '1:1011389832396:android:bcd643f44214e8d9977669',
     messagingSenderId: '1011389832396',
     projectId: 'kafexapp',
     storageBucket: 'kafexapp.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB3s5D0-HxAGvqK9UlVfYeooYUsjbIZcJM',
-    appId: '1:1011389832396:ios:IOS_APP_ID', // Você precisa do app ID iOS real
+    apiKey: 'AIzaSyAvPNKGsVwykFzHyPCU0duD8nzpa3cTokA',
+    appId: '1:1011389832396:ios:0c2481387b978196977669',
     messagingSenderId: '1011389832396',
     projectId: 'kafexapp',
     storageBucket: 'kafexapp.appspot.com',
-    iosClientId: 'IOS_CLIENT_ID', // Você precisa do client ID iOS real
-    iosBundleId: 'com.kafex.app', // Ajuste conforme seu bundle ID
+    androidClientId: '1011389832396-2ifhcb0ot5fs8crtjjsqm1ue781etnag.apps.googleusercontent.com',
+    iosClientId: '1011389832396-eevl9n172sab1th9k28dt9gqffdh7kh2.apps.googleusercontent.com',
+    iosBundleId: 'com.lucasvieira.kafex',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyB3s5D0-HxAGvqK9UlVfYeooYUsjbIZcJM',
-    appId: '1:1011389832396:ios:IOS_APP_ID', // Mesmo do iOS
+    apiKey: 'AIzaSyAvPNKGsVwykFzHyPCU0duD8nzpa3cTokA',
+    appId: '1:1011389832396:ios:130616f60c58453e977669',
     messagingSenderId: '1011389832396',
     projectId: 'kafexapp',
     storageBucket: 'kafexapp.appspot.com',
-    iosClientId: 'IOS_CLIENT_ID',
-    iosBundleId: 'com.kafex.app',
+    androidClientId: '1011389832396-2ifhcb0ot5fs8crtjjsqm1ue781etnag.apps.googleusercontent.com',
+    iosClientId: '1011389832396-d6rffuaajcbq6b2hvnd6slepp2atu5p0.apps.googleusercontent.com',
+    iosBundleId: 'com.example.kafex',
   );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyC1p31nX0guUnaJH3W5a3Nk1ZeRmkpBnpg',
+    appId: '1:1011389832396:web:4665de7a34adc391977669',
+    messagingSenderId: '1011389832396',
+    projectId: 'kafexapp',
+    authDomain: 'kafexapp.firebaseapp.com',
+    storageBucket: 'kafexapp.appspot.com',
+    measurementId: 'G-28V0VLD67E',
+  );
+
 }

@@ -7,7 +7,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
 
   // Usuário atual
   User? get currentUser => _auth.currentUser;
@@ -101,13 +103,23 @@ class AuthService {
         return AuthResult.success(result.user);
       } else {
         // Mobile: usar GoogleSignIn
+        
+        // Fazer logout primeiro para garantir que o popup apareça
+        await _googleSignIn.signOut();
+        
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
         
         if (googleUser == null) {
+          print('⚠️ Login cancelado pelo usuário');
           return AuthResult.error('Login cancelado pelo usuário');
         }
 
+        print('📱 Usuário Google selecionado: ${googleUser.email}');
+
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        
+        print('🔑 Tokens obtidos - AccessToken: ${googleAuth.accessToken != null}, IdToken: ${googleAuth.idToken != null}');
+
         final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
@@ -119,15 +131,23 @@ class AuthService {
       }
     } catch (e) {
       print('❌ Erro no login Google: $e');
-      return AuthResult.error('Erro ao fazer login com Google. Tente novamente.');
+      return AuthResult.error('Erro ao fazer login com Google: $e');
     }
   }
 
   // **LOGIN COM APPLE** (apenas iOS/macOS/Web)
   Future<AuthResult> signInWithApple() async {
     try {
-      if (!Platform.isIOS && !Platform.isMacOS && !kIsWeb) {
-        return AuthResult.error('Login com Apple só está disponível em iOS, macOS e Web');
+      // Verificação corrigida para iOS
+      if (!kIsWeb) {
+        try {
+          if (!Platform.isIOS && !Platform.isMacOS) {
+            return AuthResult.error('Login com Apple só está disponível em iOS, macOS e Web');
+          }
+        } catch (e) {
+          // Se der erro ao verificar Platform, continua (pode ser simulador)
+          print('⚠️ Aviso ao verificar plataforma: $e');
+        }
       }
 
       print('🍎 Iniciando login com Apple...');
@@ -159,7 +179,7 @@ class AuthService {
       return AuthResult.success(result.user);
     } catch (e) {
       print('❌ Erro no login Apple: $e');
-      return AuthResult.error('Erro ao fazer login com Apple. Tente novamente.');
+      return AuthResult.error('Erro ao fazer login com Apple: $e');
     }
   }
 

@@ -7,12 +7,114 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1011389832396:android:a4663c07c59bf4d4977669",
+        "mobilesdk_app_id": "1:1011389832396:android:d880b52745f2235c977669",
+        "android_client_info": {
+          "package_name": "app.kafex.co"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1011389832396-j0mktl6l1thsrbtustj9ceb2qao82l0v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.kafex.co",
+            "certificate_hash": "9bbb3186b2189ef16d8f272bdab59362c395cbb4"
+          }
+        },
+        {
+          "client_id": "1011389832396-718cfkuuuf0p7qr7bpqvf4ruvkp1t9ct.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiWyJL4F1ccDvmC_ygJ2y64wSdLwk5TUA"
+        },
+        {
+          "current_key": "AIzaSyBLoFTEXzAJj8hUBEBN_fOe1A85wkM42zM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1011389832396-718cfkuuuf0p7qr7bpqvf4ruvkp1t9ct.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1011389832396-d6rffuaajcbq6b2hvnd6slepp2atu5p0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.kafex"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011389832396:android:bcd643f44214e8d9977669",
+        "android_client_info": {
+          "package_name": "com.example.kafex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1011389832396-718cfkuuuf0p7qr7bpqvf4ruvkp1t9ct.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiWyJL4F1ccDvmC_ygJ2y64wSdLwk5TUA"
+        },
+        {
+          "current_key": "AIzaSyBLoFTEXzAJj8hUBEBN_fOe1A85wkM42zM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1011389832396-718cfkuuuf0p7qr7bpqvf4ruvkp1t9ct.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1011389832396-d6rffuaajcbq6b2hvnd6slepp2atu5p0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.kafex"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011389832396:android:effb330e316f47c5977669",
         "android_client_info": {
           "package_name": "com.kafex.co"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "1011389832396-70r190kah6p49a29v8vhrgtgqkg9cna2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kafex.co",
+            "certificate_hash": "0f2cad2c19e3da8e7e5252b5b3927552cb071d48"
+          }
+        },
+        {
+          "client_id": "1011389832396-l2ho2l0537v5l3t3d6fpqvg71d3jp0hi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kafex.co",
+            "certificate_hash": "de12610e6e826a88f84b353762b852c16aac02e1"
+          }
+        },
         {
           "client_id": "1011389832396-nqvemjqk7t17j42fkff9vnsf26rfu3hr.apps.googleusercontent.com",
           "client_type": 1,
@@ -28,6 +130,9 @@
       ],
       "api_key": [
         {
+          "current_key": "AIzaSyDiWyJL4F1ccDvmC_ygJ2y64wSdLwk5TUA"
+        },
+        {
           "current_key": "AIzaSyBLoFTEXzAJj8hUBEBN_fOe1A85wkM42zM"
         }
       ],
@@ -39,10 +144,57 @@
               "client_type": 3
             },
             {
-              "client_id": "1011389832396-8ot21hqdabhi4mnsssnt3ml5oq7a6vhn.apps.googleusercontent.com",
+              "client_id": "1011389832396-d6rffuaajcbq6b2hvnd6slepp2atu5p0.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.kafex.co"
+                "bundle_id": "com.example.kafex"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1011389832396:android:18b2a9a2de0c4464977669",
+        "android_client_info": {
+          "package_name": "kafex.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1011389832396-u04olrbf5eirh64g1ik0q11rmvvr2br0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "kafex.app",
+            "certificate_hash": "9bbb3186b2189ef16d8f272bdab59362c395cbb4"
+          }
+        },
+        {
+          "client_id": "1011389832396-718cfkuuuf0p7qr7bpqvf4ruvkp1t9ct.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiWyJL4F1ccDvmC_ygJ2y64wSdLwk5TUA"
+        },
+        {
+          "current_key": "AIzaSyBLoFTEXzAJj8hUBEBN_fOe1A85wkM42zM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1011389832396-718cfkuuuf0p7qr7bpqvf4ruvkp1t9ct.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1011389832396-d6rffuaajcbq6b2hvnd6slepp2atu5p0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.kafex"
               }
             }
           ]

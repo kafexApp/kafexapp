@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
 import '../utils/user_manager.dart';
@@ -26,6 +28,12 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   final AuthService _authService = AuthService();
+
+  // Verifica se está rodando no iOS
+  bool get _isIOS {
+    if (kIsWeb) return false;
+    return Platform.isIOS;
+  }
 
   @override
   void initState() {
@@ -168,9 +176,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 24),
 
+                  // Botões de social login - mostra Apple apenas no iOS
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Botão Google - sempre visível
                       GestureDetector(
                         onTap: _isLoading ? null : _handleGoogleSignIn,
                         child: Opacity(
@@ -183,19 +193,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      SizedBox(width: 24),
-
-                      GestureDetector(
-                        onTap: _isLoading ? null : _handleAppleSignIn,
-                        child: Opacity(
-                          opacity: _isLoading ? 0.6 : 1.0,
-                          child: SvgPicture.asset(
-                            'assets/images/apple-sociallogin.svg',
-                            width: 70,
-                            height: 70,
+                      // Botão Apple - apenas no iOS
+                      if (_isIOS) ...[
+                        SizedBox(width: 24),
+                        GestureDetector(
+                          onTap: _isLoading ? null : _handleAppleSignIn,
+                          child: Opacity(
+                            opacity: _isLoading ? 0.6 : 1.0,
+                            child: SvgPicture.asset(
+                              'assets/images/apple-sociallogin.svg',
+                              width: 70,
+                              height: 70,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
 
