@@ -108,8 +108,6 @@
           }
         },
         {
-<<<<<<< HEAD
-=======
           "client_id": "1011389832396-9qhqcb2832pd05ft7d4gv343dpvgc3p0.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -118,7 +116,6 @@
           }
         },
         {
->>>>>>> fa81989 (fix: Corrige package name e adiciona configuração do Google Maps para Android)
           "client_id": "1011389832396-l2ho2l0537v5l3t3d6fpqvg71d3jp0hi.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
