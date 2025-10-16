@@ -49,7 +49,6 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     _searchController.addListener(_onSearchChanged);
     _searchFocusNode.addListener(_onFocusChanged);
 
-    // Solicitar localização nativa ao entrar na tela
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestNativeLocation();
     });
@@ -81,10 +80,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
         
         debugPrint('✅ Localização obtida: ${location.latitude}, ${location.longitude}');
         
-        // Salvar no ViewModel
         await viewModel.saveUserLocation(position);
         
-        // Mover câmera para a localização
         if (_mapController != null) {
           await _mapController!.animateCamera(
             CameraUpdate.newLatLngZoom(position, 15.0),
@@ -98,8 +95,8 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
 
   Future<void> _loadCustomPin() async {
     _customPin = await BitmapDescriptor.fromAssetImage(
-      ImageConfiguration(devicePixelRatio: 2.5),
-      'assets/images/pin_kafex.svg',
+      ImageConfiguration(devicePixelRatio: 12.0),
+      'assets/images/pin_kafex.png',
     );
     _updateMarkers();
   }
@@ -196,14 +193,14 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
       ..color = AppColors.papayaSensorial
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(Offset(30, 30), 30, outerCirclePaint);
-    canvas.drawCircle(Offset(30, 30), 18, innerCirclePaint);
+    canvas.drawCircle(Offset(40, 40), 40, outerCirclePaint);
+    canvas.drawCircle(Offset(40, 40), 24, innerCirclePaint);
 
     final TextPainter textPainter = TextPainter(
       text: TextSpan(
         text: clusterText,
         style: TextStyle(
-          fontSize: count > 99 ? 12 : 14,
+          fontSize: count > 99 ? 14 : 16,
           fontWeight: FontWeight.bold,
           color: AppColors.whiteWhite,
         ),
@@ -214,11 +211,11 @@ class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset(30 - textPainter.width / 2, 30 - textPainter.height / 2),
+      Offset(40 - textPainter.width / 2, 40 - textPainter.height / 2),
     );
 
     final ui.Picture picture = pictureRecorder.endRecording();
-    final ui.Image img = await picture.toImage(60, 60);
+    final ui.Image img = await picture.toImage(80, 80);
     final ByteData? byteData = await img.toByteData(
       format: ui.ImageByteFormat.png,
     );
