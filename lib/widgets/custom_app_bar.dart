@@ -19,7 +19,7 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   }) : super(key: key);
 
   @override
-  Size get preferredSize => Size.fromHeight(80);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   State<CustomAppBar> createState() => _CustomAppBarState();
@@ -34,7 +34,6 @@ class _CustomAppBarState extends State<CustomAppBar> {
     _loadNotificationCount();
   }
 
-  /// Carrega a contagem de notificações não lidas
   Future<void> _loadNotificationCount() async {
     try {
       final count = await NotificationsService.getUnreadNotificationsCount();
@@ -49,15 +48,12 @@ class _CustomAppBarState extends State<CustomAppBar> {
   }
 
   void _navigateToNotifications(BuildContext context) async {
-    // Navega para a tela de notificações
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => NotificationsProvider(),
       ),
     );
-    
-    // Quando voltar, atualiza a contagem
     _loadNotificationCount();
   }
 
@@ -71,52 +67,57 @@ class _CustomAppBarState extends State<CustomAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 80,
-      color: AppColors.oatWhite,
-      child: SafeArea(
+    return AppBar(
+      automaticallyImplyLeading: false,
+      backgroundColor: AppColors.oatWhite,
+      elevation: 0,
+      toolbarHeight: kToolbarHeight,
+      flexibleSpace: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              widget.showBackButton
-                  ? GestureDetector(
-                      onTap: widget.onBackPressed ?? () => Navigator.of(context).pop(),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.whiteWhite,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
-                              blurRadius: 10,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
+              // Logo ou botão de voltar
+              if (widget.showBackButton)
+                GestureDetector(
+                  onTap: widget.onBackPressed ?? () => Navigator.of(context).pop(),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.whiteWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
                         ),
-                        child: Icon(
-                          AppIcons.back,
-                          color: AppColors.textPrimary,
-                          size: 20,
-                        ),
-                      ),
-                    )
-                  : GestureDetector(
-                      onTap: () => _navigateToHome(context),
-                      child: SvgPicture.asset(
-                        'assets/images/kafex_logo_positive.svg',
-                        width: 160,
-                        height: 46,
-                      ),
+                      ],
                     ),
-
+                    child: Icon(
+                      AppIcons.back,
+                      color: AppColors.textPrimary,
+                      size: 20,
+                    ),
+                  ),
+                )
+              else
+                GestureDetector(
+                  onTap: () => _navigateToHome(context),
+                  child: SvgPicture.asset(
+                    'assets/images/kafex_logo_positive.svg',
+                    height: 38,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              
+              // Botão de notificação
               GestureDetector(
                 onTap: widget.onNotificationPressed ?? () => _navigateToNotifications(context),
                 child: Container(
-                  padding: EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(8),
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -125,15 +126,14 @@ class _CustomAppBarState extends State<CustomAppBar> {
                         size: 24,
                         color: AppColors.textPrimary,
                       ),
-                      
                       if (_notificationCount > 0)
                         Positioned(
                           right: -2,
                           top: -2,
                           child: Container(
-                            constraints: BoxConstraints(minWidth: 18),
+                            constraints: const BoxConstraints(minWidth: 18),
                             height: 18,
-                            padding: EdgeInsets.symmetric(horizontal: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
                             decoration: BoxDecoration(
                               color: AppColors.papayaSensorial,
                               borderRadius: BorderRadius.circular(9),
