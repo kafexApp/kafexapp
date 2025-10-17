@@ -29,7 +29,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final AuthService _authService = AuthService();
 
-  // Verifica se está rodando no iOS
   bool get _isIOS {
     if (kIsWeb) return false;
     return Platform.isIOS;
@@ -135,30 +134,68 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: CustomOutlineButton(
-                          text: 'Voltar',
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => WelcomeScreen()),
-                            );
-                          },
+                        child: SizedBox(
+                          height: 44,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (context) => WelcomeScreen()),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: AppColors.grayScale1,
+                                width: 1,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Voltar',
+                              style: GoogleFonts.albertSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.grayScale1,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                       SizedBox(width: 12),
                       Expanded(
-                        child: CustomOutlineButton(
-                          text: 'Recuperar senha',
-                          onPressed: () {
-                            if (!_isLoading) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ForgotPasswordScreen(),
-                                ),
-                              );
-                            }
-                          },
+                        child: SizedBox(
+                          height: 44,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              if (!_isLoading) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ForgotPasswordScreen(),
+                                  ),
+                                );
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: AppColors.grayScale1,
+                                width: 1,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              'Recuperar senha',
+                              style: GoogleFonts.albertSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.grayScale1,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -176,11 +213,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   SizedBox(height: 24),
 
-                  // Botões de social login - mostra Apple apenas no iOS
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Botão Google - sempre visível
                       GestureDetector(
                         onTap: _isLoading ? null : _handleGoogleSignIn,
                         child: Opacity(
@@ -193,7 +228,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
 
-                      // Botão Apple - apenas no iOS
                       if (_isIOS) ...[
                         SizedBox(width: 24),
                         GestureDetector(
