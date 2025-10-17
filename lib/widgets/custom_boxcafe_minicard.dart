@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
-import '../utils/app_icons.dart';
 import '../models/cafe_model.dart';
-import '../ui/cafe_detail/widgets/cafe_detail_modal.dart'; // NOVA IMPORTAÇÃO
+import '../ui/cafe_detail/widgets/cafe_detail_modal.dart';
 
 class CustomBoxcafeMinicard extends StatelessWidget {
   final CafeModel cafe;
@@ -20,14 +19,13 @@ class CustomBoxcafeMinicard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        showCafeDetailModal(context, cafe); // USANDO O NOVO MODAL
+        showCafeDetailModal(context, cafe);
         if (onTap != null) onTap!();
       },
       child: Container(
-        height: 141,
         decoration: BoxDecoration(
           color: AppColors.whiteWhite,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
@@ -37,26 +35,31 @@ class CustomBoxcafeMinicard extends StatelessWidget {
           ],
         ),
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.only(left: 16, right: 20),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                width: 109,
-                height: 109,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  image: DecorationImage(
-                    image: NetworkImage(cafe.imageUrl),
-                    fit: BoxFit.cover,
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    image: DecorationImage(
+                      image: NetworkImage(cafe.imageUrl),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
               SizedBox(width: 16),
               
-              Expanded(
+              Flexible(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       cafe.name,
@@ -113,12 +116,6 @@ class CustomBoxcafeMinicard extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              
-              Icon(
-                AppIcons.chevronDown,
-                color: AppColors.grayScale2,
-                size: 16,
               ),
             ],
           ),
