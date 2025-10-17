@@ -151,11 +151,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
+                              padding: EdgeInsets.symmetric(horizontal: 8),
                             ),
                             child: Text(
                               'Voltar',
                               style: GoogleFonts.albertSans(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.grayScale1,
                               ),
@@ -186,14 +187,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
+                              padding: EdgeInsets.symmetric(horizontal: 8),
                             ),
                             child: Text(
                               'Recuperar senha',
                               style: GoogleFonts.albertSans(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.grayScale1,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ),

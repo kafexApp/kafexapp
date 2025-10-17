@@ -250,26 +250,35 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
       children: [
         Row(
           children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primaryContainer,
+            GestureDetector(
+              onTap: () {
+                _pushToScreen(UserProfileProvider(
+                  userId: userManager.userUid,
+                  userName: userName,
+                  userAvatar: userPhotoUrl,
+                ));
+              },
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                ),
+                child: userPhotoUrl != null && userPhotoUrl.isNotEmpty
+                    ? ClipOval(
+                        child: Image.network(
+                          userPhotoUrl,
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildDefaultAvatar(userName);
+                          },
+                        ),
+                      )
+                    : _buildDefaultAvatar(userName),
               ),
-              child: userPhotoUrl != null && userPhotoUrl.isNotEmpty
-                  ? ClipOval(
-                      child: Image.network(
-                        userPhotoUrl,
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildDefaultAvatar(userName);
-                        },
-                      ),
-                    )
-                  : _buildDefaultAvatar(userName),
             ),
             
             SizedBox(width: 16),
