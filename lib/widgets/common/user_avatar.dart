@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../../services/avatar_service.dart';
 import '../../utils/app_colors.dart';
+import '../../ui/user_profile/widgets/user_profile_screen.dart';
+import '../../ui/user_profile/viewmodel/user_profile_viewmodel.dart';
+import '../../data/repositories/user_profile_repository.dart';
 
 class UserAvatar extends StatelessWidget {
   final User? user;
@@ -14,6 +18,8 @@ class UserAvatar extends StatelessWidget {
   final bool showBorder;
   final Color? borderColor;
   final double borderWidth;
+  final bool enableNavigation;
+  final String? userId;
 
   const UserAvatar({
     Key? key,
@@ -24,6 +30,8 @@ class UserAvatar extends StatelessWidget {
     this.showBorder = false,
     this.borderColor,
     this.borderWidth = 2.0,
+    this.enableNavigation = true,
+    this.userId,
   }) : super(key: key);
 
   @override
@@ -32,7 +40,7 @@ class UserAvatar extends StatelessWidget {
     final displayName = overrideName ?? user?.displayName;
     final optimizedUrl = AvatarService.optimizePhotoUrl(photoUrl, size: size.toInt());
 
-    return Container(
+    final avatarWidget = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -55,7 +63,7 @@ class UserAvatar extends StatelessWidget {
         image: optimizedUrl != null
             ? DecorationImage(
                 image: CachedNetworkImageProvider(optimizedUrl),
-                fit: BoxFit.contain, // MUDANÇA AQUI: de cover para contain
+                fit: BoxFit.contain,
                 onError: (exception, stackTrace) {
                   print('Erro ao carregar avatar: $exception');
                 },
@@ -63,6 +71,41 @@ class UserAvatar extends StatelessWidget {
             : null,
       ),
       child: optimizedUrl == null ? _buildInitialsAvatar(displayName) : null,
+    );
+
+    // Se navegação estiver habilitada, envolve com GestureDetector
+    if (enableNavigation) {
+      return GestureDetector(
+        onTap: () => _navigateToProfile(context),
+        child: avatarWidget,
+      );
+    }
+
+    return avatarWidget;
+  }
+
+  void _navigateToProfile(BuildContext context) {
+    // Apenas navega se tiver um userId ou user
+    final targetUserId = userId ?? user?.uid;
+    
+    if (targetUserId == null) {
+      print('⚠️ Não é possível navegar: userId não fornecido');
+      return;
+    }
+
+    print('👤 Navegando para perfil do usuário: $targetUserId');
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => UserProfileViewModel(
+            repository: UserProfileRepositoryImpl(),
+            userId: targetUserId,
+          ),
+          child: UserProfileScreen(),
+        ),
+      ),
     );
   }
 
