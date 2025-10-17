@@ -38,7 +38,7 @@ class TermsCheckbox extends StatelessWidget {
               width: 22,
               height: 22,
               decoration: BoxDecoration(
-                color: isChecked ? AppColors.whiteWhite : Colors.transparent,
+                color: AppColors.whiteWhite,
                 border: Border.all(
                   color: isChecked 
                       ? AppColors.papayaSensorial 
