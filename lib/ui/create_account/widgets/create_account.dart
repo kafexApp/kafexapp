@@ -340,6 +340,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       },
                     ),
                     
+                    SizedBox(height: 12),
+                    
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        'Após criar sua conta, se decidir sair, é só acessar Configurações no app e tocar em Deletar conta.',
+                        style: GoogleFonts.albertSans(
+                          fontSize: 12,
+                          color: AppColors.textSecondary.withOpacity(0.7),
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                    
                     SizedBox(height: 32),
                     
                     PrimaryButton(
