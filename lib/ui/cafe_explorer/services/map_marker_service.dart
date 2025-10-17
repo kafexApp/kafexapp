@@ -1,5 +1,7 @@
 // lib/ui/cafe_explorer/services/map_marker_service.dart
+// lib/ui/cafe_explorer/services/map_marker_service.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
@@ -11,12 +13,21 @@ class MapMarkerService {
   BitmapDescriptor? _customPin;
   final Map<String, BitmapDescriptor> _clusterIconCache = {};
 
-  /// Carrega o ícone personalizado do pin
+  /// Carrega o ícone personalizado do pin redimensionado
   Future<void> loadCustomPin() async {
-    _customPin = await BitmapDescriptor.fromAssetImage(
-      ImageConfiguration(devicePixelRatio: 12.0),
-      'assets/images/pin_kafex.png',
+    final ByteData data = await rootBundle.load('assets/images/pin_kafex.png');
+    final ui.Codec codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth: 120,
+      targetHeight: 120,
     );
+    final ui.FrameInfo frameInfo = await codec.getNextFrame();
+    final ByteData? byteData = await frameInfo.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+    final Uint8List resizedBytes = byteData!.buffer.asUint8List();
+    
+    _customPin = BitmapDescriptor.fromBytes(resizedBytes);
   }
 
   /// Verifica se o pin customizado está carregado
@@ -88,10 +99,10 @@ class MapMarkerService {
     final Canvas canvas = Canvas(pictureRecorder);
 
     // Tamanhos 30% maiores
-    const double canvasSize = 156.0; // 120 * 1.3
-    const double centerOffset = 78.0; // 60 * 1.3
-    const double outerRadius = 65.0; // 50 * 1.3
-    const double innerRadius = 42.0; // 32 * 1.3
+    const double canvasSize = 156.0;
+    const double centerOffset = 78.0;
+    const double outerRadius = 65.0;
+    const double innerRadius = 42.0;
 
     // Círculo externo (transparente)
     final Paint outerCirclePaint = Paint()
@@ -119,7 +130,7 @@ class MapMarkerService {
       text: TextSpan(
         text: clusterText,
         style: TextStyle(
-          fontSize: count > 99 ? 24 : 28, // 18 * 1.3 e 22 * 1.3
+          fontSize: count > 99 ? 24 : 28,
           fontWeight: FontWeight.bold,
           color: AppColors.whiteWhite,
         ),
