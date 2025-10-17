@@ -9,7 +9,7 @@ import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';
 import 'package:kafex/models/comment_models.dart';
 import 'package:kafex/ui/user_profile/widgets/user_profile_provider.dart';
 import 'package:kafex/services/comments_service.dart';
-import 'package:kafex/widgets/comments_bottom_sheet.dart';
+import 'package:kafex/ui/comments/widgets/comments_bottom_sheet.dart';
 import 'package:kafex/data/repositories/likes_repository.dart';
 
 class FeedPostCard extends StatefulWidget {

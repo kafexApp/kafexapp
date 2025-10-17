@@ -10,7 +10,7 @@ import '../widgets/traditional_post_widget.dart';
 import '../widgets/review_post_widget.dart';
 import '../widgets/new_coffee_post_widget.dart';
 import '../viewmodel/post_actions_viewmodel.dart';
-import '../../../widgets/comments_bottom_sheet.dart';
+import '../../comments/widgets/comments_bottom_sheet.dart';
 
 /// Tela de detalhes de um post específico
 /// Exibe o post completo e pode abrir o modal de comentários automaticamente

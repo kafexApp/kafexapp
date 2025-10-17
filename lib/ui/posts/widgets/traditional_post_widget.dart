@@ -6,7 +6,7 @@ import 'package:kafex/ui/posts/viewmodel/post_actions_viewmodel.dart';
 import 'package:kafex/ui/posts/widgets/base_post_widget.dart';
 import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/utils/app_icons.dart';
-import 'package:kafex/widgets/comments_bottom_sheet.dart';
+import 'package:kafex/ui/comments/widgets/comments_bottom_sheet.dart';
 
 class TraditionalPostWidget extends BasePostWidget {
   final VoidCallback? onViewAllComments;
