@@ -28,6 +28,7 @@ class _AddCafeScreenState extends State<AddCafeScreen>
   late Animation<double> _fadeAnimation;
 
   bool _toastShown = false;
+  bool _isKeyboardVisible = false;
 
   @override
   void initState() {
@@ -140,6 +141,10 @@ class _AddCafeScreenState extends State<AddCafeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Detecta se o teclado está aberto
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    _isKeyboardVisible = keyboardHeight > 0;
+
     return Scaffold(
       backgroundColor: AppColors.oatWhite,
       appBar: CustomAppBar(
@@ -170,24 +175,28 @@ class _AddCafeScreenState extends State<AddCafeScreen>
                       ],
                     ),
                   ),
-                  WizardNavigation(
-                    viewModel: viewModel,
-                    onNext: _nextStep,
-                    onPrevious: _previousStep,
-                    onSubmit: _submitCafe,
-                    onNewSubmission: _handleNewSubmission,
-                  ),
+                  // Só mostra a navegação se o teclado estiver fechado
+                  if (!_isKeyboardVisible)
+                    WizardNavigation(
+                      viewModel: viewModel,
+                      onNext: _nextStep,
+                      onPrevious: _previousStep,
+                      onSubmit: _submitCafe,
+                      onNewSubmission: _handleNewSubmission,
+                    ),
                 ],
               ),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: CustomBottomNavbar(
-                  isInCafeExplorer: true,
-                  onSearchPressed: () {},
+              // Só mostra a navbar se o teclado estiver fechado
+              if (!_isKeyboardVisible)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: CustomBottomNavbar(
+                    isInCafeExplorer: true,
+                    onSearchPressed: () {},
+                  ),
                 ),
-              ),
             ],
           );
         },

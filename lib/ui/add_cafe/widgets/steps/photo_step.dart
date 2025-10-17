@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_icons.dart';
@@ -22,9 +21,7 @@ class PhotoStep extends StatelessWidget {
 
   bool _isMobileWeb() {
     if (!kIsWeb) return false;
-    // Detectar se é mobile web checando user agent ou largura da tela
-    // Simplificado: considerar mobile se largura < 768px
-    return false; // Por enquanto, sempre retorna false no web
+    return false;
   }
 
   Future<void> _selectImageFromSource(
@@ -36,66 +33,7 @@ class PhotoStep extends StatelessWidget {
       print('📱 Plataforma: ${kIsWeb ? "Web" : Platform.operatingSystem}');
       print('🔍 Source: ${source == ImageSource.camera ? "Camera" : "Gallery"}');
 
-      // Web não precisa de permissões
-      if (kIsWeb) {
-        print('🌐 Executando no Web, pulando verificação de permissão');
-        await _pickImage(context, source);
-        return;
-      }
-
-      // Android e iOS: verificar permissões
-      Permission permission;
-      
-      if (source == ImageSource.camera) {
-        permission = Permission.camera;
-      } else {
-        // Para galeria, usar permissão específica por plataforma
-        if (Platform.isAndroid) {
-          // Android 13+ usa photos, versões antigas usam storage
-          final androidInfo = await _getAndroidVersion();
-          if (androidInfo >= 33) {
-            permission = Permission.photos;
-          } else {
-            permission = Permission.storage;
-          }
-        } else {
-          // iOS sempre usa photos
-          permission = Permission.photos;
-        }
-      }
-
-      print('🔐 Verificando permissão: ${permission.toString()}');
-
-      // Verificar status atual
-      final status = await permission.status;
-      print('📊 Status atual: ${status.toString()}');
-
-      if (status.isDenied) {
-        print('❓ Permissão negada, solicitando...');
-        final result = await permission.request();
-        print('📊 Resultado da solicitação: ${result.toString()}');
-        
-        if (!result.isGranted) {
-          print('❌ Permissão não concedida');
-          
-          if (result.isPermanentlyDenied) {
-            _showPermissionDialog(context, source);
-            return;
-          }
-          
-          CustomToast.showError(
-            context,
-            message: 'Permissão necessária para acessar ${source == ImageSource.camera ? "a câmera" : "a galeria"}',
-          );
-          return;
-        }
-      } else if (status.isPermanentlyDenied) {
-        print('⛔ Permissão permanentemente negada');
-        _showPermissionDialog(context, source);
-        return;
-      }
-
-      print('✅ Permissão concedida, selecionando imagem...');
+      // O image_picker gerencia as permissões automaticamente
       await _pickImage(context, source);
 
     } catch (e) {
@@ -104,16 +42,6 @@ class PhotoStep extends StatelessWidget {
         context,
         message: 'Erro ao selecionar foto. Tente novamente.',
       );
-    }
-  }
-
-  Future<int> _getAndroidVersion() async {
-    try {
-      if (!Platform.isAndroid) return 0;
-      // Retorna versão genérica para Android
-      return 33; // Assumir Android 13+ por padrão
-    } catch (e) {
-      return 33;
     }
   }
 
@@ -145,56 +73,23 @@ class PhotoStep extends StatelessWidget {
       }
     } catch (e) {
       print('❌ Erro no picker: $e');
-      throw e;
+      
+      // Verifica se é erro de permissão
+      if (e.toString().contains('photo') || 
+          e.toString().contains('camera') ||
+          e.toString().contains('permission')) {
+        CustomToast.showError(
+          context,
+          message: 'Permissão necessária. Ative nas configurações do seu dispositivo.',
+        );
+      } else {
+        throw e;
+      }
     }
-  }
-
-  void _showPermissionDialog(BuildContext context, ImageSource source) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Permissão necessária',
-          style: GoogleFonts.albertSans(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        content: Text(
-          'Para ${source == ImageSource.camera ? "tirar fotos" : "acessar sua galeria"}, precisamos da sua permissão. '
-          'Por favor, ative nas configurações do seu dispositivo.',
-          style: GoogleFonts.albertSans(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancelar',
-              style: GoogleFonts.albertSans(
-                color: AppColors.grayScale1,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              openAppSettings();
-            },
-            child: Text(
-              'Abrir configurações',
-              style: GoogleFonts.albertSans(
-                color: AppColors.papayaSensorial,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // No Web Desktop, esconder botão de câmera
     final showCameraButton = !kIsWeb || _isMobileWeb();
 
     return SingleChildScrollView(
@@ -235,7 +130,6 @@ class PhotoStep extends StatelessWidget {
               ],
             )
           else
-            // Web Desktop: apenas galeria
             _PhotoActionButton(
               icon: AppIcons.image,
               title: 'Selecionar foto',

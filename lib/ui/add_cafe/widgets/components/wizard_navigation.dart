@@ -28,9 +28,18 @@ class WizardNavigation extends StatelessWidget {
     final isLastStep = wizardState.isLastStep;
     final isSubmitting = viewModel.submitCafe.running;
     final submissionSuccess = viewModel.submissionSuccess;
+    
+    // Pega o padding inferior seguro do dispositivo
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 110),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        // 90 pixels fixos + área segura do dispositivo
+        90 + bottomPadding,
+      ),
       decoration: BoxDecoration(
         color: AppColors.whiteWhite,
         boxShadow: [
