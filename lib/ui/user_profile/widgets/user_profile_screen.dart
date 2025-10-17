@@ -6,6 +6,10 @@ import 'package:kafex/utils/app_icons.dart';
 import 'package:kafex/ui/posts/factories/post_card_factory.dart';
 import 'package:kafex/widgets/custom_boxcafe_minicard.dart';
 import 'package:kafex/ui/user_profile/viewmodel/user_profile_viewmodel.dart';
+import 'package:kafex/ui/profile_settings/widgets/profile_settings_screen.dart';
+import 'package:kafex/ui/profile_settings/viewmodel/profile_settings_viewmodel.dart';
+import 'package:kafex/data/repositories/profile_settings_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -40,6 +44,26 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  bool _isOwnProfile() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final viewModel = context.read<UserProfileViewModel>();
+    return currentUser?.uid == viewModel.userId;
+  }
+
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => ProfileSettingsViewModel(
+            repository: ProfileSettingsRepositoryImpl(),
+          ),
+          child: ProfileSettingsScreen(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -186,11 +210,49 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         color: AppColors.textSecondary,
                       ),
                     ),
+
+                    if (_isOwnProfile()) ...[
+                      SizedBox(height: 12),
+                      _buildEditProfileButton(),
+                    ],
                   ],
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditProfileButton() {
+    return SizedBox(
+      width: 160,
+      height: 36,
+      child: OutlinedButton.icon(
+        onPressed: _navigateToSettings,
+        icon: Icon(
+          Icons.edit_outlined,
+          size: 16,
+          color: AppColors.papayaSensorial,
+        ),
+        label: Text(
+          'Editar perfil',
+          style: GoogleFonts.albertSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.papayaSensorial,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(
+            color: AppColors.papayaSensorial,
+            width: 1.5,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
       ),
     );
