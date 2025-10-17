@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../utils/app_colors.dart';
@@ -13,6 +14,8 @@ import '../services/auth_service.dart';
 import 'forgot_password_screen.dart';
 import 'welcome_screen.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
+import '../ui/create_account/widgets/complete_profile_screen.dart';
+import '../ui/create_account/viewmodel/complete_profile_viewmodel.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -360,9 +363,34 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result.isSuccess && result.user != null) {
         String uid = result.user!.uid;
         String email = result.user?.email ?? 'usuario@icloud.com';
-        String name = result.user?.displayName ?? 
-                     UserManager.instance.extractNameFromEmail(email);
+        String name = result.user?.displayName ?? '';
         
+        // Verificar se o nome está vazio ou é um email criptografado
+        bool needsProfileCompletion = name.isEmpty || 
+                                      name.contains('@privaterelay.appleid.com') ||
+                                      name.length < 3;
+        
+        if (needsProfileCompletion) {
+          print('⚠️ Perfil incompleto, redirecionando para completar cadastro');
+          
+          setState(() {
+            _isLoading = false;
+          });
+          
+          // Redirecionar para tela de completar perfil
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChangeNotifierProvider(
+                create: (_) => CompleteProfileViewModel(),
+                child: CompleteProfileScreen(initialEmail: email),
+              ),
+            ),
+          );
+          return;
+        }
+        
+        // Perfil completo, continuar normalmente
         UserManager.instance.setUserData(
           uid: uid,
           name: name,
@@ -382,9 +410,11 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       CustomToast.showError(context, message: 'Erro no login com Apple: ${e.toString()}');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

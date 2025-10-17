@@ -19,11 +19,16 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late ScrollController _scrollController;
+  bool _showScrollToTop = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _scrollController = ScrollController();
+
+    _scrollController.addListener(_onScroll);
 
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -40,9 +45,30 @@ class _UserProfileScreenState extends State<UserProfileScreen>
     });
   }
 
+  void _onScroll() {
+    if (_scrollController.offset > 300 && !_showScrollToTop) {
+      setState(() {
+        _showScrollToTop = true;
+      });
+    } else if (_scrollController.offset <= 300 && _showScrollToTop) {
+      setState(() {
+        _showScrollToTop = false;
+      });
+    }
+  }
+
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -73,12 +99,42 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         return Scaffold(
           backgroundColor: AppColors.oatWhite,
           body: CustomScrollView(
+            controller: _scrollController,
             slivers: [
               _buildProfileHeader(viewModel),
               _buildStatsSection(viewModel),
               _buildTabBar(),
               _buildTabContent(viewModel),
             ],
+          ),
+          floatingActionButton: AnimatedOpacity(
+            opacity: _showScrollToTop ? 1.0 : 0.0,
+            duration: Duration(milliseconds: 300),
+            child: _showScrollToTop
+                ? Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: AppColors.whiteWhite,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      onPressed: _scrollToTop,
+                      icon: Icon(
+                        Icons.arrow_upward,
+                        color: AppColors.carbon,
+                        size: 24,
+                      ),
+                    ),
+                  )
+                : SizedBox.shrink(),
           ),
         );
       },
@@ -320,24 +376,29 @@ class _UserProfileScreenState extends State<UserProfileScreen>
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildStatItem(
-              'Posts',
-              (viewModel.userProfile?.postsCount ?? 0).toString(),
-              AppIcons.heart,
+            Expanded(
+              child: _buildStatItem(
+                'Posts',
+                (viewModel.userProfile?.postsCount ?? 0).toString(),
+                AppIcons.heart,
+              ),
             ),
             Container(height: 40, width: 1, color: AppColors.moonAsh),
-            _buildStatItem(
-              'Favoritos',
-              (viewModel.userProfile?.favoritesCount ?? 0).toString(),
-              AppIcons.bookmark,
+            Expanded(
+              child: _buildStatItem(
+                'Favoritos',
+                (viewModel.userProfile?.favoritesCount ?? 0).toString(),
+                AppIcons.bookmark,
+              ),
             ),
             Container(height: 40, width: 1, color: AppColors.moonAsh),
-            _buildStatItem(
-              'Quero visitar',
-              (viewModel.userProfile?.wantToVisitCount ?? 0).toString(),
-              AppIcons.location,
+            Expanded(
+              child: _buildStatItem(
+                'Quero visitar',
+                (viewModel.userProfile?.wantToVisitCount ?? 0).toString(),
+                AppIcons.location,
+              ),
             ),
           ],
         ),
@@ -361,6 +422,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         SizedBox(height: 4),
         Text(
           label,
+          textAlign: TextAlign.center,
           style: GoogleFonts.albertSans(
             fontSize: 12,
             color: AppColors.textSecondary,
@@ -405,93 +467,114 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       );
     }
 
-    return SliverFillRemaining(
-      child: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildPostsTab(viewModel),
-          _buildFavoritesTab(viewModel),
-          _buildWantToVisitTab(viewModel),
-        ],
+    // Determina qual conteúdo mostrar baseado na tab ativa
+    Widget currentTabContent;
+    switch (_tabController.index) {
+      case 0:
+        currentTabContent = _buildPostsList(viewModel);
+        break;
+      case 1:
+        currentTabContent = _buildFavoritesList(viewModel);
+        break;
+      case 2:
+        currentTabContent = _buildWantToVisitList(viewModel);
+        break;
+      default:
+        currentTabContent = _buildPostsList(viewModel);
+    }
+
+    return currentTabContent;
+  }
+
+  Widget _buildPostsList(UserProfileViewModel viewModel) {
+    if (viewModel.userPosts.isEmpty) {
+      return SliverFillRemaining(
+        child: _buildEmptyState(
+          'Nenhum post ainda',
+          'Este usuário ainda não fez nenhuma publicação.',
+          AppIcons.heart,
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final post = viewModel.userPosts[index];
+          return PostCardFactory.create(
+            post: post,
+            onLike: () => viewModel.likePost.execute(post.id),
+            onComment: () => viewModel.openComments.execute(post.id),
+          );
+        },
+        childCount: viewModel.userPosts.length,
       ),
     );
   }
 
-  Widget _buildPostsTab(UserProfileViewModel viewModel) {
-    if (viewModel.userPosts.isEmpty) {
-      return _buildEmptyState(
-        'Nenhum post ainda',
-        'Este usuário ainda não fez nenhuma publicação.',
-        AppIcons.heart,
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.only(top: 16, bottom: 16),
-      itemCount: viewModel.userPosts.length,
-      itemBuilder: (context, index) {
-        final post = viewModel.userPosts[index];
-
-        return PostCardFactory.create(
-          post: post,
-          onLike: () => viewModel.likePost.execute(post.id),
-          onComment: () => viewModel.openComments.execute(post.id),
-        );
-      },
-    );
-  }
-
-  Widget _buildFavoritesTab(UserProfileViewModel viewModel) {
+  Widget _buildFavoritesList(UserProfileViewModel viewModel) {
     if (viewModel.favoriteCafes.isEmpty) {
-      return _buildEmptyState(
-        'Nenhum favorito',
-        'Este usuário ainda não favoritou nenhuma cafeteria.',
-        AppIcons.bookmark,
+      return SliverFillRemaining(
+        child: _buildEmptyState(
+          'Nenhum favorito',
+          'Este usuário ainda não favoritou nenhuma cafeteria.',
+          AppIcons.bookmark,
+        ),
       );
     }
 
-    return ListView.builder(
+    return SliverPadding(
       padding: EdgeInsets.all(20),
-      itemCount: viewModel.favoriteCafes.length,
-      itemBuilder: (context, index) {
-        final cafe = viewModel.favoriteCafes[index];
-        return Container(
-          margin: EdgeInsets.only(bottom: 16),
-          child: CustomBoxcafeMinicard(
-            cafe: cafe,
-            onTap: () {
-              print('Cafeteria favorita ${cafe.name} clicada');
-            },
-          ),
-        );
-      },
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final cafe = viewModel.favoriteCafes[index];
+            return Container(
+              margin: EdgeInsets.only(bottom: 16),
+              child: CustomBoxcafeMinicard(
+                cafe: cafe,
+                onTap: () {
+                  print('Cafeteria favorita ${cafe.name} clicada');
+                },
+              ),
+            );
+          },
+          childCount: viewModel.favoriteCafes.length,
+        ),
+      ),
     );
   }
 
-  Widget _buildWantToVisitTab(UserProfileViewModel viewModel) {
+  Widget _buildWantToVisitList(UserProfileViewModel viewModel) {
     if (viewModel.wantToVisitCafes.isEmpty) {
-      return _buildEmptyState(
-        'Lista vazia',
-        'Este usuário ainda não marcou nenhuma cafeteria para visitar.',
-        AppIcons.location,
+      return SliverFillRemaining(
+        child: _buildEmptyState(
+          'Lista vazia',
+          'Este usuário ainda não marcou nenhuma cafeteria para visitar.',
+          AppIcons.location,
+        ),
       );
     }
 
-    return ListView.builder(
+    return SliverPadding(
       padding: EdgeInsets.all(20),
-      itemCount: viewModel.wantToVisitCafes.length,
-      itemBuilder: (context, index) {
-        final cafe = viewModel.wantToVisitCafes[index];
-        return Container(
-          margin: EdgeInsets.only(bottom: 16),
-          child: CustomBoxcafeMinicard(
-            cafe: cafe,
-            onTap: () {
-              print('Cafeteria "quero visitar" ${cafe.name} clicada');
-            },
-          ),
-        );
-      },
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final cafe = viewModel.wantToVisitCafes[index];
+            return Container(
+              margin: EdgeInsets.only(bottom: 16),
+              child: CustomBoxcafeMinicard(
+                cafe: cafe,
+                onTap: () {
+                  print('Cafeteria "quero visitar" ${cafe.name} clicada');
+                },
+              ),
+            );
+          },
+          childCount: viewModel.wantToVisitCafes.length,
+        ),
+      ),
     );
   }
 

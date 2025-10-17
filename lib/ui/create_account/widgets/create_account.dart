@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../utils/app_colors.dart';
 import '../../../widgets/custom_buttons.dart';
 import '../../../widgets/custom_text_fields.dart';
@@ -10,6 +12,8 @@ import './terms_checkbox.dart';
 import './username_selector.dart';
 import '../viewmodel/create_account_viewmodel.dart';
 import '../../home/widgets/home_screen_provider.dart';
+import './complete_profile_screen.dart';
+import '../viewmodel/complete_profile_viewmodel.dart';
 import '../../../screens/login_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -549,6 +553,36 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     final result = await _viewModel.signInWithApple();
 
     if (result.success) {
+      // Buscar o usuário atual do Firebase
+      final user = FirebaseAuth.instance.currentUser;
+      
+      if (user != null) {
+        String name = user.displayName ?? '';
+        String email = user.email ?? 'usuario@icloud.com';
+        
+        // Verificar se o nome está vazio ou é um email criptografado
+        bool needsProfileCompletion = name.isEmpty || 
+                                      name.contains('@privaterelay.appleid.com') ||
+                                      name.length < 3;
+        
+        if (needsProfileCompletion) {
+          print('⚠️ Perfil incompleto, redirecionando para completar cadastro');
+          
+          // Redirecionar para tela de completar perfil
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChangeNotifierProvider(
+                create: (_) => CompleteProfileViewModel(),
+                child: CompleteProfileScreen(initialEmail: email),
+              ),
+            ),
+          );
+          return;
+        }
+      }
+      
+      // Perfil completo, continuar normalmente
       _showSuccessMessage(result.successMessage!);
       Navigator.pushReplacement(
         context,
