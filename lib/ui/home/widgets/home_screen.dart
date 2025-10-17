@@ -7,7 +7,7 @@ import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/side_menu_overlay.dart';
 import '../../posts/factories/post_card_factory.dart';
 import '../viewmodel/home_feed_viewmodel.dart';
-import '../../../utils/sync_user_photo_helper.dart';
+import '../../../services/auth_state_handler.dart';
 import 'welcome_section.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _syncUserPhotoOnce();
+    _syncUserDataOnce();
     _setupScrollListener();
   }
 
@@ -40,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _syncUserPhotoOnce() async {
+  Future<void> _syncUserDataOnce() async {
     if (_photoSyncExecuted) return;
 
     _photoSyncExecuted = true;
@@ -48,10 +48,10 @@ class _HomeScreenState extends State<HomeScreen> {
     await Future.delayed(Duration(milliseconds: 500));
 
     try {
-      print('🔄 Iniciando sincronização automática da foto...');
-      await SyncUserPhotoHelper.forceSyncWithDebug();
+      print('🔄 Iniciando sincronização completa dos dados...');
+      await AuthStateHandler.syncUserData();
     } catch (e) {
-      print('❌ Erro na sincronização automática: $e');
+      print('❌ Erro na sincronização: $e');
     }
   }
 

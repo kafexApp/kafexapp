@@ -43,7 +43,23 @@ class WelcomeSection extends StatelessWidget {
                     Navigator.pushNamed(context, '/profile');
                   },
                   borderRadius: BorderRadius.circular(100),
-                  child: UserAvatar(user: currentUser, size: 76),
+                  child: ClipOval(
+                    child: Container(
+                      width: 76,
+                      height: 76,
+                      child: currentUser?.photoURL != null
+                          ? Image.network(
+                              currentUser!.photoURL!,
+                              width: 76,
+                              height: 76,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return _buildFallbackAvatar(firstName);
+                              },
+                            )
+                          : _buildFallbackAvatar(firstName),
+                    ),
+                  ),
                 ),
                 SizedBox(width: 8),
                 Expanded(
@@ -107,5 +123,27 @@ class WelcomeSection extends StatelessWidget {
   String _getFirstName(String? fullName) {
     if (fullName == null || fullName.isEmpty) return 'Usuário';
     return fullName.split(' ').first;
+  }
+
+  Widget _buildFallbackAvatar(String name) {
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+    return Container(
+      width: 76,
+      height: 76,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.papayaSensorial.withOpacity(0.2),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w600,
+            color: AppColors.papayaSensorial,
+          ),
+        ),
+      ),
+    );
   }
 }

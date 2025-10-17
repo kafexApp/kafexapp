@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:kafex/data/models/domain/profile_settings.dart';
 import 'package:kafex/data/repositories/profile_settings_repository.dart';
 import 'package:kafex/utils/command.dart';
@@ -18,7 +19,7 @@ class ProfileSettingsViewModel extends ChangeNotifier {
 
   // Estados
   ProfileSettingsState _state = const ProfileSettingsState();
-  List<int>? _imageBytes; // Para web
+  List<int>? _imageBytes;
 
   // Getters
   ProfileSettingsState get state => _state;
@@ -26,7 +27,7 @@ class ProfileSettingsViewModel extends ChangeNotifier {
   bool get isLoading => _state.isLoading;
   bool get isSaving => _state.isSaving;
   String? get selectedImagePath => _state.selectedImagePath;
-  List<int>? get imageBytes => _imageBytes; // Expor bytes
+  List<int>? get imageBytes => _imageBytes;
   bool get hasChanges => _state.settings?.hasChanges ?? false;
 
   // Commands
@@ -37,7 +38,6 @@ class ProfileSettingsViewModel extends ChangeNotifier {
   late final Command0<void> deleteAccount = Command0(_deleteAccount);
   late final Command1<void, ProfileSettings> updateSettings = Command1(_updateSettings);
 
-  // Método para carregar settings
   Future<Result<void>> _loadSettings() async {
     _updateState(_state.copyWith(isLoading: true, errorMessage: null));
     
@@ -66,7 +66,6 @@ class ProfileSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  // Método para selecionar imagem
   Future<Result<void>> _selectImage() async {
     try {
       final ImagePicker picker = ImagePicker();
@@ -78,12 +77,10 @@ class ProfileSettingsViewModel extends ChangeNotifier {
       );
 
       if (image != null) {
-        // Ler bytes da imagem (necessário para web)
         _imageBytes = await image.readAsBytes();
         
         _updateState(_state.copyWith(selectedImagePath: image.path));
         
-        // Marcar como tendo mudanças
         if (_state.settings != null) {
           _updateState(_state.copyWith(
             settings: _state.settings!.copyWith(hasChanges: true),
@@ -104,7 +101,6 @@ class ProfileSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  // Método para salvar settings
   Future<Result<void>> _saveSettings(ProfileSettings settings) async {
     _updateState(_state.copyWith(isSaving: true, errorMessage: null));
     
@@ -119,7 +115,6 @@ class ProfileSettingsViewModel extends ChangeNotifier {
         return Result.error(Exception('Usuário não autenticado'));
       }
 
-      // Se houver imagem selecionada, fazer upload
       String? fotoUrl = settings.fotoUrl;
       
       if (_state.selectedImagePath != null && _imageBytes != null) {
@@ -135,27 +130,47 @@ class ProfileSettingsViewModel extends ChangeNotifier {
           fotoUrl = uploadResult;
           print('✅ Upload concluído: $fotoUrl');
           
-          // Deletar foto antiga se existir
           if (settings.fotoUrl != null && settings.fotoUrl!.isNotEmpty) {
             await AvatarService.deleteAvatar(settings.fotoUrl!);
+          }
+          
+          // Limpar cache da imagem antiga
+          if (settings.fotoUrl != null) {
+            await CachedNetworkImage.evictFromCache(settings.fotoUrl!);
           }
         } else {
           print('⚠️ Falha no upload da foto');
         }
       }
 
-      // Atualizar settings com a nova URL da foto
       final updatedSettings = settings.copyWith(fotoUrl: fotoUrl);
 
-      // Salvar no repository
       final result = await _repository.saveUserSettings(updatedSettings);
 
       if (result.isOk) {
+        // Atualizar Firebase Auth com nova foto
+        if (fotoUrl != null) {
+          await firebaseUser.updatePhotoURL(fotoUrl);
+          await firebaseUser.reload();
+          print('✅ Firebase Auth atualizado com nova foto');
+        }
+        
+        // Atualizar nome se mudou
+        if (settings.nomeExibicao != firebaseUser.displayName) {
+          await firebaseUser.updateDisplayName(settings.nomeExibicao);
+          await firebaseUser.reload();
+          print('✅ Firebase Auth atualizado com novo nome');
+        }
+        
         _updateState(_state.copyWith(
           settings: updatedSettings.copyWith(hasChanges: false),
           isSaving: false,
           selectedImagePath: null,
         ));
+        
+        // Limpar bytes da imagem
+        _imageBytes = null;
+        
         return Result.ok(null);
       } else {
         _updateState(_state.copyWith(
@@ -173,7 +188,6 @@ class ProfileSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  // Método para redefinir senha
   Future<Result<void>> _resetPassword() async {
     try {
       if (_state.settings?.email == null) {
@@ -200,7 +214,6 @@ class ProfileSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  // Método para deletar conta
   Future<Result<void>> _deleteAccount() async {
     _updateState(_state.copyWith(isSaving: true, errorMessage: null));
     
@@ -226,19 +239,16 @@ class ProfileSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  // Método para atualizar settings localmente
   Future<Result<void>> _updateSettings(ProfileSettings settings) async {
     _updateState(_state.copyWith(settings: settings));
     return Result.ok(null);
   }
 
-  // Método auxiliar para atualizar estado
   void _updateState(ProfileSettingsState newState) {
     _state = newState;
     notifyListeners();
   }
 
-  // Método para obter caminho da imagem de perfil
   String getProfileImagePath() {
     if (_state.selectedImagePath != null) {
       return _state.selectedImagePath!;
@@ -249,7 +259,6 @@ class ProfileSettingsViewModel extends ChangeNotifier {
            '';
   }
 
-  // Método para construir avatar de fallback
   Widget buildFallbackAvatar(String userName) {
     final colorIndex = userName.isNotEmpty ? userName.codeUnitAt(0) % 5 : 0;
     final avatarColors = [

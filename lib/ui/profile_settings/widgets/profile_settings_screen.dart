@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -66,24 +68,33 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   }
 
   Widget _buildProfileImage(ProfileSettingsViewModel viewModel) {
-    final imagePath = viewModel.getProfileImagePath();
-    
+    // Se há imagem selecionada localmente
     if (viewModel.selectedImagePath != null) {
-      return Container(
-        width: 114,
-        height: 114,
-        decoration: BoxDecoration(
-          color: AppColors.papayaSensorial.withOpacity(0.2),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          PhosphorIcons.image(),
-          size: 40,
-          color: AppColors.papayaSensorial,
-        ),
-      );
+      if (kIsWeb) {
+        // Web: usar bytes
+        if (viewModel.imageBytes != null) {
+          return Image.memory(
+            Uint8List.fromList(viewModel.imageBytes!),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return viewModel.buildFallbackAvatar(_nameController.text);
+            },
+          );
+        }
+      } else {
+        // Mobile: usar File
+        return Image.file(
+          File(viewModel.selectedImagePath!),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return viewModel.buildFallbackAvatar(_nameController.text);
+          },
+        );
+      }
     }
     
+    // Se há URL da foto no perfil
+    final imagePath = viewModel.getProfileImagePath();
     if (imagePath.isNotEmpty && imagePath.startsWith('http')) {
       return Image.network(
         imagePath,
@@ -94,6 +105,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       );
     }
     
+    // Fallback: avatar com inicial
     return viewModel.buildFallbackAvatar(_nameController.text);
   }
 
