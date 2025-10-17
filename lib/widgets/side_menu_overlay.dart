@@ -318,7 +318,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               style: IconButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
+                backgroundColor: AppColors.oatWhite,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

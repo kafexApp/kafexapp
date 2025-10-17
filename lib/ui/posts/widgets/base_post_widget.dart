@@ -445,7 +445,7 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
 
   Widget buildCustomActions(PostActionsViewModel viewModel) {
     return Container(
-      padding: EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: EdgeInsets.fromLTRB(12, 4, 12, 8),
       child: Row(
         children: [
           _buildActionButton(
