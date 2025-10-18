@@ -20,6 +20,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _photoSyncExecuted = false;
   final ScrollController _scrollController = ScrollController();
+  bool _showScrollToTopButton = false;
 
   @override
   void initState() {
@@ -30,6 +31,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _setupScrollListener() {
     _scrollController.addListener(() {
+      // Mostrar/esconder botão de voltar ao topo
+      if (_scrollController.offset > 300 && !_showScrollToTopButton) {
+        setState(() {
+          _showScrollToTopButton = true;
+        });
+      } else if (_scrollController.offset <= 300 && _showScrollToTopButton) {
+        setState(() {
+          _showScrollToTopButton = false;
+        });
+      }
+
+      // Carregar mais posts quando chegar perto do fim
       if (_scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - 200) {
         final viewModel = context.read<HomeFeedViewModel>();
@@ -38,6 +51,14 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+  }
+
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
   }
 
   Future<void> _syncUserDataOnce() async {
@@ -92,6 +113,42 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
+          
+          // Botão de voltar ao topo - Posicionado acima da navbar
+          Positioned(
+            right: 16,
+            bottom: 140,
+            child: AnimatedOpacity(
+              opacity: _showScrollToTopButton ? 1.0 : 0.0,
+              duration: Duration(milliseconds: 300),
+              child: _showScrollToTopButton
+                  ? Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.whiteWhite,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        onPressed: _scrollToTop,
+                        icon: Icon(
+                          Icons.arrow_upward,
+                          color: AppColors.carbon,
+                          size: 24,
+                        ),
+                      ),
+                    )
+                  : SizedBox.shrink(),
+            ),
+          ),
+
           Positioned(
             left: 0,
             right: 0,
