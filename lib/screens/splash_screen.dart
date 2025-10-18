@@ -3,7 +3,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../utils/app_colors.dart';
 import '../services/update_service.dart';
+import '../services/auth_service.dart';
+import '../utils/user_manager.dart';
 import 'welcome_screen.dart';
+import '../ui/home/widgets/home_screen_provider.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -26,7 +29,8 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _exitFade;
 
   bool _hasCheckedForUpdates = false;
-  String _appVersion = '...'; // Versão será carregada dinamicamente
+  String _appVersion = '...';
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -45,37 +49,32 @@ class _SplashScreenState extends State<SplashScreen>
     } catch (e) {
       print('Erro ao carregar versão do app: $e');
       setState(() {
-        _appVersion = 'versão 3.0.0'; // Fallback
+        _appVersion = 'versão 3.0.0';
       });
     }
   }
 
   void _initAnimations() {
-    // Controller para logo (800ms)
     _logoController = AnimationController(
       duration: Duration(milliseconds: 800),
       vsync: this,
     );
 
-    // Controller para background (2 segundos)
     _backgroundController = AnimationController(
       duration: Duration(milliseconds: 2000),
       vsync: this,
     );
 
-    // Controller para texto (1 segundo)
     _textController = AnimationController(
       duration: Duration(milliseconds: 1000),
       vsync: this,
     );
 
-    // Controller para saída (500ms)
     _exitController = AnimationController(
       duration: Duration(milliseconds: 500),
       vsync: this,
     );
 
-    // Animações do logo
     _logoOpacity = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -84,7 +83,6 @@ class _SplashScreenState extends State<SplashScreen>
       curve: Curves.easeInOut,
     ));
 
-    // Animação do background
     _backgroundGradient = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -93,7 +91,6 @@ class _SplashScreenState extends State<SplashScreen>
       curve: Curves.easeInOut,
     ));
 
-    // Animações do texto
     _textOpacity = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -110,7 +107,6 @@ class _SplashScreenState extends State<SplashScreen>
       curve: Curves.easeOutQuart,
     ));
 
-    // Animação de saída
     _exitFade = Tween<double>(
       begin: 1.0,
       end: 0.0,
@@ -121,35 +117,94 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startAnimationSequence() async {
-    // Iniciar background imediatamente
     _backgroundController.forward();
     
-    // Aguardar 200ms e iniciar logo
     await Future.delayed(Duration(milliseconds: 200));
     _logoController.forward();
     
-    // Aguardar 800ms e iniciar texto
     await Future.delayed(Duration(milliseconds: 800));
     _textController.forward();
     
-    // Verificar atualizações em paralelo com as animações
     _checkForUpdatesInBackground();
     
-    // Aguardar mais 1.5 segundos e fazer transição
     await Future.delayed(Duration(milliseconds: 1500));
     
-    // Aguardar verificação de atualização completar
     while (!_hasCheckedForUpdates) {
       await Future.delayed(Duration(milliseconds: 100));
     }
     
-    // Iniciar animação de saída
     _exitController.forward();
     
-    // Navegar após animação de saída
     await Future.delayed(Duration(milliseconds: 500));
     
     if (mounted) {
+      await _checkAuthAndNavigate();
+    }
+  }
+
+  Future<void> _checkAuthAndNavigate() async {
+    try {
+      // Verificar se há usuário logado
+      final user = _authService.currentUser;
+      
+      if (user != null) {
+        print('✅ Usuário já logado: ${user.email}');
+        
+        // Restaurar dados do usuário no UserManager
+        String email = user.email ?? '';
+        String name = user.displayName ?? 
+                     UserManager.instance.extractNameFromEmail(email);
+        
+        UserManager.instance.setUserData(
+          uid: user.uid,
+          name: name,
+          email: email,
+          photoUrl: user.photoURL,
+        );
+        
+        // Navegar para tela inicial
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => HomeScreenProvider(),
+            transitionDuration: Duration(milliseconds: 400),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+          ),
+        );
+      } else {
+        print('⚠️ Nenhum usuário logado, indo para Welcome');
+        
+        // Navegar para tela de boas-vindas
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => WelcomeScreen(),
+            transitionDuration: Duration(milliseconds: 400),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: Offset(1.0, 0.0),
+                    end: Offset.zero,
+                  ).animate(CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutQuart,
+                  )),
+                  child: child,
+                ),
+              );
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Erro ao verificar autenticação: $e');
+      
+      // Em caso de erro, ir para Welcome
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => WelcomeScreen(),
@@ -157,16 +212,7 @@ class _SplashScreenState extends State<SplashScreen>
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(
               opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: Offset(1.0, 0.0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutQuart,
-                )),
-                child: child,
-              ),
+              child: child,
             );
           },
         ),
@@ -176,28 +222,22 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _checkForUpdatesInBackground() async {
     try {
-      // Verificar se há atualizações disponíveis
       final hasUpdate = await KafexUpdateService.checkForUpdates();
       
       if (hasUpdate && mounted) {
-        // Obter versões
         final currentVersion = await KafexUpdateService.getCurrentVersion();
         final newVersion = await KafexUpdateService.getAvailableVersion();
         
         if (newVersion != null) {
-          // Mostrar dialog de atualização
           KafexUpdateService.showCustomUpdateDialog(
             context: context,
             currentVersion: currentVersion,
             newVersion: newVersion,
-            isRequired: false, // Defina como true se quiser tornar obrigatório
+            isRequired: false,
             onUpdate: () {
-              // Fechar dialog e abrir loja
               Navigator.of(context).pop();
-              // O upgrader vai abrir a loja automaticamente
             },
             onLater: () {
-              // Fechar dialog e continuar
               Navigator.of(context).pop();
             },
           );
@@ -261,7 +301,6 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 child: Stack(
                   children: [
-                    // Efeito de partículas de fundo
                     ...List.generate(20, (index) {
                       final delay = index * 0.1;
                       final opacity = (_backgroundGradient.value - delay).clamp(0.0, 1.0);
@@ -289,7 +328,6 @@ class _SplashScreenState extends State<SplashScreen>
                       );
                     }),
 
-                    // Área principal com logo
                     SafeArea(
                       child: Column(
                         children: [
@@ -306,7 +344,6 @@ class _SplashScreenState extends State<SplashScreen>
                             ),
                           ),
 
-                          // Área do texto da versão e frase
                           SlideTransition(
                             position: _textSlide,
                             child: FadeTransition(
@@ -315,7 +352,6 @@ class _SplashScreenState extends State<SplashScreen>
                                 padding: const EdgeInsets.only(bottom: 60.0),
                                 child: Column(
                                   children: [
-                                    // Texto da versão (dinâmico)
                                     Text(
                                       _appVersion,
                                       style: TextStyle(
@@ -327,10 +363,8 @@ class _SplashScreenState extends State<SplashScreen>
                                       ),
                                     ),
                                     
-                                    // Espaçamento entre versão e frase
                                     SizedBox(height: 12),
                                     
-                                    // Frase adicional
                                     Text(
                                       'Feito com muito ☕️ e IA para amantes de café.',
                                       textAlign: TextAlign.center,
