@@ -3,21 +3,29 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../../../data/models/domain/post.dart';
 import '../../../data/repositories/feed_repository.dart';
+import '../../../data/repositories/analytics_repository.dart'; // NOVO
 import '../../../utils/command.dart';
 import '../../../utils/result.dart';
 import '../../../services/event_bus_service.dart';
 
 class HomeFeedViewModel extends ChangeNotifier {
-  HomeFeedViewModel({required FeedRepository feedRepository})
-    : _feedRepository = feedRepository {
+  HomeFeedViewModel({
+    required FeedRepository feedRepository,
+    required AnalyticsRepository analyticsRepository, // NOVO
+  }) : _feedRepository = feedRepository,
+       _analyticsRepository = analyticsRepository { // NOVO
     loadFeed = Command0(_loadFeed)..execute();
     refreshFeed = Command0(_refreshFeed);
     loadMorePosts = Command0(_loadMorePosts);
 
     _listenToPostEvents();
+    
+    // NOVO - Log screen view quando ViewModel é criado
+    _logScreenView();
   }
 
   final FeedRepository _feedRepository;
+  final AnalyticsRepository _analyticsRepository; // NOVO
   final EventBusService _eventBus = EventBusService();
   StreamSubscription<PostCreatedEvent>? _postCreatedSubscription;
   StreamSubscription<PostDeletedEvent>? _postDeletedSubscription;
@@ -38,6 +46,21 @@ class HomeFeedViewModel extends ChangeNotifier {
 
   bool get hasMorePosts => _hasMorePosts;
   bool get isLoadingMore => _isLoadingMore;
+
+  // NOVO - Debounce para post views (evita spam)
+  final Map<String, DateTime> _lastPostViewTime = {};
+  static const _postViewDebounceSeconds = 2;
+
+  // NOVO - Log screen view (assíncrono, não bloqueia)
+  void _logScreenView() {
+    // Executa em background, não afeta abertura da tela
+    _analyticsRepository.logScreenView(
+      screenName: 'feed',
+      screenClass: 'HomeFeedViewModel',
+    ).catchError((error) {
+      print('⚠️ Erro ao logar screen view: $error');
+    });
+  }
 
   void _listenToPostEvents() {
     _postCreatedSubscription = _eventBus.on<PostCreatedEvent>().listen((event) {
@@ -103,6 +126,17 @@ class HomeFeedViewModel extends ChangeNotifier {
       _currentOffset = _posts.length;
       _hasMorePosts = _posts.length >= 10;
       print('✅ Feed inicial carregado com ${_posts.length} posts');
+      
+      // NOVO - Log evento de feed view (assíncrono)
+      _analyticsRepository.logEvent(
+        eventName: 'feed_view',
+        parameters: {
+          'posts_count': _posts.length,
+          'has_more': _hasMorePosts,
+        },
+      ).catchError((error) {
+        print('⚠️ Erro ao logar feed view: $error');
+      });
     } else {
       print('❌ Erro ao carregar feed: ${result.asError.error}');
       _posts = [];
@@ -124,6 +158,12 @@ class HomeFeedViewModel extends ChangeNotifier {
       _currentOffset = _posts.length;
       _hasMorePosts = _posts.length >= 10;
       print('✅ Feed atualizado com ${_posts.length} posts');
+      
+      // NOVO - Log evento de refresh (assíncrono, não bloqueia UI)
+      _analyticsRepository.logFeedRefresh().catchError((error) {
+        print('⚠️ Erro ao logar feed refresh: $error');
+      });
+      
       notifyListeners();
     } else {
       print('❌ Erro ao atualizar feed: ${result.asError.error}');
@@ -161,6 +201,18 @@ class HomeFeedViewModel extends ChangeNotifier {
         print(
           '✅ ${newPosts.length} novos posts carregados. Total: ${_posts.length}',
         );
+        
+        // NOVO - Log evento de scroll/load more (assíncrono)
+        _analyticsRepository.logEvent(
+          eventName: 'feed_load_more',
+          parameters: {
+            'new_posts_count': newPosts.length,
+            'total_posts': _posts.length,
+            'offset': _currentOffset,
+          },
+        ).catchError((error) {
+          print('⚠️ Erro ao logar load more: $error');
+        });
       }
 
       notifyListeners();
@@ -171,16 +223,94 @@ class HomeFeedViewModel extends ChangeNotifier {
     return result;
   }
 
+  // NOVO - Método para logar visualização de post (com debounce)
+  void logPostView(Post post) {
+    // Debounce: só loga se passou tempo suficiente desde último log
+    final now = DateTime.now();
+    final lastTime = _lastPostViewTime[post.id];
+    
+    if (lastTime != null) {
+      final difference = now.difference(lastTime).inSeconds;
+      if (difference < _postViewDebounceSeconds) {
+        return; // Ignora, foi logado recentemente
+      }
+    }
+    
+    // Atualiza último tempo
+    _lastPostViewTime[post.id] = now;
+    
+    // Log assíncrono (não bloqueia scroll)
+    _analyticsRepository.logPostView(
+      postId: int.tryParse(post.id) ?? 0,
+      postType: post.type.toString().split('.').last,
+    ).catchError((error) {
+      print('⚠️ Erro ao logar post view: $error');
+    });
+  }
+
   void likePost(String postId) {
     final index = _posts.indexWhere((post) => post.id == postId);
     if (index != -1) {
       final post = _posts[index];
+      final willLike = !post.isLiked;
+      
+      // Atualiza UI IMEDIATAMENTE (performance)
       _posts[index] = post.copyWith(
-        isLiked: !post.isLiked,
-        likes: post.isLiked ? post.likes - 1 : post.likes + 1,
+        isLiked: willLike,
+        likes: willLike ? post.likes + 1 : post.likes - 1,
       );
       notifyListeners();
+      
+      // NOVO - Log analytics em BACKGROUND (não bloqueia UI)
+      if (willLike) {
+        _analyticsRepository.logPostLike(
+          postId: int.tryParse(postId) ?? 0,
+          postType: post.type.toString().split('.').last,
+        ).catchError((error) {
+          print('⚠️ Erro ao logar like: $error');
+        });
+      } else {
+        _analyticsRepository.logPostUnlike(
+          postId: int.tryParse(postId) ?? 0,
+          postType: post.type.toString().split('.').last,
+        ).catchError((error) {
+          print('⚠️ Erro ao logar unlike: $error');
+        });
+      }
     }
+  }
+
+  // NOVO - Método para logar compartilhamento
+  void logPostShare(String postId, String shareMethod) {
+    final post = _posts.firstWhere(
+      (p) => p.id == postId,
+      orElse: () => _posts.first,
+    );
+    
+    // Log assíncrono
+    _analyticsRepository.logPostShare(
+      postId: int.tryParse(postId) ?? 0,
+      postType: post.type.toString().split('.').last,
+      shareMethod: shareMethod,
+    ).catchError((error) {
+      print('⚠️ Erro ao logar share: $error');
+    });
+  }
+
+  // NOVO - Método para logar comentário
+  void logPostComment(String postId) {
+    final post = _posts.firstWhere(
+      (p) => p.id == postId,
+      orElse: () => _posts.first,
+    );
+    
+    // Log assíncrono
+    _analyticsRepository.logPostComment(
+      postId: int.tryParse(postId) ?? 0,
+      postType: post.type.toString().split('.').last,
+    ).catchError((error) {
+      print('⚠️ Erro ao logar comment: $error');
+    });
   }
 
   void deletePost(String postId) {
@@ -196,6 +326,7 @@ class HomeFeedViewModel extends ChangeNotifier {
     _postDeletedSubscription?.cancel();
     _favoriteChangedSubscription?.cancel();
     _wantToVisitChangedSubscription?.cancel();
+    _lastPostViewTime.clear(); // NOVO - Limpa cache de debounce
     super.dispose();
   }
 }

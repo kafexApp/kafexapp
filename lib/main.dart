@@ -9,12 +9,19 @@ import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
 import 'ui/home/widgets/home_screen_provider.dart';
 import 'data/repositories/cafe_repository.dart';
-// NOVO - Push Notifications
+// Push Notifications
 import 'data/repositories/push_notification_repository.dart';
 import 'utils/push_notification_handler.dart';
+// NOVO - Analytics
+import 'data/services/firebase_analytics_service.dart';
+import 'data/repositories/analytics_repository.dart';
+import 'utils/analytics_navigation_observer.dart';
 
 // Global Navigator Key para navegação via push notifications
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// NOVO - Instância global do Analytics Repository
+late AnalyticsRepository analyticsRepository;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +41,10 @@ void main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yb2xqa2draXNldXFsd2xhaWJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MDc3NzQsImV4cCI6MjA2MjI4Mzc3NH0.umy8tSCMmO1_goqX0TpO-coC2K6FXnwwZVQpqDDMrmw',
   );
 
-  // NOVO - Inicializar Push Notifications
+  // NOVO - Inicializar Analytics
+  await _initializeAnalytics();
+
+  // Inicializar Push Notifications
   await _initializePushNotifications();
 
   print('🔍 Diagnóstico - kIsWeb: $kIsWeb');
@@ -42,7 +52,30 @@ void main() async {
   runApp(KafexApp());
 }
 
-// NOVO - Função para inicializar push notifications
+// NOVO - Função para inicializar analytics
+Future<void> _initializeAnalytics() async {
+  try {
+    print('📊 Inicializando Firebase Analytics...');
+
+    // Criar instância do service
+    final analyticsService = FirebaseAnalyticsService();
+
+    // Criar instância do repository
+    analyticsRepository = AnalyticsRepository(
+      analyticsService: analyticsService,
+    );
+
+    // Inicializar
+    await analyticsRepository.initialize();
+
+    print('✅ Firebase Analytics inicializado com sucesso!');
+  } catch (e) {
+    print('❌ Erro ao inicializar Analytics: $e');
+    // Não bloqueia a execução do app se analytics falharem
+  }
+}
+
+// Função para inicializar push notifications
 Future<void> _initializePushNotifications() async {
   try {
     print('🔔 Inicializando sistema de Push Notifications...');
@@ -70,13 +103,15 @@ class KafexApp extends StatelessWidget {
         Provider<CafeRepository>(
           create: (_) => CafeRepositoryImpl(),
         ),
-        // NOVO - Adicionar Push Notification Repository
         Provider<PushNotificationRepository>(
           create: (_) => PushNotificationRepositoryImpl(),
         ),
+        // NOVO - Adicionar Analytics Repository ao Provider
+        Provider<AnalyticsRepository>(
+          create: (_) => analyticsRepository,
+        ),
       ],
       child: MaterialApp(
-        // NOVO - Adicionar navigatorKey global
         navigatorKey: navigatorKey,
         title: 'Kafex',
         theme: AppTheme.lightTheme,
@@ -85,6 +120,12 @@ class KafexApp extends StatelessWidget {
         routes: {
           '/home-test': (context) => const HomeScreenProvider(),
         },
+        // NOVO - Adicionar Analytics Navigation Observer
+        navigatorObservers: [
+          AnalyticsNavigationObserver(
+            analyticsRepository: analyticsRepository,
+          ),
+        ],
         builder: (context, child) {
           return MediaQuery(
             data: MediaQuery.of(context),

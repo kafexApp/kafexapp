@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/push_notification_model.dart';
+import '../../services/notifications_service.dart';
 
 /// Handler para push notifications em background (deve ser top-level function)
 @pragma('vm:entry-point')
@@ -13,6 +14,43 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('📱 Push Notification recebida em background: ${message.messageId}');
   print('Título: ${message.notification?.title}');
   print('Mensagem: ${message.notification?.body}');
+  
+  // Salvar notificação no banco quando receber em background
+  await _saveNotificationToDatabase(message);
+}
+
+/// Função auxiliar para salvar notificação no banco (usada no background)
+Future<void> _saveNotificationToDatabase(RemoteMessage message) async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('⚠️ Usuário não autenticado, notificação não será salva');
+      return;
+    }
+
+    final data = message.data;
+    final tipo = data['tipo'] as String?;
+    
+    if (tipo == null) {
+      print('⚠️ Push notification sem tipo, não será salva no banco');
+      return;
+    }
+
+    print('💾 Salvando push notification no banco...');
+
+    await NotificationsService.createNotification(
+      tipo: tipo,
+      usuarioNotificadoRef: user.uid,
+      feedId: data['feed_id'] != null ? int.tryParse(data['feed_id'].toString()) : null,
+      comentarioId: data['comentario_id'] != null ? int.tryParse(data['comentario_id'].toString()) : null,
+      cafeteriaId: data['cafeteria_id'] != null ? int.tryParse(data['cafeteria_id'].toString()) : null,
+      previaComentario: data['previa_comentario'] as String?,
+    );
+
+    print('✅ Push notification salva no banco com sucesso');
+  } catch (e) {
+    print('❌ Erro ao salvar push notification no banco: $e');
+  }
 }
 
 /// Service para gerenciar Push Notifications via Firebase Cloud Messaging
@@ -162,6 +200,9 @@ class PushNotificationService {
     print('📨 Push Notification recebida em foreground: ${message.messageId}');
     print('Título: ${message.notification?.title}');
     print('Mensagem: ${message.notification?.body}');
+
+    // NOVO: Salvar notificação no banco de dados
+    await _saveNotificationToDatabase(message);
 
     // Mostrar notificação local
     await _showLocalNotification(message);
