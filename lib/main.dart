@@ -9,6 +9,12 @@ import 'utils/app_colors.dart';
 import 'screens/splash_screen.dart';
 import 'ui/home/widgets/home_screen_provider.dart';
 import 'data/repositories/cafe_repository.dart';
+// NOVO - Push Notifications
+import 'data/repositories/push_notification_repository.dart';
+import 'utils/push_notification_handler.dart';
+
+// Global Navigator Key para navegação via push notifications
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,9 +34,32 @@ void main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yb2xqa2draXNldXFsd2xhaWJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MDc3NzQsImV4cCI6MjA2MjI4Mzc3NH0.umy8tSCMmO1_goqX0TpO-coC2K6FXnwwZVQpqDDMrmw',
   );
 
+  // NOVO - Inicializar Push Notifications
+  await _initializePushNotifications();
+
   print('🔍 Diagnóstico - kIsWeb: $kIsWeb');
 
   runApp(KafexApp());
+}
+
+// NOVO - Função para inicializar push notifications
+Future<void> _initializePushNotifications() async {
+  try {
+    print('🔔 Inicializando sistema de Push Notifications...');
+
+    final repository = PushNotificationRepositoryImpl();
+    final handler = PushNotificationHandler(
+      repository: repository,
+      navigatorKey: navigatorKey,
+    );
+
+    await handler.initialize();
+
+    print('✅ Push Notifications inicializadas com sucesso!');
+  } catch (e) {
+    print('❌ Erro ao inicializar Push Notifications: $e');
+    // Não bloqueia a execução do app se push notifications falharem
+  }
 }
 
 class KafexApp extends StatelessWidget {
@@ -41,8 +70,14 @@ class KafexApp extends StatelessWidget {
         Provider<CafeRepository>(
           create: (_) => CafeRepositoryImpl(),
         ),
+        // NOVO - Adicionar Push Notification Repository
+        Provider<PushNotificationRepository>(
+          create: (_) => PushNotificationRepositoryImpl(),
+        ),
       ],
       child: MaterialApp(
+        // NOVO - Adicionar navigatorKey global
+        navigatorKey: navigatorKey,
         title: 'Kafex',
         theme: AppTheme.lightTheme,
         home: SplashScreen(),

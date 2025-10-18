@@ -27,6 +27,7 @@ dependencies:
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   firebase_storage: ^12.4.10
+  firebase_messaging: ^15.2.10  # NOVO - Push Notifications
   google_sign_in: ^6.2.1
   sign_in_with_apple: ^6.1.2
 
@@ -40,6 +41,7 @@ dependencies:
 
   # UI
   phosphor_flutter: ^2.1.0
+  flutter_local_notifications: ^17.0.0  # NOVO - Notificações locais
 
   # Storage
   shared_preferences: ^2.2.3
@@ -48,7 +50,7 @@ dependencies:
   upgrader: ^12.1.0
   package_info_plus: ^9.0.0
 
-  # Arquitetura - NOVAS DEPENDÊNCIAS
+  # Arquitetura
   provider: ^6.1.1
   freezed_annotation: ^2.4.1
   json_annotation: ^4.8.1
@@ -61,7 +63,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.6
   
-  # Code Generation - NOVAS DEPENDÊNCIAS
+  # Code Generation
   build_runner: ^2.4.7
   freezed: ^2.4.6
   json_serializable: ^6.7.1
