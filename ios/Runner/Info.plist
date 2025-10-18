@@ -53,16 +53,20 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>O Kafex precisa acessar sua câmera para você tirar fotos das cafeterias</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>O Kafex precisa acessar sua galeria para você selecionar fotos das cafeterias</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>O Kafex precisa salvar fotos na sua galeria</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>O Kafex precisa da sua localização para encontrar cafeterias próximas e personalizar suas recomendações.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>O Kafex precisa da sua localização para encontrar cafeterias próximas e personalizar suas recomendações.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O Kafex precisa salvar fotos na sua galeria</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Kafex precisa acessar sua galeria para você selecionar fotos das cafeterias</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

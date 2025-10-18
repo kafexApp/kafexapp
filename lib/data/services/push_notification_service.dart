@@ -233,6 +233,33 @@ class PushNotificationService {
     try {
       print('🔑 Obtendo token FCM...');
 
+      // NOVO: Para iOS, precisamos obter o APNS token primeiro
+      if (Platform.isIOS) {
+        print('🍎 Obtendo APNS token para iOS...');
+        
+        // Tentar até 5 vezes com intervalo de 3 segundos
+        String? apnsToken;
+        for (int i = 0; i < 5; i++) {
+          apnsToken = await _firebaseMessaging.getAPNSToken();
+          
+          if (apnsToken != null) {
+            print('✅ APNS token obtido: ${apnsToken.substring(0, 20)}...');
+            break;
+          }
+          
+          if (i < 4) {
+            print('⚠️ APNS token não disponível, tentativa ${i + 1}/5, aguardando 3s...');
+            await Future.delayed(Duration(seconds: 3));
+          }
+        }
+        
+        if (apnsToken == null) {
+          print('❌ APNS token não disponível após 5 tentativas');
+          print('💡 Tente fechar e abrir o app novamente');
+          return null;
+        }
+      }
+
       _fcmToken = await _firebaseMessaging.getToken();
 
       if (_fcmToken != null) {
