@@ -37,6 +37,15 @@ class _LoginScreenState extends State<LoginScreen> {
     return Platform.isIOS;
   }
 
+  bool get _showGoogleText {
+    if (kIsWeb) return true;
+    try {
+      return Platform.isAndroid;
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -222,28 +231,106 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Botão Google
                       GestureDetector(
                         onTap: _isLoading ? null : _handleGoogleSignIn,
                         child: Opacity(
                           opacity: _isLoading ? 0.6 : 1.0,
-                          child: SvgPicture.asset(
-                            'assets/images/google-sociallogin.svg',
-                            width: 70,
-                            height: 70,
-                          ),
+                          child: _showGoogleText 
+                            ? Container(
+                                height: 78,
+                                decoration: BoxDecoration(
+                                  color: AppColors.whiteWhite,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 78,
+                                      height: 78,
+                                      child: Center(
+                                        child: SvgPicture.asset(
+                                          'assets/images/icon-google-social-login.svg',
+                                          width: 28,
+                                          height: 28,
+                                        ),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.only(right: 24, left: 8),
+                                      child: Text(
+                                        'Entrar com o Google',
+                                        style: GoogleFonts.albertSans(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.grayScale1,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Container(
+                                width: 78,
+                                height: 78,
+                                decoration: BoxDecoration(
+                                  color: AppColors.whiteWhite,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: SvgPicture.asset(
+                                    'assets/images/icon-google-social-login.svg',
+                                    width: 28,
+                                    height: 28,
+                                  ),
+                                ),
+                              ),
                         ),
                       ),
 
+                      // Botão Apple (apenas iOS)
                       if (_isIOS) ...[
-                        SizedBox(width: 24),
+                        SizedBox(width: 16),
                         GestureDetector(
                           onTap: _isLoading ? null : _handleAppleSignIn,
                           child: Opacity(
                             opacity: _isLoading ? 0.6 : 1.0,
-                            child: SvgPicture.asset(
-                              'assets/images/apple-sociallogin.svg',
-                              width: 70,
-                              height: 70,
+                            child: Container(
+                              width: 78,
+                              height: 78,
+                              decoration: BoxDecoration(
+                                color: AppColors.carbon,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: SvgPicture.asset(
+                                  'assets/images/icon-apple-social-login.svg',
+                                  width: 28,
+                                  height: 28,
+                                ),
+                              ),
                             ),
                           ),
                         ),
