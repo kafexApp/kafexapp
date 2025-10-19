@@ -188,9 +188,23 @@ class AuthService {
     try {
       print('👋 Fazendo logout...');
       
-      // Logout do Google se estiver logado
-      if (await _googleSignIn.isSignedIn()) {
-        await _googleSignIn.signOut();
+      // Verificar se o usuário está logado com Google antes de tentar logout
+      final user = _auth.currentUser;
+      if (user != null) {
+        // Verificar se o provedor é Google
+        final providerData = user.providerData;
+        final isGoogleUser = providerData.any((info) => info.providerId == 'google.com');
+        
+        if (isGoogleUser && !kIsWeb) {
+          // Só tenta logout do Google no mobile
+          try {
+            if (await _googleSignIn.isSignedIn()) {
+              await _googleSignIn.signOut();
+            }
+          } catch (e) {
+            print('⚠️ Aviso ao fazer logout do Google: $e');
+          }
+        }
       }
       
       // Logout do Firebase
@@ -199,6 +213,7 @@ class AuthService {
       print('✅ Logout realizado com sucesso!');
     } catch (e) {
       print('❌ Erro no logout: $e');
+      rethrow;
     }
   }
 

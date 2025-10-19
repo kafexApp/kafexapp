@@ -8,7 +8,7 @@ import '../ui/cafe_explorer/widgets/cafe_explorer_provider.dart';
 import '../ui/notifications/widgets/notifications_provider.dart';
 import '../ui/user_profile/widgets/user_profile_provider.dart';
 import '../ui/profile_settings/widgets/profile_settings_provider.dart';
-import '../screens/splash_screen.dart';
+import '../screens/welcome_screen.dart';
 import '../ui/posts/widgets/create_post_screen.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
@@ -93,28 +93,37 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
   }
 
   Future<void> _logout(BuildContext context) async {
+    // Primeiro fecha o menu
+    await _closeMenu();
+    await Future.delayed(Duration(milliseconds: 200));
+    
+    if (!mounted) return;
+    
     try {
-      // Primeiro fecha o menu
-      await _closeMenu();
-      await Future.delayed(Duration(milliseconds: 100));
+      print('🚪 Iniciando processo de logout...');
       
-      // Depois faz o logout
+      // Limpa dados do usuário ANTES de fazer signOut
       UserManager.instance.clearUserData();
+      
+      // Faz o logout no Firebase
       await _authService.signOut();
       
-      // Navega para splash
+      print('✅ Logout concluído, redirecionando...');
+      
+      // Navega para a tela de boas-vindas diretamente
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => SplashScreen()),
-          (Route<dynamic> route) => false,
+          MaterialPageRoute(builder: (_) => WelcomeScreen()),
+          (route) => false,
         );
       }
     } catch (e) {
-      print('Erro no logout: $e');
+      print('❌ Erro no logout: $e');
+      // Em caso de erro, força ir para Welcome
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => SplashScreen()),
-          (Route<dynamic> route) => false,
+          MaterialPageRoute(builder: (_) => WelcomeScreen()),
+          (route) => false,
         );
       }
     }
