@@ -9,7 +9,6 @@ import '../ui/notifications/widgets/notifications_provider.dart';
 import '../ui/user_profile/widgets/user_profile_provider.dart';
 import '../ui/profile_settings/widgets/profile_settings_provider.dart';
 import '../screens/splash_screen.dart';
-// ATUALIZADO: Novo import para a versão refatorada
 import '../ui/posts/widgets/create_post_screen.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
 
@@ -95,19 +94,29 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
 
   Future<void> _logout(BuildContext context) async {
     try {
+      // Primeiro fecha o menu
+      await _closeMenu();
+      await Future.delayed(Duration(milliseconds: 100));
+      
+      // Depois faz o logout
       UserManager.instance.clearUserData();
       await _authService.signOut();
       
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => SplashScreen()),
-        (Route<dynamic> route) => false,
-      );
+      // Navega para splash
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => SplashScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
     } catch (e) {
       print('Erro no logout: $e');
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => SplashScreen()),
-        (Route<dynamic> route) => false,
-      );
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => SplashScreen()),
+          (Route<dynamic> route) => false,
+        );
+      }
     }
   }
 
@@ -460,7 +469,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
           await Future.delayed(Duration(milliseconds: 50));
           
           if (context.mounted) {
-            // ATUALIZADO: Usa a nova função refatorada
             showCreatePostModal(context);
           }
         },
