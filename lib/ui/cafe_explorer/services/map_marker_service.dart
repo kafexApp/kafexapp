@@ -1,5 +1,5 @@
 // lib/ui/cafe_explorer/services/map_marker_service.dart
-// lib/ui/cafe_explorer/services/map_marker_service.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -13,13 +13,23 @@ class MapMarkerService {
   BitmapDescriptor? _customPin;
   final Map<String, BitmapDescriptor> _clusterIconCache = {};
 
+  // Tamanhos baseados na plataforma
+  int get _pinSize => kIsWeb ? 45 : 120;
+  double get _canvasSize => kIsWeb ? 80.0 : 156.0;
+  double get _centerOffset => kIsWeb ? 40.0 : 78.0;
+  double get _outerRadius => kIsWeb ? 33.0 : 65.0;
+  double get _innerRadius => kIsWeb ? 22.0 : 42.0;
+  double _clusterFontSize(int count) => kIsWeb 
+    ? (count > 99 ? 12.0 : 14.0)
+    : (count > 99 ? 24.0 : 28.0);
+
   /// Carrega o ícone personalizado do pin redimensionado
   Future<void> loadCustomPin() async {
     final ByteData data = await rootBundle.load('assets/images/pin_kafex.png');
     final ui.Codec codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
-      targetWidth: 120,
-      targetHeight: 120,
+      targetWidth: _pinSize,
+      targetHeight: _pinSize,
     );
     final ui.FrameInfo frameInfo = await codec.getNextFrame();
     final ByteData? byteData = await frameInfo.image.toByteData(
@@ -98,12 +108,6 @@ class MapMarkerService {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
 
-    // Tamanhos 30% maiores
-    const double canvasSize = 156.0;
-    const double centerOffset = 78.0;
-    const double outerRadius = 65.0;
-    const double innerRadius = 42.0;
-
     // Círculo externo (transparente)
     final Paint outerCirclePaint = Paint()
       ..color = AppColors.papayaSensorial.withOpacity(0.2)
@@ -115,13 +119,13 @@ class MapMarkerService {
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(
-      Offset(centerOffset, centerOffset),
-      outerRadius,
+      Offset(_centerOffset, _centerOffset),
+      _outerRadius,
       outerCirclePaint,
     );
     canvas.drawCircle(
-      Offset(centerOffset, centerOffset),
-      innerRadius,
+      Offset(_centerOffset, _centerOffset),
+      _innerRadius,
       innerCirclePaint,
     );
 
@@ -130,7 +134,7 @@ class MapMarkerService {
       text: TextSpan(
         text: clusterText,
         style: TextStyle(
-          fontSize: count > 99 ? 24 : 28,
+          fontSize: _clusterFontSize(count),
           fontWeight: FontWeight.bold,
           color: AppColors.whiteWhite,
         ),
@@ -142,15 +146,15 @@ class MapMarkerService {
     textPainter.paint(
       canvas,
       Offset(
-        centerOffset - textPainter.width / 2,
-        centerOffset - textPainter.height / 2,
+        _centerOffset - textPainter.width / 2,
+        _centerOffset - textPainter.height / 2,
       ),
     );
 
     final ui.Picture picture = pictureRecorder.endRecording();
     final ui.Image img = await picture.toImage(
-      canvasSize.toInt(),
-      canvasSize.toInt(),
+      _canvasSize.toInt(),
+      _canvasSize.toInt(),
     );
     final ByteData? byteData = await img.toByteData(
       format: ui.ImageByteFormat.png,
