@@ -3,7 +3,8 @@ import 'package:kafex/data/models/domain/post.dart';
 import 'package:kafex/ui/posts/viewmodel/post_actions_viewmodel.dart';
 import 'package:provider/provider.dart';
 
-class PostActionsProvider extends StatelessWidget {
+/// Provider corrigido que atualiza o ViewModel quando o Post muda
+class PostActionsProvider extends StatefulWidget {
   final Post post;
   final Widget child;
 
@@ -14,13 +15,54 @@ class PostActionsProvider extends StatelessWidget {
   });
 
   @override
+  State<PostActionsProvider> createState() => _PostActionsProviderState();
+}
+
+class _PostActionsProviderState extends State<PostActionsProvider> {
+  late PostActionsViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel = PostActionsViewModel(
+      postId: widget.post.id,
+      initialPost: widget.post,
+    );
+  }
+
+  @override
+  void didUpdateWidget(PostActionsProvider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // ✅ CORREÇÃO CRÍTICA: Detecta mudanças no post
+    if (oldWidget.post.id != widget.post.id ||
+        oldWidget.post.authorUid != widget.post.authorUid ||
+        oldWidget.post.likes != widget.post.likes ||
+        oldWidget.post.comments != widget.post.comments) {
+      
+      print('🔄 PostActionsProvider detectou mudança no post ${widget.post.id}');
+      print('   authorUid: ${widget.post.authorUid}');
+      
+      // Descarta o ViewModel antigo e cria um novo
+      _viewModel.dispose();
+      _viewModel = PostActionsViewModel(
+        postId: widget.post.id,
+        initialPost: widget.post,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => PostActionsViewModel(
-        postId: post.id,
-        initialPost: post,
-      ),
-      child: child,
+    return ChangeNotifierProvider<PostActionsViewModel>.value(
+      value: _viewModel,
+      child: widget.child,
     );
   }
 }

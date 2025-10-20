@@ -14,62 +14,79 @@ import '../../../utils/user_manager.dart';
 import '../../../widgets/custom_buttons.dart';
 import '../viewmodel/create_post_viewmodel.dart';
 
-class CreatePostModal extends StatelessWidget {
+class CreatePostModal extends StatefulWidget {
+  @override
+  State<CreatePostModal> createState() => _CreatePostModalState();
+}
+
+class _CreatePostModalState extends State<CreatePostModal> {
+  
+  @override
+  void initState() {
+    super.initState();
+    print('🎨 CreatePostModal iniciado');
+  }
+  
+  @override
+  void dispose() {
+    print('🗑️ CreatePostModal sendo descartado');
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<CreatePostViewModel>(
-      builder: (context, viewModel, child) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.9,
-          decoration: BoxDecoration(
-            color: AppColors.whiteWhite,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+    return GestureDetector(
+      onTap: () {
+        // Fecha o teclado ao tocar fora
+        FocusScope.of(context).unfocus();
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Consumer<CreatePostViewModel>(
+        builder: (context, viewModel, child) {
+          print('🔄 CreatePostModal rebuild - ViewModel: ${viewModel.hashCode}');
+          
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.9,
+            decoration: BoxDecoration(
+              color: AppColors.whiteWhite,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
             ),
-          ),
-          child: Column(
-            children: [
-              // Header do modal
-              _buildHeader(context),
-              
-              // Conteúdo do modal
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Info do usuário
-                      _buildUserInfo(),
-                      
-                      SizedBox(height: 20),
-                      
-                      // Campo de descrição
-                      _buildDescriptionField(viewModel),
-                      
-                      SizedBox(height: 20),
-                      
-                      // Área de mídia
-                      _buildMediaSection(context, viewModel),
-                      
-                      SizedBox(height: 20),
-                      
-                      // Campo de link
-                      _buildLinkField(viewModel),
-                      
-                      SizedBox(height: 20),
-                      
-                      // Botões de ação
-                      _buildActionButtons(context, viewModel),
-                    ],
+            child: Column(
+              children: [
+                _buildHeader(context),
+                
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(24),
+                    physics: ClampingScrollPhysics(),
+                    child: GestureDetector(
+                      onTap: () {},
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildUserInfo(),
+                          SizedBox(height: 20),
+                          _buildDescriptionField(viewModel),
+                          SizedBox(height: 20),
+                          _buildMediaSection(context, viewModel),
+                          SizedBox(height: 20),
+                          _buildLinkField(viewModel),
+                          SizedBox(height: 20),
+                          _buildActionButtons(context, viewModel),
+                          SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -78,15 +95,11 @@ class CreatePostModal extends StatelessWidget {
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            color: AppColors.moonAsh,
-            width: 1,
-          ),
+          bottom: BorderSide(color: AppColors.moonAsh, width: 1),
         ),
       ),
       child: Row(
         children: [
-          // Título "Criar Post" à esquerda
           Expanded(
             child: Text(
               'Criar post',
@@ -97,8 +110,6 @@ class CreatePostModal extends StatelessWidget {
               ),
             ),
           ),
-          
-          // Botão fechar à direita
           GestureDetector(
             onTap: () => Navigator.of(context).pop(),
             child: Container(
@@ -127,7 +138,6 @@ class CreatePostModal extends StatelessWidget {
 
     return Row(
       children: [
-        // Avatar
         Container(
           width: 48,
           height: 48,
@@ -153,10 +163,7 @@ class CreatePostModal extends StatelessWidget {
                 )
               : _buildUserAvatar(userName),
         ),
-        
         SizedBox(width: 12),
-        
-        // Nome do usuário
         Text(
           userName,
           style: GoogleFonts.albertSans(
@@ -181,21 +188,13 @@ class CreatePostModal extends StatelessWidget {
     
     final avatarColor = avatarColors[colorIndex];
     
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: avatarColor.withOpacity(0.1),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-          style: GoogleFonts.albertSans(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: avatarColor,
-          ),
+    return Center(
+      child: Text(
+        userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+        style: GoogleFonts.albertSans(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: avatarColor,
         ),
       ),
     );
@@ -210,6 +209,8 @@ class CreatePostModal extends StatelessWidget {
       child: TextField(
         controller: viewModel.descriptionController,
         maxLines: 6,
+        textInputAction: TextInputAction.newline,
+        enableInteractiveSelection: true,
         style: GoogleFonts.albertSans(
           fontSize: 16,
           color: AppColors.carbon,
@@ -244,11 +245,9 @@ class CreatePostModal extends StatelessWidget {
             color: AppColors.textPrimary,
           ),
         ),
-        
         SizedBox(height: 12),
         
         if (viewModel.selectedMediaFile != null) ...[
-          // Preview da mídia selecionada
           Container(
             width: double.infinity,
             height: 200,
@@ -262,8 +261,6 @@ class CreatePostModal extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: _buildMediaPreview(viewModel),
                 ),
-                
-                // Botão remover
                 Positioned(
                   top: 8,
                   right: 8,
@@ -284,8 +281,6 @@ class CreatePostModal extends StatelessWidget {
                     ),
                   ),
                 ),
-                
-                // Badge indicando tipo de mídia
                 if (viewModel.isVideo)
                   Positioned(
                     bottom: 8,
@@ -320,28 +315,32 @@ class CreatePostModal extends StatelessWidget {
               ],
             ),
           ),
-          
           SizedBox(height: 12),
         ],
         
-        // Botões de seleção de mídia
         Row(
           children: [
             Expanded(
               child: _buildMediaButton(
                 icon: AppIcons.images,
                 label: 'Galeria',
-                onTap: () => _showMediaSourceDialog(context, viewModel, ImageSource.gallery),
+                onTap: () async {
+                  FocusScope.of(context).unfocus();
+                  await Future.delayed(Duration(milliseconds: 200));
+                  await _showMediaSourceDialog(context, viewModel, ImageSource.gallery);
+                },
               ),
             ),
-            
             SizedBox(width: 12),
-            
             Expanded(
               child: _buildMediaButton(
                 icon: AppIcons.camera,
                 label: 'Câmera',
-                onTap: () => _showMediaSourceDialog(context, viewModel, ImageSource.camera),
+                onTap: () async {
+                  FocusScope.of(context).unfocus();
+                  await Future.delayed(Duration(milliseconds: 200));
+                  await _showMediaSourceDialog(context, viewModel, ImageSource.camera);
+                },
               ),
             ),
           ],
@@ -356,7 +355,6 @@ class CreatePostModal extends StatelessWidget {
     }
 
     if (viewModel.isVideo) {
-      // Preview para vídeo - mostra thumbnail com ícone de play
       return Container(
         width: double.infinity,
         height: double.infinity,
@@ -392,9 +390,7 @@ class CreatePostModal extends StatelessWidget {
         ),
       );
     } else {
-      // Preview para imagem
       if (kIsWeb) {
-        // Para Web - usar FutureBuilder para carregar bytes
         return FutureBuilder<Uint8List>(
           future: viewModel.selectedMediaFile!.readAsBytes(),
           builder: (context, snapshot) {
@@ -413,7 +409,6 @@ class CreatePostModal extends StatelessWidget {
           },
         );
       } else {
-        // Para Mobile - usar File
         if (viewModel.selectedMedia != null) {
           return Image.file(
             viewModel.selectedMedia!,
@@ -440,9 +435,7 @@ class CreatePostModal extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(
-              color: AppColors.papayaSensorial,
-            ),
+            CircularProgressIndicator(color: AppColors.papayaSensorial),
             SizedBox(height: 8),
             Text(
               'Carregando preview...',
@@ -514,11 +507,7 @@ class CreatePostModal extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: AppColors.papayaSensorial,
-              size: 20,
-            ),
+            Icon(icon, color: AppColors.papayaSensorial, size: 20),
             SizedBox(width: 8),
             Text(
               label,
@@ -546,9 +535,7 @@ class CreatePostModal extends StatelessWidget {
             color: AppColors.textPrimary,
           ),
         ),
-        
         SizedBox(height: 12),
-        
         Container(
           decoration: BoxDecoration(
             color: AppColors.moonAsh.withOpacity(0.3),
@@ -556,6 +543,9 @@ class CreatePostModal extends StatelessWidget {
           ),
           child: TextField(
             controller: viewModel.linkController,
+            textInputAction: TextInputAction.done,
+            keyboardType: TextInputType.url,
+            enableInteractiveSelection: true,
             style: GoogleFonts.albertSans(
               fontSize: 14,
               color: AppColors.carbon,
@@ -593,21 +583,21 @@ class CreatePostModal extends StatelessWidget {
   Widget _buildActionButtons(BuildContext context, CreatePostViewModel viewModel) {
     return Row(
       children: [
-        // Botão Cancelar
         Expanded(
           child: CustomOutlineButton(
             text: 'Cancelar',
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
-        
         SizedBox(width: 16),
-        
-        // Botão Publicar
         Expanded(
           child: PrimaryButton(
             text: 'Publicar',
-            onPressed: () => _handlePublish(context, viewModel),
+            onPressed: () async {
+              FocusScope.of(context).unfocus();
+              await Future.delayed(Duration(milliseconds: 100));
+              await _handlePublish(context, viewModel);
+            },
             isLoading: viewModel.isLoading,
           ),
         ),
@@ -650,18 +640,9 @@ class CreatePostModal extends StatelessWidget {
     );
 
     if (result == 'photo') {
-      if (source == ImageSource.gallery) {
-        await viewModel.pickMediaFromGallery();
-      } else {
-        await viewModel.pickMediaFromCamera();
-      }
+      await viewModel.pickImageFromSource(source);
     } else if (result == 'video') {
-      // Para vídeo, usar o método correto baseado na fonte
-      if (source == ImageSource.gallery) {
-        await viewModel.pickMediaFromGallery(); // Este método vai ser atualizado no ViewModel
-      } else {
-        await viewModel.pickMediaFromCamera();
-      }
+      await viewModel.pickVideoFromSource(source);
     }
   }
 
@@ -673,7 +654,7 @@ class CreatePostModal extends StatelessWidget {
           await launchUrl(uri, mode: LaunchMode.externalApplication);
         }
       } catch (e) {
-        // Link inválido - ViewModel já trata isso
+        // Link inválido
       }
     }
   }

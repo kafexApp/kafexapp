@@ -5,7 +5,7 @@ import '../viewmodel/create_post_viewmodel.dart';
 import '../../../data/repositories/feed_repository.dart';
 import '../../../data/services/supabase_service.dart';
 
-class CreatePostProvider extends StatelessWidget {
+class CreatePostProvider extends StatefulWidget {
   final Widget child;
 
   const CreatePostProvider({
@@ -14,19 +14,41 @@ class CreatePostProvider extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Cria diretamente a instância do repository e do viewmodel
+  State<CreatePostProvider> createState() => _CreatePostProviderState();
+}
+
+class _CreatePostProviderState extends State<CreatePostProvider> {
+  late CreatePostViewModel _viewModel;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // CORREÇÃO: Cria o viewModel UMA VEZ no initState
     final feedRepository = FeedRepositoryImpl(
       supabaseService: SupabaseService(),
     );
     
-    final viewModel = CreatePostViewModel(
+    _viewModel = CreatePostViewModel(
       feedRepository: feedRepository,
     );
+    
+    print('✅ CreatePostProvider inicializado com ViewModel: ${_viewModel.hashCode}');
+  }
 
+  @override
+  void dispose() {
+    print('🗑️ CreatePostProvider sendo descartado');
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // CORREÇÃO: Usa .value para passar a instância já criada
     return ChangeNotifierProvider<CreatePostViewModel>.value(
-      value: viewModel,
-      child: child,
+      value: _viewModel,
+      child: widget.child,
     );
   }
 }

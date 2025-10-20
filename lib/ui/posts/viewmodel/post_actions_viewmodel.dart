@@ -41,7 +41,6 @@ class PostActionsViewModel extends ChangeNotifier {
   }
 
   void _listenToEvents() {
-    // Escuta eventos de favorito de OUTRAS instâncias
     _favoriteChangedSubscription = _eventBus.on<FavoriteChangedEvent>().listen((event) {
       if (_post.coffeeId == event.coffeeId) {
         print('⭐ PostActions recebeu evento de favorito: coffeeId=${event.coffeeId}, isFavorited=${event.isFavorited}');
@@ -50,7 +49,6 @@ class PostActionsViewModel extends ChangeNotifier {
       }
     });
 
-    // Escuta eventos de "Quero Visitar" de OUTRAS instâncias
     _wantToVisitChangedSubscription = _eventBus.on<WantToVisitChangedEvent>().listen((event) {
       if (_post.coffeeId == event.coffeeId) {
         print('🏷️ PostActions recebeu evento de quero visitar: coffeeId=${event.coffeeId}, wantToVisit=${event.wantToVisit}');
@@ -95,7 +93,13 @@ class PostActionsViewModel extends ChangeNotifier {
   bool get isOwnPost {
     final currentUser = FirebaseAuth.instance.currentUser;
     
+    print('🔍 [DEBUG isOwnPost] Post ID: $postId');
+    print('   Current User UID: ${currentUser?.uid}');
+    print('   Post Author UID: ${_post.authorUid}');
+    print('   Post Author Name: ${_post.authorName}');
+    
     if (currentUser == null) {
+      print('   ❌ Usuário não autenticado');
       return false;
     }
     
@@ -103,10 +107,14 @@ class PostActionsViewModel extends ChangeNotifier {
     final postAuthorUid = _post.authorUid;
     
     if (postAuthorUid == null || postAuthorUid.isEmpty) {
+      print('   ❌ Post sem authorUid!');
       return false;
     }
     
-    return currentUserUid == postAuthorUid;
+    final isOwn = currentUserUid == postAuthorUid;
+    print('   Resultado: ${isOwn ? "✅ É SEU POST" : "❌ NÃO é seu post"}');
+    
+    return isOwn;
   }
 
   int get avatarColorIndex {
@@ -233,29 +241,24 @@ class PostActionsViewModel extends ChangeNotifier {
         return Result.error(Exception('ID da cafeteria inválido'));
       }
 
-      // Atualiza UI imediatamente
       final previousFavorited = _post.isFavorited ?? false;
       _post = _post.copyWith(isFavorited: !previousFavorited);
       notifyListeners();
 
-      // Chama o repository
       final result = await _favoritoRepository.toggleFavorito(cafeteriaId);
 
       if (result.isError) {
-        // Reverte se falhar
         _post = _post.copyWith(isFavorited: previousFavorited);
         notifyListeners();
         return Result.error(result.asError.error);
       }
 
-      // ✅ EMITE EVENTO após sucesso no banco
       _eventBus.emit(FavoriteChangedEvent(_post.coffeeId!, !previousFavorited));
       print('🚀 Evento FavoriteChangedEvent emitido: coffeeId=${_post.coffeeId}, isFavorited=${!previousFavorited}');
 
       print('✅ Favorito alterado com sucesso no post');
       return Result.ok(null);
     } catch (e) {
-      // Reverte se falhar
       _post = _post.copyWith(isFavorited: !(_post.isFavorited ?? false));
       notifyListeners();
       return Result.error(Exception('Erro ao favoritar: $e'));
@@ -273,29 +276,24 @@ class PostActionsViewModel extends ChangeNotifier {
         return Result.error(Exception('ID da cafeteria inválido'));
       }
 
-      // Atualiza UI imediatamente
       final previousWantToVisit = _post.wantToVisit ?? false;
       _post = _post.copyWith(wantToVisit: !previousWantToVisit);
       notifyListeners();
 
-      // Chama o repository
       final result = await _queroVisitarRepository.toggleQueroVisitar(cafeteriaId);
 
       if (result.isError) {
-        // Reverte se falhar
         _post = _post.copyWith(wantToVisit: previousWantToVisit);
         notifyListeners();
         return Result.error(result.asError.error);
       }
 
-      // ✅ EMITE EVENTO após sucesso no banco
       _eventBus.emit(WantToVisitChangedEvent(_post.coffeeId!, !previousWantToVisit));
       print('🚀 Evento WantToVisitChangedEvent emitido: coffeeId=${_post.coffeeId}, wantToVisit=${!previousWantToVisit}');
 
       print('✅ "Quero visitar" alterado com sucesso no post');
       return Result.ok(null);
     } catch (e) {
-      // Reverte se falhar
       _post = _post.copyWith(wantToVisit: !(_post.wantToVisit ?? false));
       notifyListeners();
       return Result.error(Exception('Erro ao atualizar lista: $e'));
@@ -347,6 +345,10 @@ class PostActionsViewModel extends ChangeNotifier {
       await PostDeletionService.deletePost(_post.id);
       
       print('✅ Post deletado com sucesso');
+      
+      // ✅ CORREÇÃO: Emite evento para atualizar o feed
+      _eventBus.emit(PostDeletedEvent(_post.id));
+      print('🚀 Evento PostDeletedEvent emitido: postId=${_post.id}');
       
       return Result.ok(null);
     } catch (e) {

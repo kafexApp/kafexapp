@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../../../data/models/domain/post.dart';
 import '../../../data/repositories/feed_repository.dart';
-import '../../../data/repositories/analytics_repository.dart'; // NOVO
+import '../../../data/repositories/analytics_repository.dart';
 import '../../../utils/command.dart';
 import '../../../utils/result.dart';
 import '../../../services/event_bus_service.dart';
@@ -11,21 +11,19 @@ import '../../../services/event_bus_service.dart';
 class HomeFeedViewModel extends ChangeNotifier {
   HomeFeedViewModel({
     required FeedRepository feedRepository,
-    required AnalyticsRepository analyticsRepository, // NOVO
+    required AnalyticsRepository analyticsRepository,
   }) : _feedRepository = feedRepository,
-       _analyticsRepository = analyticsRepository { // NOVO
+       _analyticsRepository = analyticsRepository {
     loadFeed = Command0(_loadFeed)..execute();
     refreshFeed = Command0(_refreshFeed);
     loadMorePosts = Command0(_loadMorePosts);
 
     _listenToPostEvents();
-    
-    // NOVO - Log screen view quando ViewModel é criado
     _logScreenView();
   }
 
   final FeedRepository _feedRepository;
-  final AnalyticsRepository _analyticsRepository; // NOVO
+  final AnalyticsRepository _analyticsRepository;
   final EventBusService _eventBus = EventBusService();
   StreamSubscription<PostCreatedEvent>? _postCreatedSubscription;
   StreamSubscription<PostDeletedEvent>? _postDeletedSubscription;
@@ -47,13 +45,10 @@ class HomeFeedViewModel extends ChangeNotifier {
   bool get hasMorePosts => _hasMorePosts;
   bool get isLoadingMore => _isLoadingMore;
 
-  // NOVO - Debounce para post views (evita spam)
   final Map<String, DateTime> _lastPostViewTime = {};
   static const _postViewDebounceSeconds = 2;
 
-  // NOVO - Log screen view (assíncrono, não bloqueia)
   void _logScreenView() {
-    // Executa em background, não afeta abertura da tela
     _analyticsRepository.logScreenView(
       screenName: 'feed',
       screenClass: 'HomeFeedViewModel',
@@ -63,6 +58,8 @@ class HomeFeedViewModel extends ChangeNotifier {
   }
 
   void _listenToPostEvents() {
+    print('👂 HomeFeedViewModel começou a escutar eventos - EventBus: ${_eventBus.hashCode}');
+    
     _postCreatedSubscription = _eventBus.on<PostCreatedEvent>().listen((event) {
       print('📱 Feed recebeu evento de novo post: ${event.postId}');
       refreshFeed.execute();
@@ -70,16 +67,25 @@ class HomeFeedViewModel extends ChangeNotifier {
 
     _postDeletedSubscription = _eventBus.on<PostDeletedEvent>().listen((event) {
       print('🗑️ Feed recebeu evento de post deletado: ${event.postId}');
+      print('   Posts antes: ${_posts.length}');
+      
       _posts.removeWhere((post) => post.id == event.postId);
       _currentOffset = _posts.length;
-      notifyListeners();
+      
+      print('   Posts depois: ${_posts.length}');
+      print('   Notificando listeners...');
+      
+      if (!_isDisposed) {
+        notifyListeners();
+        print('   ✅ Listeners notificados!');
+      } else {
+        print('   ❌ ViewModel já foi disposed!');
+      }
     });
 
-    // ✅ NOVO: Escuta eventos de favorito
     _favoriteChangedSubscription = _eventBus.on<FavoriteChangedEvent>().listen((event) {
       print('⭐ Feed recebeu evento de favorito: coffeeId=${event.coffeeId}, isFavorited=${event.isFavorited}');
       
-      // Atualiza todos os posts dessa cafeteria
       bool updated = false;
       for (int i = 0; i < _posts.length; i++) {
         if (_posts[i].coffeeId == event.coffeeId) {
@@ -88,17 +94,14 @@ class HomeFeedViewModel extends ChangeNotifier {
         }
       }
       
-      // ✅ Verifica se não foi disposed antes de notificar
       if (updated && !_isDisposed) {
         notifyListeners();
       }
     });
 
-    // ✅ NOVO: Escuta eventos de "Quero Visitar"
     _wantToVisitChangedSubscription = _eventBus.on<WantToVisitChangedEvent>().listen((event) {
       print('🏷️ Feed recebeu evento de quero visitar: coffeeId=${event.coffeeId}, wantToVisit=${event.wantToVisit}');
       
-      // Atualiza todos os posts dessa cafeteria
       bool updated = false;
       for (int i = 0; i < _posts.length; i++) {
         if (_posts[i].coffeeId == event.coffeeId) {
@@ -107,7 +110,6 @@ class HomeFeedViewModel extends ChangeNotifier {
         }
       }
       
-      // ✅ Verifica se não foi disposed antes de notificar
       if (updated && !_isDisposed) {
         notifyListeners();
       }
@@ -127,7 +129,6 @@ class HomeFeedViewModel extends ChangeNotifier {
       _hasMorePosts = _posts.length >= 10;
       print('✅ Feed inicial carregado com ${_posts.length} posts');
       
-      // NOVO - Log evento de feed view (assíncrono)
       _analyticsRepository.logEvent(
         eventName: 'feed_view',
         parameters: {
@@ -159,7 +160,6 @@ class HomeFeedViewModel extends ChangeNotifier {
       _hasMorePosts = _posts.length >= 10;
       print('✅ Feed atualizado com ${_posts.length} posts');
       
-      // NOVO - Log evento de refresh (assíncrono, não bloqueia UI)
       _analyticsRepository.logFeedRefresh().catchError((error) {
         print('⚠️ Erro ao logar feed refresh: $error');
       });
@@ -202,7 +202,6 @@ class HomeFeedViewModel extends ChangeNotifier {
           '✅ ${newPosts.length} novos posts carregados. Total: ${_posts.length}',
         );
         
-        // NOVO - Log evento de scroll/load more (assíncrono)
         _analyticsRepository.logEvent(
           eventName: 'feed_load_more',
           parameters: {
@@ -223,23 +222,19 @@ class HomeFeedViewModel extends ChangeNotifier {
     return result;
   }
 
-  // NOVO - Método para logar visualização de post (com debounce)
   void logPostView(Post post) {
-    // Debounce: só loga se passou tempo suficiente desde último log
     final now = DateTime.now();
     final lastTime = _lastPostViewTime[post.id];
     
     if (lastTime != null) {
       final difference = now.difference(lastTime).inSeconds;
       if (difference < _postViewDebounceSeconds) {
-        return; // Ignora, foi logado recentemente
+        return;
       }
     }
     
-    // Atualiza último tempo
     _lastPostViewTime[post.id] = now;
     
-    // Log assíncrono (não bloqueia scroll)
     _analyticsRepository.logPostView(
       postId: int.tryParse(post.id) ?? 0,
       postType: post.type.toString().split('.').last,
@@ -254,14 +249,12 @@ class HomeFeedViewModel extends ChangeNotifier {
       final post = _posts[index];
       final willLike = !post.isLiked;
       
-      // Atualiza UI IMEDIATAMENTE (performance)
       _posts[index] = post.copyWith(
         isLiked: willLike,
         likes: willLike ? post.likes + 1 : post.likes - 1,
       );
       notifyListeners();
       
-      // NOVO - Log analytics em BACKGROUND (não bloqueia UI)
       if (willLike) {
         _analyticsRepository.logPostLike(
           postId: int.tryParse(postId) ?? 0,
@@ -280,14 +273,12 @@ class HomeFeedViewModel extends ChangeNotifier {
     }
   }
 
-  // NOVO - Método para logar compartilhamento
   void logPostShare(String postId, String shareMethod) {
     final post = _posts.firstWhere(
       (p) => p.id == postId,
       orElse: () => _posts.first,
     );
     
-    // Log assíncrono
     _analyticsRepository.logPostShare(
       postId: int.tryParse(postId) ?? 0,
       postType: post.type.toString().split('.').last,
@@ -297,14 +288,12 @@ class HomeFeedViewModel extends ChangeNotifier {
     });
   }
 
-  // NOVO - Método para logar comentário
   void logPostComment(String postId) {
     final post = _posts.firstWhere(
       (p) => p.id == postId,
       orElse: () => _posts.first,
     );
     
-    // Log assíncrono
     _analyticsRepository.logPostComment(
       postId: int.tryParse(postId) ?? 0,
       postType: post.type.toString().split('.').last,
@@ -314,6 +303,7 @@ class HomeFeedViewModel extends ChangeNotifier {
   }
 
   void deletePost(String postId) {
+    print('🗑️ deletePost chamado localmente para: $postId');
     _posts.removeWhere((post) => post.id == postId);
     _currentOffset = _posts.length;
     notifyListeners();
@@ -321,12 +311,13 @@ class HomeFeedViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    print('🗑️ HomeFeedViewModel sendo disposed');
     _isDisposed = true;
     _postCreatedSubscription?.cancel();
     _postDeletedSubscription?.cancel();
     _favoriteChangedSubscription?.cancel();
     _wantToVisitChangedSubscription?.cancel();
-    _lastPostViewTime.clear(); // NOVO - Limpa cache de debounce
+    _lastPostViewTime.clear();
     super.dispose();
   }
 }

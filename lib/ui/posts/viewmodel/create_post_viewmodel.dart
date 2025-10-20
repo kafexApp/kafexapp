@@ -17,6 +17,10 @@ class CreatePostViewModel extends ChangeNotifier {
   CreatePostViewModel({required FeedRepository feedRepository})
     : _feedRepository = feedRepository {
     print('🎯 CreatePostViewModel criado - EventBus: ${_eventBus.hashCode}');
+    
+    // Adiciona listeners nos controllers para atualizar estado quando necessário
+    descriptionController.addListener(_onTextChanged);
+    linkController.addListener(_onTextChanged);
   }
 
   // Controllers
@@ -25,7 +29,7 @@ class CreatePostViewModel extends ChangeNotifier {
 
   // State
   XFile? _selectedMediaFile;
-  File? _selectedMedia; // Apenas para mobile
+  File? _selectedMedia;
   bool _isVideo = false;
   bool _isLoading = false;
   String? _errorMessage;
@@ -41,23 +45,33 @@ class CreatePostViewModel extends ChangeNotifier {
       _selectedMediaFile != null;
   bool get hasLink => linkController.text.trim().isNotEmpty;
 
-  // Commands - versões melhoradas
+  // Listener para mudanças no texto (sem notifyListeners para não perder foco)
+  void _onTextChanged() {
+    // Não chama notifyListeners aqui para evitar perder o foco do TextField
+  }
+
+  // Métodos para selecionar mídia
   Future<void> pickMediaFromGallery() async {
-    await _pickMedia(ImageSource.gallery);
+    await _showMediaTypePicker(ImageSource.gallery);
   }
 
   Future<void> pickMediaFromCamera() async {
-    await _pickMedia(ImageSource.camera);
+    await _showMediaTypePicker(ImageSource.camera);
   }
 
-  // Novo método para selecionar especificamente imagem
   Future<void> pickImageFromSource(ImageSource source) async {
     await _pickSpecificMedia(source, isVideo: false);
   }
 
-  // Novo método para selecionar especificamente vídeo
   Future<void> pickVideoFromSource(ImageSource source) async {
     await _pickSpecificMedia(source, isVideo: true);
+  }
+
+  // Método auxiliar para escolher tipo de mídia
+  Future<void> _showMediaTypePicker(ImageSource source) async {
+    // Por padrão, tenta pegar imagem primeiro
+    // Se quiser vídeo, use os métodos específicos
+    await _pickSpecificMedia(source, isVideo: false);
   }
 
   void removeMedia() {
@@ -113,6 +127,10 @@ class CreatePostViewModel extends ChangeNotifier {
           : null;
 
       print('📝 Criando post no Supabase...');
+      print('📝 Descrição: $description');
+      print('📝 ImageUrl: $imageUrl');
+      print('📝 VideoUrl: $videoUrl');
+      print('📝 Link: $externalLink');
 
       final success = await PostCreationService.createTraditionalPost(
         description: description,
@@ -142,74 +160,59 @@ class CreatePostViewModel extends ChangeNotifier {
       }
     } catch (e) {
       print('❌ Erro ao publicar post: $e');
-      _setError('Erro inesperado. Tente novamente.');
+      _setError('Erro inesperado: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
     }
   }
 
-  // Método privado para selecionar mídia
-  Future<void> _pickMedia(ImageSource source) async {
-    try {
-      _clearError();
-
-      // Tenta pegar mídia (imagem ou vídeo)
-      final XFile? pickedFile = await _picker.pickImage(source: source);
-
-      if (pickedFile != null) {
-        _selectedMediaFile = pickedFile;
-
-        // CORREÇÃO: Apenas converte para File no mobile
-        if (!kIsWeb) {
-          _selectedMedia = File(pickedFile.path);
-        }
-
-        // Detecta se é vídeo baseado na extensão
-        _isVideo =
-            pickedFile.path.toLowerCase().endsWith('.mp4') ||
-            pickedFile.path.toLowerCase().endsWith('.mov');
-
-        print('✅ Mídia selecionada: ${pickedFile.name} (isVideo: $_isVideo, isWeb: $kIsWeb)');
-        notifyListeners();
-      }
-    } catch (e) {
-      print('❌ Erro ao selecionar mídia: $e');
-      _setError('Erro ao selecionar mídia: $e');
-    }
-  }
-
-  // Método para selecionar mídia específica (imagem ou vídeo)
+  // Método privado para selecionar mídia específica (imagem ou vídeo)
   Future<void> _pickSpecificMedia(
     ImageSource source, {
     required bool isVideo,
   }) async {
     try {
       _clearError();
+      print('📸 Tentando selecionar ${isVideo ? 'vídeo' : 'imagem'}...');
 
       XFile? pickedFile;
 
       if (isVideo) {
-        pickedFile = await _picker.pickVideo(source: source);
+        pickedFile = await _picker.pickVideo(
+          source: source,
+          maxDuration: Duration(minutes: 5), // Limite de 5 minutos
+        );
       } else {
-        pickedFile = await _picker.pickImage(source: source);
+        pickedFile = await _picker.pickImage(
+          source: source,
+          maxWidth: 1920,
+          maxHeight: 1920,
+          imageQuality: 85,
+        );
       }
 
       if (pickedFile != null) {
         _selectedMediaFile = pickedFile;
 
-        // CORREÇÃO: Apenas converte para File no mobile
+        // Apenas converte para File no mobile
         if (!kIsWeb) {
           _selectedMedia = File(pickedFile.path);
         }
 
         _isVideo = isVideo;
-        print('✅ Mídia selecionada: ${pickedFile.name} (isVideo: $_isVideo, isWeb: $kIsWeb)');
+        print('✅ Mídia selecionada: ${pickedFile.name}');
+        print('   - Tipo: ${_isVideo ? 'vídeo' : 'imagem'}');
+        print('   - Path: ${pickedFile.path}');
+        print('   - Web: $kIsWeb');
+        
         notifyListeners();
+      } else {
+        print('⚠️ Nenhuma mídia selecionada');
       }
     } catch (e) {
       print('❌ Erro ao selecionar mídia: $e');
-      _setError('Erro ao selecionar mídia: $e');
+      _setError('Erro ao selecionar mídia. Tente novamente.');
     }
   }
 
@@ -235,11 +238,12 @@ class CreatePostViewModel extends ChangeNotifier {
 
   void _clearError() {
     _errorMessage = null;
-    notifyListeners();
   }
 
   @override
   void dispose() {
+    descriptionController.removeListener(_onTextChanged);
+    linkController.removeListener(_onTextChanged);
     descriptionController.dispose();
     linkController.dispose();
     super.dispose();
