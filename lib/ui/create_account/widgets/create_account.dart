@@ -5,6 +5,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../utils/app_colors.dart';
 import '../../../widgets/custom_buttons.dart';
 import '../../../widgets/custom_text_fields.dart';
@@ -40,6 +42,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   final CreateAccountViewModel _viewModel = CreateAccountViewModel();
 
+  bool get _isIOS {
+    if (kIsWeb) return false;
+    return Platform.isIOS;
+  }
+
+  bool get _showGoogleText {
+    if (kIsWeb) return true;
+    try {
+      return Platform.isAndroid;
+    } catch (e) {
+      return false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -50,10 +66,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _confirmPasswordFocus.addListener(() => setState(() {}));
     _viewModel.addListener(() => setState(() {}));
     
-    // Listener para gerar sugestões de username quando o nome mudar
     _nameController.addListener(_onNameChanged);
-    
-    // Listener para validar email
     _emailController.addListener(_onEmailChanged);
   }
 
@@ -75,7 +88,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     super.dispose();
   }
 
-  // Método chamado quando o nome muda
   void _onNameChanged() {
     final name = _nameController.text.trim();
     print('🔍 Nome digitado: "$name" (${name.length} caracteres)');
@@ -89,7 +101,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     }
   }
 
-  // Método chamado quando o email muda
   void _onEmailChanged() {
     final email = _emailController.text.trim();
     if (email.isNotEmpty && email.contains('@')) {
@@ -144,246 +155,249 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.oatWhite,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(height: 32),
-                    
-                    CustomTextField(
-                      controller: _nameController,
-                      focusNode: _nameFocus,
-                      hintText: 'Nome completo',
-                      icon: Icons.person_outline,
-                      keyboardType: TextInputType.name,
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    // Seletor de Username
-                    UsernameSelector(
-                      suggestions: _viewModel.usernameSuggestions,
-                      selectedUsername: _viewModel.selectedUsername,
-                      onUsernameSelected: _viewModel.selectUsername,
-                      onCustomUsernameChanged: (value) {
-                        _viewModel.validateCustomUsername(value);
-                      },
-                      isLoading: _viewModel.isLoadingUsernames,
-                      customUsernameError: _viewModel.customUsernameError,
-                      isValidatingCustomUsername: _viewModel.isValidatingCustomUsername,
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    // Campo de Email com validação
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AnimatedContainer(
-                          duration: Duration(milliseconds: 200),
-                          decoration: BoxDecoration(
-                            color: AppColors.whiteWhite,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: _viewModel.emailError != null
-                                  ? AppColors.spiced
-                                  : AppColors.moonAsh.withOpacity(0.2),
-                              width: 2,
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.oatWhite,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: 32),
+                      
+                      CustomTextField(
+                        controller: _nameController,
+                        focusNode: _nameFocus,
+                        hintText: 'Nome completo',
+                        icon: Icons.person_outline,
+                        keyboardType: TextInputType.name,
+                      ),
+                      
+                      SizedBox(height: 16),
+                      
+                      UsernameSelector(
+                        suggestions: _viewModel.usernameSuggestions,
+                        selectedUsername: _viewModel.selectedUsername,
+                        onUsernameSelected: _viewModel.selectUsername,
+                        onCustomUsernameChanged: (value) {
+                          _viewModel.validateCustomUsername(value);
+                        },
+                        isLoading: _viewModel.isLoadingUsernames,
+                        customUsernameError: _viewModel.customUsernameError,
+                        isValidatingCustomUsername: _viewModel.isValidatingCustomUsername,
+                      ),
+                      
+                      SizedBox(height: 16),
+                      
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AnimatedContainer(
+                            duration: Duration(milliseconds: 200),
+                            decoration: BoxDecoration(
+                              color: AppColors.whiteWhite,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: _viewModel.emailError != null
+                                    ? AppColors.spiced
+                                    : AppColors.oatWhite,
+                                width: 2,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _emailController,
+                                    focusNode: _emailFocus,
+                                    keyboardType: TextInputType.emailAddress,
+                                    style: GoogleFonts.albertSans(
+                                      fontSize: 16,
+                                      color: AppColors.textPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    decoration: InputDecoration(
+                                      prefixIcon: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(width: 16),
+                                          Icon(
+                                            Icons.email_outlined,
+                                            size: 18,
+                                            color: AppColors.carbon,
+                                          ),
+                                          SizedBox(width: 12),
+                                        ],
+                                      ),
+                                      prefixIconConstraints: BoxConstraints(minWidth: 0, minHeight: 0),
+                                      suffixIcon: _buildEmailSuffixIcon(),
+                                      hintText: 'seu@email.com',
+                                      hintStyle: GoogleFonts.albertSans(
+                                        fontSize: 16,
+                                        color: AppColors.textSecondary.withOpacity(0.5),
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.transparent,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _emailController,
-                                  focusNode: _emailFocus,
-                                  keyboardType: TextInputType.emailAddress,
-                                  style: GoogleFonts.albertSans(
-                                    fontSize: 16,
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  decoration: InputDecoration(
-                                    prefixIcon: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        SizedBox(width: 16),
-                                        Icon(
-                                          Icons.email_outlined,
-                                          size: 18,
-                                          color: AppColors.carbon,
-                                        ),
-                                        SizedBox(width: 12),
-                                      ],
+                          if (_viewModel.emailError != null) ...[
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 16,
+                                  color: AppColors.spiced,
+                                ),
+                                SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _viewModel.emailError!,
+                                    style: GoogleFonts.albertSans(
+                                      fontSize: 13,
+                                      color: AppColors.spiced,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                    prefixIconConstraints: BoxConstraints(minWidth: 0, minHeight: 0),
-                                    suffixIcon: _buildEmailSuffixIcon(),
-                                    hintText: 'seu@email.com',
-                                    hintStyle: GoogleFonts.albertSans(
-                                      fontSize: 16,
-                                      color: AppColors.textSecondary.withOpacity(0.5),
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.transparent,
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 18),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (_viewModel.emailError != null) ...[
-                          SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                size: 16,
-                                color: AppColors.spiced,
-                              ),
-                              SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  _viewModel.emailError!,
+                              ],
+                            ),
+                          ],
+                          if (_viewModel.emailError == null &&
+                              !_viewModel.isValidatingEmail &&
+                              _emailController.text.isNotEmpty &&
+                              _emailController.text.contains('@')) ...[
+                            SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  size: 16,
+                                  color: AppColors.carbon,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Email disponível',
                                   style: GoogleFonts.albertSans(
                                     fontSize: 13,
-                                    color: AppColors.spiced,
+                                    color: AppColors.carbon,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                         ],
-                        if (_viewModel.emailError == null &&
-                            !_viewModel.isValidatingEmail &&
-                            _emailController.text.isNotEmpty &&
-                            _emailController.text.contains('@')) ...[
-                          SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle_outline,
-                                size: 16,
-                                color: AppColors.carbon,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Email disponível',
-                                style: GoogleFonts.albertSans(
-                                  fontSize: 13,
-                                  color: AppColors.carbon,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
+                      ),
+                      
+                      SizedBox(height: 16),
+                      
+                      CustomTextField(
+                        controller: _phoneController,
+                        focusNode: _phoneFocus,
+                        hintText: 'Telefone',
+                        icon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      
+                      SizedBox(height: 16),
+                      
+                      CustomPasswordField(
+                        controller: _passwordController,
+                        focusNode: _passwordFocus,
+                        hintText: 'Senha',
+                        isVisible: _isPasswordVisible,
+                        onToggleVisibility: () {
+                          setState(() {
+                            _isPasswordVisible = !_isPasswordVisible;
+                          });
+                        },
+                      ),
+                      
+                      SizedBox(height: 16),
+                      
+                      CustomPasswordField(
+                        controller: _confirmPasswordController,
+                        focusNode: _confirmPasswordFocus,
+                        hintText: 'Confirmar senha',
+                        isVisible: _isConfirmPasswordVisible,
+                        onToggleVisibility: () {
+                          setState(() {
+                            _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                          });
+                        },
+                      ),
+                      
+                      SizedBox(height: 24),
+                      
+                      TermsCheckbox(
+                        isChecked: _acceptTerms,
+                        onChanged: () {
+                          setState(() {
+                            _acceptTerms = !_acceptTerms;
+                          });
+                        },
+                      ),
+                      
+                      SizedBox(height: 12),
+                      
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          'Após criar sua conta, se decidir sair, é só acessar Configurações no app e tocar em Deletar conta.',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 12,
+                            color: AppColors.textSecondary.withOpacity(0.7),
+                            height: 1.5,
                           ),
-                        ],
-                      ],
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    CustomTextField(
-                      controller: _phoneController,
-                      focusNode: _phoneFocus,
-                      hintText: 'Telefone',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    CustomPasswordField(
-                      controller: _passwordController,
-                      focusNode: _passwordFocus,
-                      hintText: 'Senha',
-                      isVisible: _isPasswordVisible,
-                      onToggleVisibility: () {
-                        setState(() {
-                          _isPasswordVisible = !_isPasswordVisible;
-                        });
-                      },
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    CustomPasswordField(
-                      controller: _confirmPasswordController,
-                      focusNode: _confirmPasswordFocus,
-                      hintText: 'Confirmar senha',
-                      isVisible: _isConfirmPasswordVisible,
-                      onToggleVisibility: () {
-                        setState(() {
-                          _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-                        });
-                      },
-                    ),
-                    
-                    SizedBox(height: 24),
-                    
-                    TermsCheckbox(
-                      isChecked: _acceptTerms,
-                      onChanged: () {
-                        setState(() {
-                          _acceptTerms = !_acceptTerms;
-                        });
-                      },
-                    ),
-                    
-                    SizedBox(height: 12),
-                    
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        'Após criar sua conta, se decidir sair, é só acessar Configurações no app e tocar em Deletar conta.',
-                        style: GoogleFonts.albertSans(
-                          fontSize: 12,
-                          color: AppColors.textSecondary.withOpacity(0.7),
-                          height: 1.5,
                         ),
                       ),
-                    ),
-                    
-                    SizedBox(height: 32),
-                    
-                    PrimaryButton(
-                      text: 'Criar conta',
-                      onPressed: _viewModel.isLoading ? null : _handleCreateAccount,
-                      isLoading: _viewModel.isLoading,
-                    ),
-                    
-                    SizedBox(height: 24),
-                    
-                    _buildDivider(),
-                    
-                    SizedBox(height: 24),
-                    
-                    _buildSocialButtons(),
-                    
-                    SizedBox(height: 32),
-                    
-                    _buildLoginLink(),
-                    
-                    SizedBox(height: 32),
-                  ],
+                      
+                      SizedBox(height: 32),
+                      
+                      PrimaryButton(
+                        text: 'Criar conta',
+                        onPressed: _viewModel.isLoading ? null : _handleCreateAccount,
+                        isLoading: _viewModel.isLoading,
+                      ),
+                      
+                      SizedBox(height: 24),
+                      
+                      _buildDivider(),
+                      
+                      SizedBox(height: 24),
+                      
+                      _buildSocialButtons(),
+                      
+                      SizedBox(height: 32),
+                      
+                      _buildLoginLink(),
+                      
+                      SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -451,34 +465,109 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildSocialButton(
-          asset: 'assets/images/google-sociallogin.svg',
+        GestureDetector(
           onTap: _viewModel.isLoading ? null : _handleGoogleSignIn,
+          child: Opacity(
+            opacity: _viewModel.isLoading ? 0.6 : 1.0,
+            child: _showGoogleText 
+              ? Container(
+                  height: 78,
+                  decoration: BoxDecoration(
+                    color: AppColors.whiteWhite,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 78,
+                        height: 78,
+                        child: Center(
+                          child: SvgPicture.asset(
+                            'assets/images/icon-google-social-login.svg',
+                            width: 28,
+                            height: 28,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(right: 24, left: 8),
+                        child: Text(
+                          'Entrar com o Google',
+                          style: GoogleFonts.albertSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.grayScale1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Container(
+                  width: 78,
+                  height: 78,
+                  decoration: BoxDecoration(
+                    color: AppColors.whiteWhite,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: SvgPicture.asset(
+                      'assets/images/icon-google-social-login.svg',
+                      width: 28,
+                      height: 28,
+                    ),
+                  ),
+                ),
+          ),
         ),
-        SizedBox(width: 20),
-        _buildSocialButton(
-          asset: 'assets/images/apple-sociallogin.svg',
-          onTap: _viewModel.isLoading ? null : _handleAppleSignIn,
-        ),
-      ],
-    );
-  }
 
-  Widget _buildSocialButton({
-    required String asset,
-    required VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedOpacity(
-        duration: Duration(milliseconds: 200),
-        opacity: _viewModel.isLoading ? 0.5 : 1.0,
-        child: SvgPicture.asset(
-          asset,
-          width: 56,
-          height: 56,
-        ),
-      ),
+        if (_isIOS) ...[
+          SizedBox(width: 16),
+          GestureDetector(
+            onTap: _viewModel.isLoading ? null : _handleAppleSignIn,
+            child: Opacity(
+              opacity: _viewModel.isLoading ? 0.6 : 1.0,
+              child: Container(
+                width: 78,
+                height: 78,
+                decoration: BoxDecoration(
+                  color: AppColors.carbon,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/images/icon-apple-social-login.svg',
+                    width: 28,
+                    height: 28,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -513,7 +602,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     );
   }
 
-  // Métodos de ação usando o ViewModel
   void _handleCreateAccount() async {
     final result = await _viewModel.createAccount(
       name: _nameController.text,
@@ -553,14 +641,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     final result = await _viewModel.signInWithApple();
 
     if (result.success) {
-      // Buscar o usuário atual do Firebase
       final user = FirebaseAuth.instance.currentUser;
       
       if (user != null) {
         String name = user.displayName ?? '';
         String email = user.email ?? 'usuario@icloud.com';
         
-        // Verificar se o nome está vazio ou é um email criptografado
         bool needsProfileCompletion = name.isEmpty || 
                                       name.contains('@privaterelay.appleid.com') ||
                                       name.length < 3;
@@ -568,7 +654,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         if (needsProfileCompletion) {
           print('⚠️ Perfil incompleto, redirecionando para completar cadastro');
           
-          // Redirecionar para tela de completar perfil
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -582,7 +667,6 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         }
       }
       
-      // Perfil completo, continuar normalmente
       _showSuccessMessage(result.successMessage!);
       Navigator.pushReplacement(
         context,
