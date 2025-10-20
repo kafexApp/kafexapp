@@ -17,6 +17,7 @@ import '../../home/widgets/home_screen_provider.dart';
 import './complete_profile_screen.dart';
 import '../viewmodel/complete_profile_viewmodel.dart';
 import '../../../screens/login_screen.dart';
+import '../../email_verification/widgets/email_verification_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   @override
@@ -613,10 +614,14 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     );
 
     if (result.success) {
-      _showSuccessMessage(result.successMessage!);
+      // ✅ NOVA LÓGICA: Redirecionar para verificação de email
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreenProvider()),
+        MaterialPageRoute(
+          builder: (context) => EmailVerificationScreen(
+            email: _emailController.text.trim(),
+          ),
+        ),
       );
     } else {
       _showErrorMessage(result.errorMessage!);
