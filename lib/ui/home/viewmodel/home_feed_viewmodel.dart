@@ -29,6 +29,7 @@ class HomeFeedViewModel extends ChangeNotifier {
   StreamSubscription<PostDeletedEvent>? _postDeletedSubscription;
   StreamSubscription<FavoriteChangedEvent>? _favoriteChangedSubscription;
   StreamSubscription<WantToVisitChangedEvent>? _wantToVisitChangedSubscription;
+  StreamSubscription<ReviewCreatedEvent>? _reviewCreatedSubscription;
 
   late Command0<List<Post>> loadFeed;
   late Command0<List<Post>> refreshFeed;
@@ -113,6 +114,12 @@ class HomeFeedViewModel extends ChangeNotifier {
       if (updated && !_isDisposed) {
         notifyListeners();
       }
+    });
+
+    _reviewCreatedSubscription = _eventBus.on<ReviewCreatedEvent>().listen((event) {
+      print('⭐ Feed recebeu evento de nova avaliação criada: cafeId=${event.cafeId}');
+      print('🔄 Recarregando feed para mostrar nova avaliação...');
+      refreshFeed.execute();
     });
   }
 
@@ -317,6 +324,7 @@ class HomeFeedViewModel extends ChangeNotifier {
     _postDeletedSubscription?.cancel();
     _favoriteChangedSubscription?.cancel();
     _wantToVisitChangedSubscription?.cancel();
+    _reviewCreatedSubscription?.cancel();
     _lastPostViewTime.clear();
     super.dispose();
   }

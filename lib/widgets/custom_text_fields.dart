@@ -33,7 +33,7 @@ class CustomTextField extends StatelessWidget {
         border: Border.all(
           color: isFocused 
               ? AppColors.papayaSensorial 
-              : AppColors.moonAsh.withOpacity(0.15),
+              : AppColors.oatWhite,
           width: isFocused ? 2 : 1,
         ),
         boxShadow: isFocused
@@ -110,7 +110,7 @@ class CustomPasswordField extends StatelessWidget {
         border: Border.all(
           color: isFocused 
               ? AppColors.papayaSensorial 
-              : AppColors.moonAsh.withOpacity(0.15),
+              : AppColors.oatWhite,
           width: isFocused ? 2 : 1,
         ),
         boxShadow: isFocused

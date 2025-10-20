@@ -34,6 +34,13 @@ class WantToVisitChangedEvent extends AppEvent {
   WantToVisitChangedEvent(this.coffeeId, this.wantToVisit);
 }
 
+/// Evento disparado quando uma nova avaliação é criada
+class ReviewCreatedEvent extends AppEvent {
+  final String cafeId;
+  
+  ReviewCreatedEvent(this.cafeId);
+}
+
 /// Service para comunicação entre ViewModels através de eventos
 class EventBusService {
   static final EventBusService _instance = EventBusService._internal();
