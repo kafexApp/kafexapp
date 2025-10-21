@@ -2,11 +2,14 @@ name: kafex
 description: "Um guia confiável para quem ama café especial"
 publish_to: 'none'
 version: 3.0.0+6
+
 environment:
   sdk: ^3.9.2
+
 dependencies:
   flutter:
     sdk: flutter
+  
   cupertino_icons: ^1.0.2
   google_maps_flutter: ^2.5.0
   geolocator: ^9.0.2
@@ -24,28 +27,35 @@ dependencies:
   firebase_auth: ^5.3.1
   firebase_storage: ^12.4.10
   firebase_messaging: ^15.2.10  # Push Notifications
-  firebase_analytics: ^11.3.3    # NOVO - Analytics
+  firebase_analytics: ^11.3.3    # Analytics
   google_sign_in: ^6.2.1
   sign_in_with_apple: ^6.1.2
+  
   # Supabase
   supabase_flutter: 2.9.0
   supabase: 2.7.0
+  
   # Imagens e Permissões
   image_picker: ^1.0.4
   permission_handler: ^11.0.1
+  
   # UI
   phosphor_flutter: ^2.1.0
   flutter_local_notifications: ^17.0.0  # Notificações locais
+  intl_phone_field: ^3.2.0  # NOVO - Seletor de código de país com formatação
+  
   # Storage
   shared_preferences: ^2.2.3
   
   # App Updates
   upgrader: ^12.1.0
   package_info_plus: ^9.0.0
+  
   # Arquitetura
   provider: ^6.1.1
   freezed_annotation: ^2.4.1
   json_annotation: ^4.8.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -57,14 +67,18 @@ dev_dependencies:
   build_runner: ^2.4.7
   freezed: ^2.4.6
   json_serializable: ^6.7.1
+
 flutter:
   uses-material-design: true
+  
   assets:
     - assets/images/
+  
   fonts:
     - family: Monigue
       fonts:
         - asset: assets/fonts/Monigue.ttf
+
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
@@ -79,6 +93,7 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "app_icon/app-icon-kafex.png"
+
 # Configuração da Splash Screen
 flutter_native_splash:
   color: "#481009"

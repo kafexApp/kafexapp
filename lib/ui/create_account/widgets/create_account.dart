@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../utils/app_colors.dart';
@@ -40,6 +41,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _acceptTerms = false;
+  
+  // Armazena o número completo com código do país
+  String _completePhoneNumber = '';
+  bool _isPhoneValid = false;
 
   final CreateAccountViewModel _viewModel = CreateAccountViewModel();
 
@@ -210,100 +215,69 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                               border: Border.all(
                                 color: _viewModel.emailError != null
                                     ? AppColors.spiced
-                                    : AppColors.oatWhite,
-                                width: 2,
+                                    : (_emailFocus.hasFocus 
+                                        ? AppColors.papayaSensorial 
+                                        : AppColors.moonAsh.withOpacity(0.15)),
+                                width: _emailFocus.hasFocus ? 2 : 1,
                               ),
+                              boxShadow: _emailFocus.hasFocus
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.papayaSensorial.withOpacity(0.1),
+                                        blurRadius: 12,
+                                        offset: Offset(0, 4),
+                                      ),
+                                    ]
+                                  : [],
                             ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: TextField(
-                                    controller: _emailController,
-                                    focusNode: _emailFocus,
-                                    keyboardType: TextInputType.emailAddress,
-                                    style: GoogleFonts.albertSans(
-                                      fontSize: 16,
-                                      color: AppColors.textPrimary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    decoration: InputDecoration(
-                                      prefixIcon: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          SizedBox(width: 16),
-                                          Icon(
-                                            Icons.email_outlined,
-                                            size: 18,
-                                            color: AppColors.carbon,
-                                          ),
-                                          SizedBox(width: 12),
-                                        ],
-                                      ),
-                                      prefixIconConstraints: BoxConstraints(minWidth: 0, minHeight: 0),
-                                      suffixIcon: _buildEmailSuffixIcon(),
-                                      hintText: 'seu@email.com',
-                                      hintStyle: GoogleFonts.albertSans(
-                                        fontSize: 16,
-                                        color: AppColors.textSecondary.withOpacity(0.5),
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                      filled: true,
-                                      fillColor: Colors.transparent,
-                                      border: InputBorder.none,
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-                                    ),
-                                  ),
+                            child: TextField(
+                              controller: _emailController,
+                              focusNode: _emailFocus,
+                              keyboardType: TextInputType.emailAddress,
+                              style: GoogleFonts.albertSans(
+                                fontSize: 16,
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              decoration: InputDecoration(
+                                prefixIcon: Icon(
+                                  Icons.email_outlined,
+                                  color: _emailFocus.hasFocus
+                                      ? AppColors.papayaSensorial
+                                      : AppColors.textSecondary,
+                                  size: 22,
                                 ),
-                              ],
+                                suffixIcon: _buildEmailSuffixIcon(),
+                                hintText: 'E-mail',
+                                hintStyle: GoogleFonts.albertSans(
+                                  fontSize: 16,
+                                  color: AppColors.textSecondary.withOpacity(0.6),
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                filled: true,
+                                fillColor: Colors.transparent,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 18,
+                                ),
+                              ),
                             ),
                           ),
                           if (_viewModel.emailError != null) ...[
                             SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 16,
+                            Padding(
+                              padding: EdgeInsets.only(left: 16),
+                              child: Text(
+                                _viewModel.emailError!,
+                                style: GoogleFonts.albertSans(
+                                  fontSize: 13,
                                   color: AppColors.spiced,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    _viewModel.emailError!,
-                                    style: GoogleFonts.albertSans(
-                                      fontSize: 13,
-                                      color: AppColors.spiced,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          if (_viewModel.emailError == null &&
-                              !_viewModel.isValidatingEmail &&
-                              _emailController.text.isNotEmpty &&
-                              _emailController.text.contains('@')) ...[
-                            SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.check_circle_outline,
-                                  size: 16,
-                                  color: AppColors.carbon,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Email disponível',
-                                  style: GoogleFonts.albertSans(
-                                    fontSize: 13,
-                                    color: AppColors.carbon,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ],
                         ],
@@ -311,12 +285,105 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       
                       SizedBox(height: 16),
                       
-                      CustomTextField(
+                      // ✅ Campo de telefone com formatação automática por país
+                      IntlPhoneField(
                         controller: _phoneController,
                         focusNode: _phoneFocus,
-                        hintText: 'Telefone',
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          hintText: 'Telefone',
+                          hintStyle: GoogleFonts.albertSans(
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          filled: true,
+                          fillColor: AppColors.whiteWhite,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: AppColors.oatWhite,
+                              width: 2,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: AppColors.oatWhite,
+                              width: 2,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: AppColors.papayaSensorial,
+                              width: 2,
+                            ),
+                          ),
+                          errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: AppColors.spiced,
+                              width: 2,
+                            ),
+                          ),
+                          focusedErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: AppColors.spiced,
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                        ),
+                        style: GoogleFonts.albertSans(
+                          fontSize: 16,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        initialCountryCode: 'BR', // Brasil como padrão
+                        languageCode: 'pt', // Idioma em português
+                        
+                        // ✅ Formatação automática habilitada
+                        autovalidateMode: AutovalidateMode.disabled,
+                        showCountryFlag: true,
+                        showDropdownIcon: true,
+                        
+                        dropdownTextStyle: GoogleFonts.albertSans(
+                          fontSize: 14,
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        searchText: 'Buscar país',
+                        dropdownIcon: Icon(
+                          Icons.arrow_drop_down,
+                          color: AppColors.textSecondary,
+                        ),
+                        flagsButtonPadding: EdgeInsets.only(left: 8),
+                        
+                        // ✅ Callback quando o número muda
+                        onChanged: (phone) {
+                          setState(() {
+                            _completePhoneNumber = phone.completeNumber;
+                            _isPhoneValid = phone.isValidNumber();
+                          });
+                          
+                          print('📱 Telefone formatado: ${phone.number}');
+                          print('📱 Telefone completo: ${phone.completeNumber}');
+                          print('📱 Código do país: ${phone.countryCode}');
+                          print('✅ Válido: $_isPhoneValid');
+                        },
+                        
+                        // ✅ Callback quando o país muda
+                        onCountryChanged: (country) {
+                          print('🌎 País: ${country.name}');
+                          print('🌎 Código: ${country.dialCode}');
+                        },
+                        
+                        // ✅ Texto de erro personalizado (opcional)
+                        invalidNumberMessage: 'Número inválido para este país',
                       ),
                       
                       SizedBox(height: 16),
@@ -358,33 +425,22 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                         },
                       ),
                       
-                      SizedBox(height: 12),
-                      
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 4),
-                        child: Text(
-                          'Após criar sua conta, se decidir sair, é só acessar Configurações no app e tocar em Deletar conta.',
-                          style: GoogleFonts.albertSans(
-                            fontSize: 12,
-                            color: AppColors.textSecondary.withOpacity(0.7),
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                      
                       SizedBox(height: 32),
                       
                       PrimaryButton(
                         text: 'Criar conta',
-                        onPressed: _viewModel.isLoading ? null : _handleCreateAccount,
+                        onPressed: _viewModel.isLoading || 
+                                  _viewModel.selectedUsername == null
+                            ? null
+                            : _handleCreateAccount,
                         isLoading: _viewModel.isLoading,
                       ),
                       
-                      SizedBox(height: 24),
+                      SizedBox(height: 32),
                       
                       _buildDivider(),
                       
-                      SizedBox(height: 24),
+                      SizedBox(height: 32),
                       
                       _buildSocialButtons(),
                       
@@ -406,27 +462,38 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.all(24),
-      child: Column(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
         children: [
-          Text(
-            'Criar conta',
-            style: GoogleFonts.albertSans(
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.5,
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.whiteWhite,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.arrow_back,
+                color: AppColors.textPrimary,
+                size: 24,
+              ),
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            'Preencha os campos abaixo para começar',
-            style: GoogleFonts.albertSans(
-              fontSize: 15,
-              color: AppColors.textSecondary,
-              height: 1.4,
+          Expanded(
+            child: Center(
+              child: Text(
+                'Criar conta',
+                style: GoogleFonts.albertSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
           ),
+          SizedBox(width: 40),
         ],
       ),
     );
@@ -438,24 +505,23 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         Expanded(
           child: Container(
             height: 1,
-            color: AppColors.moonAsh.withOpacity(0.2),
+            color: AppColors.moonAsh,
           ),
         ),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'ou continue com',
+            'Ou continue com',
             style: GoogleFonts.albertSans(
               fontSize: 14,
               color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ),
         Expanded(
           child: Container(
             height: 1,
-            color: AppColors.moonAsh.withOpacity(0.2),
+            color: AppColors.moonAsh,
           ),
         ),
       ],
@@ -604,17 +670,17 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   void _handleCreateAccount() async {
+    // Usar o número completo com código do país
     final result = await _viewModel.createAccount(
       name: _nameController.text,
       email: _emailController.text,
-      phone: _phoneController.text,
+      phone: _completePhoneNumber, // ✅ Número no formato internacional
       password: _passwordController.text,
       confirmPassword: _confirmPasswordController.text,
       termsAccepted: _acceptTerms,
     );
 
     if (result.success) {
-      // ✅ NOVA LÓGICA: Redirecionar para verificação de email
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
