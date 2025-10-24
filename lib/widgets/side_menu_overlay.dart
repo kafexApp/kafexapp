@@ -11,6 +11,7 @@ import '../ui/profile_settings/widgets/profile_settings_provider.dart';
 import '../screens/welcome_screen.dart';
 import '../ui/posts/widgets/create_post_screen.dart';
 import '../ui/home/widgets/home_screen_provider.dart';
+import '../ui/subscription/widgets/subscription_screen.dart';
 
 class SideMenuOverlay extends StatefulWidget {
   final VoidCallback onClose;
@@ -93,24 +94,15 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
   }
 
   Future<void> _logout(BuildContext context) async {
-    // Primeiro fecha o menu
     await _closeMenu();
     await Future.delayed(Duration(milliseconds: 200));
     
     if (!mounted) return;
     
     try {
-      print('🚪 Iniciando processo de logout...');
-      
-      // Limpa dados do usuário ANTES de fazer signOut
       UserManager.instance.clearUserData();
-      
-      // Faz o logout no Firebase
       await _authService.signOut();
       
-      print('✅ Logout concluído, redirecionando...');
-      
-      // Navega para a tela de boas-vindas diretamente
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => WelcomeScreen()),
@@ -118,8 +110,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
         );
       }
     } catch (e) {
-      print('❌ Erro no logout: $e');
-      // Em caso de erro, força ir para Welcome
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => WelcomeScreen()),
@@ -187,57 +177,63 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                     ),
                     
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                       child: Column(
                         children: [
-                          _buildMenuItem(
-                            icon: PhosphorIcons.house(),
-                            title: 'Início',
-                            subtitle: 'Feed principal',
-                            onTap: () => _navigateToScreen(HomeScreenProvider()),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _logout(context),
+                              icon: Icon(PhosphorIcons.signOut(), size: 18),
+                              label: Text(
+                                'Sair da conta',
+                                style: GoogleFonts.albertSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Theme.of(context).colorScheme.error,
+                                side: BorderSide(
+                                  color: Theme.of(context).colorScheme.error.withOpacity(0.12),
+                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
                           ),
                           
-                          SizedBox(height: 8),
+                          SizedBox(height: 20),
                           
-                          _buildMenuItem(
-                            icon: PhosphorIcons.coffee(),
-                            title: 'Cafeterias',
-                            subtitle: 'Explorar cafeterias',
-                            onTap: () => _navigateToScreen(CafeExplorerProvider()),
-                          ),
-                          
-                          SizedBox(height: 8),
-                          
-                          _buildMenuItem(
-                            icon: PhosphorIcons.bell(),
-                            title: 'Notificações',
-                            subtitle: 'Alertas e atualizações',
-                            onTap: () => _pushToScreen(NotificationsProvider()),
-                          ),
-                          
-                          SizedBox(height: 8),
-                          
-                          _buildMenuItem(
-                            icon: PhosphorIcons.user(),
-                            title: 'Perfil',
-                            subtitle: 'Meus dados',
-                            onTap: () {
-                              final userManager = UserManager.instance;
-                              _pushToScreen(UserProfileProvider(
-                                userId: userManager.userUid,
-                                userName: userManager.userName,
-                                userAvatar: userManager.userPhotoUrl,
-                              ));
-                            },
-                          ),
-                          
-                          SizedBox(height: 8),
-                          
-                          _buildMenuItem(
-                            icon: PhosphorIcons.gear(),
-                            title: 'Configurações',
-                            subtitle: 'Preferências do app',
-                            onTap: () => _pushToScreen(ProfileSettingsProvider()),
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            crossAxisCount: 3,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 0.95,
+                            children: [
+                              _buildGridItem(PhosphorIcons.house(), 'Início', 
+                                () => _navigateToScreen(HomeScreenProvider())),
+                              _buildGridItem(PhosphorIcons.coffee(), 'Cafés', 
+                                () => _navigateToScreen(CafeExplorerProvider())),
+                              _buildGridItem(PhosphorIcons.bell(), 'Avisos', 
+                                () => _pushToScreen(NotificationsProvider())),
+                              _buildGridItem(PhosphorIcons.user(), 'Perfil', () {
+                                final um = UserManager.instance;
+                                _pushToScreen(UserProfileProvider(
+                                  userId: um.userUid,
+                                  userName: um.userName,
+                                  userAvatar: um.userPhotoUrl,
+                                ));
+                              }),
+                              _buildGridItem(PhosphorIcons.gear(), 'Config.', 
+                                () => _pushToScreen(ProfileSettingsProvider())),
+                              _buildGridItem(PhosphorIcons.crownSimple(), 'Clube', 
+                                () => _pushToScreen(const SubscriptionScreen())),
+                            ],
                           ),
                           
                           SizedBox(height: 20),
@@ -246,8 +242,6 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                         ],
                       ),
                     ),
-                    
-                    SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
                   ],
                 ),
               ),
@@ -259,207 +253,86 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
   }
 
   Widget _buildUserHeader() {
-    final userManager = UserManager.instance;
-    final userName = userManager.userName;
-    final userEmail = userManager.userEmail;
-    final userPhotoUrl = userManager.userPhotoUrl;
-
-    return Column(
+    final um = UserManager.instance;
+    final photoUrl = um.userPhotoUrl;
+    return Row(
       children: [
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () {
-                _pushToScreen(UserProfileProvider(
-                  userId: userManager.userUid,
-                  userName: userName,
-                  userAvatar: userPhotoUrl,
-                ));
-              },
-              child: Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                ),
-                child: userPhotoUrl != null && userPhotoUrl.isNotEmpty
-                    ? ClipOval(
-                        child: Image.network(
-                          userPhotoUrl,
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return _buildDefaultAvatar(userName);
-                          },
-                        ),
-                      )
-                    : _buildDefaultAvatar(userName),
-              ),
-            ),
-            
-            SizedBox(width: 16),
-            
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    userName,
-                    style: GoogleFonts.albertSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    userEmail,
-                    style: GoogleFonts.albertSans(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            
-            IconButton(
-              onPressed: _closeMenu,
-              icon: Icon(
-                PhosphorIcons.x(),
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.oatWhite,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Theme.of(context).colorScheme.primaryContainer,
+          ),
+          child: photoUrl != null && photoUrl.isNotEmpty
+              ? ClipOval(
+                  child: Image.network(photoUrl, width: 64, height: 64, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildDefaultAvatar(um.userName)))
+              : _buildDefaultAvatar(um.userName),
         ),
-        
-        SizedBox(height: 16),
-        
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => _logout(context),
-            icon: Icon(
-              PhosphorIcons.signOut(),
-              size: 18,
-            ),
-            label: Text(
-              'Sair da conta',
-              style: GoogleFonts.albertSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-              side: BorderSide(
-                color: Theme.of(context).colorScheme.error.withOpacity(0.12),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+        SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(um.userName, style: GoogleFonts.albertSans(
+                fontSize: 20, fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+              SizedBox(height: 4),
+              Text(um.userEmail, style: GoogleFonts.albertSans(
+                fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: _closeMenu,
+          icon: Icon(PhosphorIcons.x(), color: Theme.of(context).colorScheme.onSurfaceVariant),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.oatWhite,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDefaultAvatar(String userName) {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Theme.of(context).colorScheme.primaryContainer,
-      ),
-      child: Center(
-        child: Text(
-          userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-          style: GoogleFonts.albertSans(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-          ),
-        ),
-      ),
+  Widget _buildDefaultAvatar(String name) {
+    return Center(
+      child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'U',
+        style: GoogleFonts.albertSans(fontSize: 24, fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.onPrimaryContainer)),
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildGridItem(IconData icon, String title, VoidCallback onTap) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
+          decoration: BoxDecoration(
+            color: AppColors.moonAsh,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.secondaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: Theme.of(context).colorScheme.onSecondaryContainer,
-                  size: 24,
-                ),
+                child: Icon(icon, 
+                  color: Theme.of(context).colorScheme.onSecondaryContainer, size: 22),
               ),
-              
-              SizedBox(width: 16),
-              
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.albertSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.albertSans(
-                        fontSize: 13,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              Icon(
-                PhosphorIcons.caretRight(),
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                size: 16,
-              ),
+              SizedBox(height: 8),
+              Text(title, style: GoogleFonts.albertSans(fontSize: 12, fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface),
+                textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
           ),
         ),
@@ -474,31 +347,17 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
         onPressed: () async {
           await _animationController.reverse();
           Navigator.of(context).pop();
-          
           await Future.delayed(Duration(milliseconds: 50));
-          
-          if (context.mounted) {
-            showCreatePostModal(context);
-          }
+          if (context.mounted) showCreatePostModal(context);
         },
-        icon: Icon(
-          PhosphorIcons.plus(),
-          size: 20,
-        ),
-        label: Text(
-          'Criar post',
-          style: GoogleFonts.albertSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        icon: Icon(PhosphorIcons.plus(), size: 20),
+        label: Text('Criar post', style: GoogleFonts.albertSans(
+          fontSize: 16, fontWeight: FontWeight.w500)),
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.papayaSensorial,
           foregroundColor: Colors.white,
           padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
     );
@@ -511,14 +370,11 @@ void showSideMenu(BuildContext context) {
       opaque: false,
       barrierColor: Colors.transparent,
       barrierDismissible: true,
-      pageBuilder: (context, animation, secondaryAnimation) => SideMenuOverlay(
-        onClose: () => Navigator.of(context).pop(),
-      ),
+      pageBuilder: (context, animation, secondaryAnimation) => 
+        SideMenuOverlay(onClose: () => Navigator.of(context).pop()),
       transitionDuration: Duration(milliseconds: 350),
       reverseTransitionDuration: Duration(milliseconds: 350),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return child;
-      },
+      transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
     ),
   );
 }
