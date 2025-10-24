@@ -8,6 +8,9 @@ import '../../../widgets/custom_bottom_navbar.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/side_menu_overlay.dart';
 import '../../../services/location_service.dart';
+import '../../../data/repositories/cafe_repository.dart';
+import '../../../data/repositories/places_repository.dart';
+import '../../../data/services/clustering_service.dart';
 import '../viewmodel/cafe_explorer_viewmodel.dart';
 import 'search/search_bar.dart';
 import 'search/suggestions_list.dart';
@@ -17,12 +20,26 @@ import 'shared/cafe_carousel.dart';
 import 'map/cafe_map_view.dart';
 import 'list/cafe_list_view.dart';
 
-class CafeExplorerScreen extends StatefulWidget {
+class CafeExplorerScreen extends StatelessWidget {
   @override
-  _CafeExplorerScreenState createState() => _CafeExplorerScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => CafeExplorerViewModel(
+        cafeRepository: CafeRepositoryImpl(),
+        placesRepository: PlacesRepositoryImpl(),
+        clusteringService: ClusteringService(),
+      ),
+      child: _CafeExplorerContent(),
+    );
+  }
 }
 
-class _CafeExplorerScreenState extends State<CafeExplorerScreen> {
+class _CafeExplorerContent extends StatefulWidget {
+  @override
+  _CafeExplorerContentState createState() => _CafeExplorerContentState();
+}
+
+class _CafeExplorerContentState extends State<_CafeExplorerContent> {
   GoogleMapController? _mapController;
   PageController? _carouselPageController;
   

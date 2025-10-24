@@ -11,10 +11,7 @@ import '../widgets/custom_buttons.dart';
 import '../widgets/custom_text_fields.dart';
 import '../widgets/custom_toast.dart';
 import '../services/auth_service.dart';
-import 'forgot_password_screen.dart';
-import 'welcome_screen.dart';
-import '../ui/home/widgets/home_screen_provider.dart';
-import '../ui/create_account/widgets/complete_profile_screen.dart';
+import 'package:kafex/config/app_routes.dart';
 import '../ui/create_account/viewmodel/complete_profile_viewmodel.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -150,9 +147,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 44,
                           child: OutlinedButton(
                             onPressed: () {
-                              Navigator.pushReplacement(
+                              Navigator.pushReplacementNamed(
                                 context,
-                                MaterialPageRoute(builder: (context) => WelcomeScreen()),
+                                AppRoutes.welcome,
                               );
                             },
                             style: OutlinedButton.styleFrom(
@@ -183,11 +180,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: OutlinedButton(
                             onPressed: () {
                               if (!_isLoading) {
-                                Navigator.push(
+                                Navigator.pushNamed(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ForgotPasswordScreen(),
-                                  ),
+                                  AppRoutes.forgotPassword,
                                 );
                               }
                             },
@@ -236,70 +231,63 @@ class _LoginScreenState extends State<LoginScreen> {
                         onTap: _isLoading ? null : _handleGoogleSignIn,
                         child: Opacity(
                           opacity: _isLoading ? 0.6 : 1.0,
-                          child: _showGoogleText 
-                            ? Container(
-                                height: 78,
-                                decoration: BoxDecoration(
-                                  color: AppColors.whiteWhite,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 78,
-                                      height: 78,
-                                      child: Center(
-                                        child: SvgPicture.asset(
-                                          'assets/images/icon-google-social-login.svg',
-                                          width: 28,
-                                          height: 28,
-                                        ),
+                          child: _showGoogleText
+                              ? Container(
+                                  height: 78,
+                                  padding: EdgeInsets.symmetric(horizontal: 24),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.whiteWhite,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 2),
                                       ),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.only(right: 24, left: 8),
-                                      child: Text(
-                                        'Entrar com o Google',
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SvgPicture.asset(
+                                        'assets/images/icon-google-social-login.svg',
+                                        width: 28,
+                                        height: 28,
+                                      ),
+                                      SizedBox(width: 16),
+                                      Text(
+                                        'Google',
                                         style: GoogleFonts.albertSans(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.grayScale1,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.carbon,
                                         ),
                                       ),
+                                    ],
+                                  ),
+                                )
+                              : Container(
+                                  width: 78,
+                                  height: 78,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.whiteWhite,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: SvgPicture.asset(
+                                      'assets/images/icon-google-social-login.svg',
+                                      width: 28,
+                                      height: 28,
                                     ),
-                                  ],
-                                ),
-                              )
-                            : Container(
-                                width: 78,
-                                height: 78,
-                                decoration: BoxDecoration(
-                                  color: AppColors.whiteWhite,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: SvgPicture.asset(
-                                    'assets/images/icon-google-social-login.svg',
-                                    width: 28,
-                                    height: 28,
                                   ),
                                 ),
-                              ),
                         ),
                       ),
 
@@ -384,9 +372,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login realizado com sucesso!');
         
-        Navigator.pushReplacement(
+        Navigator.pushReplacementNamed(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreenProvider()),
+          AppRoutes.home,
         );
       } else {
         CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login');
@@ -423,9 +411,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login com Google realizado com sucesso!');
         
-        Navigator.pushReplacement(
+        Navigator.pushReplacementNamed(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreenProvider()),
+          AppRoutes.home,
         );
       } else {
         CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login com Google');
@@ -464,15 +452,11 @@ class _LoginScreenState extends State<LoginScreen> {
             _isLoading = false;
           });
           
-          // Redirecionar para tela de completar perfil
-          Navigator.pushReplacement(
+          // Redirecionar para tela de completar perfil usando rota nomeada
+          Navigator.pushReplacementNamed(
             context,
-            MaterialPageRoute(
-              builder: (context) => ChangeNotifierProvider(
-                create: (_) => CompleteProfileViewModel(),
-                child: CompleteProfileScreen(initialEmail: email),
-              ),
-            ),
+            AppRoutes.completeProfile,
+            arguments: {'initialEmail': email},
           );
           return;
         }
@@ -487,9 +471,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
         CustomToast.showSuccess(context, message: 'Login com Apple realizado com sucesso!');
         
-        Navigator.pushReplacement(
+        Navigator.pushReplacementNamed(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreenProvider()),
+          AppRoutes.home,
         );
       } else {
         CustomToast.showError(context, message: result.errorMessage ?? 'Erro no login com Apple');

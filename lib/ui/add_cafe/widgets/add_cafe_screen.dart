@@ -5,6 +5,8 @@ import '../../../utils/app_colors.dart';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../widgets/custom_bottom_navbar.dart';
 import '../../../widgets/custom_toast.dart';
+import '../../../data/repositories/places_submission_repository.dart';
+import '../../../data/repositories/cafe_submission_repository.dart';
 import '../viewmodel/add_cafe_viewmodel.dart';
 import 'components/wizard_progress_bar.dart';
 import 'components/wizard_navigation.dart';
@@ -13,12 +15,25 @@ import 'steps/photo_step.dart';
 import 'steps/details_step.dart';
 import 'steps/submit_step.dart';
 
-class AddCafeScreen extends StatefulWidget {
+class AddCafeScreen extends StatelessWidget {
   @override
-  _AddCafeScreenState createState() => _AddCafeScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AddCafeViewModel(
+        placesRepository: PlacesSubmissionRepositoryImpl(),
+        submissionRepository: CafeSubmissionRepositoryImpl(),
+      ),
+      child: _AddCafeContent(),
+    );
+  }
 }
 
-class _AddCafeScreenState extends State<AddCafeScreen>
+class _AddCafeContent extends StatefulWidget {
+  @override
+  _AddCafeContentState createState() => _AddCafeContentState();
+}
+
+class _AddCafeContentState extends State<_AddCafeContent>
     with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
   final ImagePicker _imagePicker = ImagePicker();

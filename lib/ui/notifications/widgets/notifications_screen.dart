@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_icons.dart';
 import '../../../data/models/domain/notification.dart';
+import 'package:kafex/config/app_routes.dart';
 import '../viewmodel/notifications_viewmodel.dart';
-import '../../posts/widgets/post_detail_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   @override
@@ -442,14 +442,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       print('   Post ID: $postId');
       print('   Comment ID: $commentId');
 
-      Navigator.push(
+      Navigator.pushNamed(
         context,
-        MaterialPageRoute(
-          builder: (context) => PostDetailScreen(
-            postId: postId,
-            highlightCommentId: commentId,
-          ),
-        ),
+        AppRoutes.postDetail,
+        arguments: {
+          'postId': postId,
+          'highlightCommentId': commentId,
+        },
       );
     } else if (path.startsWith('/cafeteria/')) {
       // TODO: Navegar para detalhes da cafeteria

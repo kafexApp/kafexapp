@@ -7,7 +7,7 @@ import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/utils/app_icons.dart';
 import 'package:kafex/ui/comments/widgets/comments_bottom_sheet.dart';
 import 'package:kafex/widgets/delete_confirmation_dialog.dart';
-import 'package:kafex/ui/user_profile/widgets/user_profile_provider.dart';
+import 'package:kafex/config/app_routes.dart';
 import 'package:provider/provider.dart';
 
 abstract class BasePostWidget extends StatefulWidget {
@@ -97,15 +97,14 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
     print('   Nome: $userName');
     print('   Firebase UID: $authorUid');
 
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (context) => UserProfileProvider(
-          userId: authorUid, // ✅ Passa o Firebase UID real
-          userName: userName,
-          userAvatar: avatarUrl,
-        ),
-      ),
+      AppRoutes.userProfile,
+      arguments: {
+        'userId': authorUid,
+        'userName': userName,
+        'userAvatar': avatarUrl,
+      },
     );
   }
 

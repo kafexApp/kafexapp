@@ -6,21 +6,27 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'utils/app_colors.dart';
+import 'config/app_routes.dart';
+
+// Screens
 import 'screens/splash_screen.dart';
-import 'ui/home/widgets/home_screen_provider.dart';
+
+// Repositories
 import 'data/repositories/cafe_repository.dart';
-// Push Notifications
 import 'data/repositories/push_notification_repository.dart';
-import 'utils/push_notification_handler.dart';
-// NOVO - Analytics
-import 'data/services/firebase_analytics_service.dart';
 import 'data/repositories/analytics_repository.dart';
+
+// Services
+import 'data/services/firebase_analytics_service.dart';
+
+// Utils
+import 'utils/push_notification_handler.dart';
 import 'utils/analytics_navigation_observer.dart';
 
 // Global Navigator Key para navegação via push notifications
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-// NOVO - Instância global do Analytics Repository
+// Instância global do Analytics Repository
 late AnalyticsRepository analyticsRepository;
 
 void main() async {
@@ -41,7 +47,7 @@ void main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1yb2xqa2draXNldXFsd2xhaWJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MDc3NzQsImV4cCI6MjA2MjI4Mzc3NH0.umy8tSCMmO1_goqX0TpO-coC2K6FXnwwZVQpqDDMrmw',
   );
 
-  // NOVO - Inicializar Analytics
+  // Inicializar Analytics
   await _initializeAnalytics();
 
   // Inicializar Push Notifications
@@ -52,7 +58,7 @@ void main() async {
   runApp(KafexApp());
 }
 
-// NOVO - Função para inicializar analytics
+/// Função para inicializar analytics
 Future<void> _initializeAnalytics() async {
   try {
     print('📊 Inicializando Firebase Analytics...');
@@ -75,7 +81,7 @@ Future<void> _initializeAnalytics() async {
   }
 }
 
-// Função para inicializar push notifications
+/// Função para inicializar push notifications
 Future<void> _initializePushNotifications() async {
   try {
     print('🔔 Inicializando sistema de Push Notifications...');
@@ -98,7 +104,7 @@ Future<void> _initializePushNotifications() async {
 class KafexApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    Widget app = MultiProvider(
+    return MultiProvider(
       providers: [
         Provider<CafeRepository>(
           create: (_) => CafeRepositoryImpl(),
@@ -106,7 +112,6 @@ class KafexApp extends StatelessWidget {
         Provider<PushNotificationRepository>(
           create: (_) => PushNotificationRepositoryImpl(),
         ),
-        // NOVO - Adicionar Analytics Repository ao Provider
         Provider<AnalyticsRepository>(
           create: (_) => analyticsRepository,
         ),
@@ -115,17 +120,43 @@ class KafexApp extends StatelessWidget {
         navigatorKey: navigatorKey,
         title: 'Kafex',
         theme: AppTheme.lightTheme,
-        home: SplashScreen(),
         debugShowCheckedModeBanner: false,
-        routes: {
-          '/home-test': (context) => const HomeScreenProvider(),
-        },
-        // NOVO - Adicionar Analytics Navigation Observer
+        
+        // ============================================
+        // 📊 ANALYTICS OBSERVER
+        // ============================================
+        // Rastreia automaticamente TODAS as navegações
         navigatorObservers: [
           AnalyticsNavigationObserver(
             analyticsRepository: analyticsRepository,
           ),
         ],
+        
+        // ============================================
+        // 🗺️ SISTEMA DE ROTAS CENTRALIZADO
+        // ============================================
+        // Rota inicial
+        initialRoute: AppRoutes.splash,
+        
+        // Gerador de rotas centralizado
+        onGenerateRoute: (settings) {
+          print('🗺️ onGenerateRoute chamado para: ${settings.name}');
+          
+          // Tratamento especial para splash (rota inicial)
+          if (settings.name == AppRoutes.splash || settings.name == '/') {
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (_) => SplashScreen(),
+            );
+          }
+          
+          // Para todas as outras rotas, usa o AppRoutes
+          return AppRoutes.onGenerateRoute(settings);
+        },
+        
+        // ============================================
+        // 📱 LAYOUT RESPONSIVO
+        // ============================================
         builder: (context, child) {
           return MediaQuery(
             data: MediaQuery.of(context),
@@ -134,6 +165,7 @@ class KafexApp extends StatelessWidget {
                 final width = constraints.maxWidth;
                 print('📏 Largura detectada: $width');
 
+                // Layout desktop (Web)
                 if (kIsWeb && width > 600) {
                   print('✅ Aplicando centralização - Desktop detectado');
                   return Container(
@@ -152,6 +184,7 @@ class KafexApp extends StatelessWidget {
                   );
                 }
 
+                // Layout mobile
                 print('📱 Layout mobile mantido');
                 return child ?? const SizedBox();
               },
@@ -160,7 +193,5 @@ class KafexApp extends StatelessWidget {
         },
       ),
     );
-
-    return app;
   }
 }

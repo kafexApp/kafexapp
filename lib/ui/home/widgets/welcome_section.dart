@@ -2,13 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/user_manager.dart';
-import '../../../widgets/common/user_avatar.dart';
-import '../../../ui/user_profile/widgets/user_profile_screen.dart';
-import '../../../ui/user_profile/viewmodel/user_profile_viewmodel.dart';
-import '../../../data/repositories/user_profile_repository.dart';
+import 'package:kafex/config/app_routes.dart';
 
 class WelcomeSection extends StatelessWidget {
   const WelcomeSection({Key? key}) : super(key: key);
@@ -47,17 +43,10 @@ class WelcomeSection extends StatelessWidget {
                     final userId = currentUser?.uid ?? UserManager.instance.userUid;
                     if (userId.isEmpty) return;
                     
-                    Navigator.push(
+                    Navigator.pushNamed(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => ChangeNotifierProvider(
-                          create: (_) => UserProfileViewModel(
-                            repository: UserProfileRepositoryImpl(),
-                            userId: userId,
-                          ),
-                          child: UserProfileScreen(),
-                        ),
-                      ),
+                      AppRoutes.userProfile,
+                      arguments: {'userId': userId},
                     );
                   },
                   borderRadius: BorderRadius.circular(100),

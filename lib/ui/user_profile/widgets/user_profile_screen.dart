@@ -6,9 +6,7 @@ import 'package:kafex/utils/app_icons.dart';
 import 'package:kafex/ui/posts/factories/post_card_factory.dart';
 import 'package:kafex/widgets/custom_boxcafe_minicard.dart';
 import 'package:kafex/ui/user_profile/viewmodel/user_profile_viewmodel.dart';
-import 'package:kafex/ui/profile_settings/widgets/profile_settings_screen.dart';
-import 'package:kafex/ui/profile_settings/viewmodel/profile_settings_viewmodel.dart';
-import 'package:kafex/data/repositories/profile_settings_repository.dart';
+import 'package:kafex/config/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -79,16 +77,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   }
 
   void _navigateToSettings() {
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (_) => ProfileSettingsViewModel(
-            repository: ProfileSettingsRepositoryImpl(),
-          ),
-          child: ProfileSettingsScreen(),
-        ),
-      ),
+      AppRoutes.profileSettings,
     );
   }
 

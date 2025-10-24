@@ -5,8 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/app_colors.dart';
 import '../widgets/custom_buttons.dart';
-import 'login_screen.dart';
-import '../ui/create_account/widgets/create_account.dart';
+import '../utils/navigation_helper.dart';  // ← NOVO IMPORT
 
 class WelcomeScreen extends StatelessWidget {
   @override
@@ -108,10 +107,8 @@ class WelcomeScreen extends StatelessWidget {
                             PrimaryButton(
                               text: 'Já sou membro',
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                                );
+                                // ✅ ATUALIZADO - Usando rota nomeada
+                                NavigationHelper.navigateToLogin(context);
                               },
                             ),
 
@@ -120,10 +117,8 @@ class WelcomeScreen extends StatelessWidget {
                             CustomOutlineButton(
                               text: 'Criar conta grátis',
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => CreateAccountScreen()),
-                                );
+                                // ✅ ATUALIZADO - Usando rota nomeada
+                                NavigationHelper.navigateToCreateAccount(context);
                               },
                             ),
                           ],

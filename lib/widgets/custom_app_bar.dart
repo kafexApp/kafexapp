@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/app_colors.dart';
 import '../utils/app_icons.dart';
-import '../ui/notifications/widgets/notifications_provider.dart';
-import '../ui/home/widgets/home_screen_provider.dart';
+import 'package:kafex/config/app_routes.dart';
 import '../services/notifications_service.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -48,19 +47,17 @@ class _CustomAppBarState extends State<CustomAppBar> {
   }
 
   void _navigateToNotifications(BuildContext context) async {
-    await Navigator.push(
+    await Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (context) => NotificationsProvider(),
-      ),
+      AppRoutes.notifications,
     );
     _loadNotificationCount();
   }
 
   void _navigateToHome(BuildContext context) {
-    Navigator.pushAndRemoveUntil(
+    Navigator.pushNamedAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => HomeScreenProvider()),
+      AppRoutes.home,
       (route) => false,
     );
   }

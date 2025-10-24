@@ -14,11 +14,8 @@ import '../../../widgets/custom_text_fields.dart';
 import './terms_checkbox.dart';
 import './username_selector.dart';
 import '../viewmodel/create_account_viewmodel.dart';
-import '../../home/widgets/home_screen_provider.dart';
-import './complete_profile_screen.dart';
 import '../viewmodel/complete_profile_viewmodel.dart';
-import '../../../screens/login_screen.dart';
-import '../../email_verification/widgets/email_verification_screen.dart';
+import 'package:kafex/config/app_routes.dart';
 
 class CreateAccountScreen extends StatefulWidget {
   @override
@@ -642,9 +639,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     return Center(
       child: GestureDetector(
         onTap: () {
-          Navigator.pushReplacement(
+          Navigator.pushReplacementNamed(
             context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
+            AppRoutes.login,
           );
         },
         child: RichText(
@@ -681,13 +678,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     );
 
     if (result.success) {
-      Navigator.pushReplacement(
+      Navigator.pushReplacementNamed(
         context,
-        MaterialPageRoute(
-          builder: (context) => EmailVerificationScreen(
-            email: _emailController.text.trim(),
-          ),
-        ),
+        AppRoutes.emailVerification,
+        arguments: {'email': _emailController.text.trim()},
       );
     } else {
       _showErrorMessage(result.errorMessage!);
@@ -699,9 +693,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
     if (result.success) {
       _showSuccessMessage(result.successMessage!);
-      Navigator.pushReplacement(
+      Navigator.pushReplacementNamed(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreenProvider()),
+        AppRoutes.home,
       );
     } else {
       _showErrorMessage(result.errorMessage!);
@@ -725,23 +719,19 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         if (needsProfileCompletion) {
           print('⚠️ Perfil incompleto, redirecionando para completar cadastro');
           
-          Navigator.pushReplacement(
+          Navigator.pushReplacementNamed(
             context,
-            MaterialPageRoute(
-              builder: (context) => ChangeNotifierProvider(
-                create: (_) => CompleteProfileViewModel(),
-                child: CompleteProfileScreen(initialEmail: email),
-              ),
-            ),
+            AppRoutes.completeProfile,
+            arguments: {'initialEmail': email},
           );
           return;
         }
       }
       
       _showSuccessMessage(result.successMessage!);
-      Navigator.pushReplacement(
+      Navigator.pushReplacementNamed(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreenProvider()),
+        AppRoutes.home,
       );
     } else {
       _showErrorMessage(result.errorMessage!);

@@ -3,12 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
 import '../../services/avatar_service.dart';
 import '../../utils/app_colors.dart';
-import '../../ui/user_profile/widgets/user_profile_screen.dart';
-import '../../ui/user_profile/viewmodel/user_profile_viewmodel.dart';
-import '../../data/repositories/user_profile_repository.dart';
+import 'package:kafex/config/app_routes.dart';
 
 class UserAvatar extends StatelessWidget {
   final User? user;
@@ -95,17 +92,10 @@ class UserAvatar extends StatelessWidget {
 
     print('👤 Navegando para perfil do usuário: $targetUserId');
     
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (context) => ChangeNotifierProvider(
-          create: (_) => UserProfileViewModel(
-            repository: UserProfileRepositoryImpl(),
-            userId: targetUserId,
-          ),
-          child: UserProfileScreen(),
-        ),
-      ),
+      AppRoutes.userProfile,
+      arguments: {'userId': targetUserId},
     );
   }
 
