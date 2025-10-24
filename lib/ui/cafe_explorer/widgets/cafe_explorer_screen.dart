@@ -195,7 +195,7 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
       
       if (_mapController != null) {
         _mapController!.animateCamera(
-          CameraUpdate.newLatLngZoom(selectedCafe.position, 17.0),
+          CameraUpdate.newLatLng(selectedCafe.position),
         );
       }
     }
@@ -217,7 +217,7 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
       
       if (_mapController != null) {
         _mapController!.animateCamera(
-          CameraUpdate.newLatLngZoom(cafe.position, 17.0),
+          CameraUpdate.newLatLng(cafe.position),
         );
       }
     }
