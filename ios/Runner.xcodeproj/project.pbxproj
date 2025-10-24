@@ -13,7 +13,7 @@
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		82BCE02E2EA157FE00AA0AFD /* icon-kafex.svg in Resources */ = {isa = PBXBuildFile; fileRef = 82BCE02D2EA157FE00AA0AFD /* icon-kafex.svg */; };
-		82BCE0322EA1592200AA0AFD /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 82BCE0312EA1592200AA0AFD /* Launch Screen.storyboard */; };
+		82D9D03D2EABD4FC00E8FE33 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 82D9D03C2EABD4FC00E8FE33 /* LaunchScreen.storyboard */; };
 		8BD1EA273A30EA6EF7920BBD /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4C719F9827D3E9DEEEEAB4BE /* Pods_RunnerTests.framework */; };
 		8C026651930D6236D83EEBEF /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 52FDF4C95EA59013DFE39056 /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
@@ -59,7 +59,7 @@
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		82BCE02C2EA1423400AA0AFD /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		82BCE02D2EA157FE00AA0AFD /* icon-kafex.svg */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "icon-kafex.svg"; sourceTree = "<group>"; };
-		82BCE0312EA1592200AA0AFD /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
+		82D9D03C2EABD4FC00E8FE33 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -158,6 +158,7 @@
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
+				82D9D03C2EABD4FC00E8FE33 /* LaunchScreen.storyboard */,
 				82BCE02C2EA1423400AA0AFD /* Runner.entitlements */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
@@ -167,7 +168,6 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
-				82BCE0312EA1592200AA0AFD /* Launch Screen.storyboard */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -268,10 +268,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				82BCE0322EA1592200AA0AFD /* Launch Screen.storyboard in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				82BCE02E2EA157FE00AA0AFD /* icon-kafex.svg in Resources */,
+				82D9D03D2EABD4FC00E8FE33 /* LaunchScreen.storyboard in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
 				10900A25370C3C591D33459D /* GoogleService-Info.plist in Resources */,
 			);
