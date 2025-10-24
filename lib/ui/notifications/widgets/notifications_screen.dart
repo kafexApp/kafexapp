@@ -5,15 +5,28 @@ import 'package:provider/provider.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_icons.dart';
 import '../../../data/models/domain/notification.dart';
+import '../../../data/repositories/notifications_repository.dart';
 import 'package:kafex/config/app_routes.dart';
 import '../viewmodel/notifications_viewmodel.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends StatelessWidget {
   @override
-  _NotificationsScreenState createState() => _NotificationsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => NotificationsViewModel(
+        repository: NotificationsRepositoryImpl(),
+      ),
+      child: _NotificationsContent(),
+    );
+  }
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsContent extends StatefulWidget {
+  @override
+  _NotificationsContentState createState() => _NotificationsContentState();
+}
+
+class _NotificationsContentState extends State<_NotificationsContent> {
   Timer? _timer;
 
   @override
