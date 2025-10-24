@@ -73,8 +73,8 @@ abstract class BasePostWidgetState<T extends BasePostWidget> extends State<T>
   }
 
   void _toggleLike(PostActionsViewModel viewModel) {
+    // Usa APENAS o ViewModel, não o callback
     viewModel.toggleLike.execute();
-    widget.onLike?.call();
   }
 
   /// ✅ CORRIGIDO: Agora usa o Firebase UID do post

@@ -1,14 +1,11 @@
 // lib/ui/posts/widgets/feed_post_widget.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:kafex/utils/app_colors.dart';
 import 'package:kafex/utils/app_icons.dart';
 import 'package:kafex/backend/supabase/tables/feed_com_usuario.dart';
-import 'package:kafex/models/comment_models.dart';
 import 'package:kafex/config/app_routes.dart';
-import 'package:kafex/services/comments_service.dart';
 import 'package:kafex/ui/comments/widgets/comments_bottom_sheet.dart';
 import 'package:kafex/data/repositories/likes_repository.dart';
 
@@ -114,7 +111,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
         }
         print('❌ Erro ao curtir: ${result.asError.error}');
 
-        // Opcional: mostrar snackbar de erro
+        // Mostrar snackbar de erro
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -132,10 +129,12 @@ class _FeedPostCardState extends State<FeedPostCard> {
         feedId,
       );
 
-      if (likesCountResult.isOk && mounted) {
+      if (mounted) {
         setState(() {
           _isLiked = isNowLiked;
-          _likesCount = likesCountResult.asOk.value;
+          if (likesCountResult.isOk) {
+            _likesCount = likesCountResult.asOk.value;
+          }
         });
       }
 
@@ -147,19 +146,10 @@ class _FeedPostCardState extends State<FeedPostCard> {
     }
   }
 
-  /// ✅ CORRIGIDO: Agora passa o Firebase UID real do usuário
   void _navigateToUserProfile(String userName, String? avatarUrl) {
-    // 🔍 DEBUG: Ver o que está vindo do post
-    print('🔍 DEBUG - Dados do post:');
-    print('   Nome: $userName');
-    print('   Avatar: $avatarUrl');
-    print('   usuario_uid: ${widget.post.usuarioUid}');
-
-    // Busca o Firebase UID do autor do post
     final String? authorUid = widget.post.usuarioUid;
 
     if (authorUid == null || authorUid.isEmpty) {
-      print('❌ Firebase UID do autor não encontrado');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Não foi possível carregar o perfil do usuário'),
@@ -168,10 +158,6 @@ class _FeedPostCardState extends State<FeedPostCard> {
       );
       return;
     }
-
-    print('🔍 Navegando para perfil do usuário:');
-    print('   Nome: $userName');
-    print('   Firebase UID: $authorUid');
 
     Navigator.pushNamed(
       context,
@@ -185,19 +171,15 @@ class _FeedPostCardState extends State<FeedPostCard> {
   }
 
   void _openCommentsModal() async {
-    print('💬 Abrir comentários para post: ${widget.post.id}');
     widget.onComment?.call();
 
-    // Abre o modal de comentários carregando dados reais do Supabase
     showCommentsModal(
       context,
       postId: widget.post.id?.toString() ?? '',
       onCommentAdded: (newComment) {
-        // Atualiza contador local quando novo comentário é adicionado
         setState(() {
           _commentsCount += 1;
         });
-        print('Novo comentário adicionado: $newComment');
       },
     );
   }
@@ -247,7 +229,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
           // Botão de opções
           GestureDetector(
             onTap: () {
-              print('Mostrar opções do post');
+              // TODO: Implementar menu de opções
             },
             child: Container(
               padding: EdgeInsets.all(8),
@@ -427,7 +409,7 @@ class _FeedPostCardState extends State<FeedPostCard> {
           Spacer(),
           GestureDetector(
             onTap: () {
-              print('Toggle favorito');
+              // TODO: Implementar favoritos
             },
             child: Container(
               padding: EdgeInsets.all(8),

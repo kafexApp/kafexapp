@@ -33,16 +33,13 @@ class _PostActionsProviderState extends State<PostActionsProvider> {
   @override
   void didUpdateWidget(PostActionsProvider oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
-    // ✅ CORREÇÃO CRÍTICA: Detecta mudanças no post
+
+    // Detecta mudanças no post e recria o ViewModel
     if (oldWidget.post.id != widget.post.id ||
-        oldWidget.post.authorUid != widget.post.authorUid ||
+        oldWidget.post.isLiked != widget.post.isLiked ||
         oldWidget.post.likes != widget.post.likes ||
         oldWidget.post.comments != widget.post.comments) {
-      
-      print('🔄 PostActionsProvider detectou mudança no post ${widget.post.id}');
-      print('   authorUid: ${widget.post.authorUid}');
-      
+
       // Descarta o ViewModel antigo e cria um novo
       _viewModel.dispose();
       _viewModel = PostActionsViewModel(

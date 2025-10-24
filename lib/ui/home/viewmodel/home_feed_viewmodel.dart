@@ -251,33 +251,8 @@ class HomeFeedViewModel extends ChangeNotifier {
   }
 
   void likePost(String postId) {
-    final index = _posts.indexWhere((post) => post.id == postId);
-    if (index != -1) {
-      final post = _posts[index];
-      final willLike = !post.isLiked;
-      
-      _posts[index] = post.copyWith(
-        isLiked: willLike,
-        likes: willLike ? post.likes + 1 : post.likes - 1,
-      );
-      notifyListeners();
-      
-      if (willLike) {
-        _analyticsRepository.logPostLike(
-          postId: int.tryParse(postId) ?? 0,
-          postType: post.type.toString().split('.').last,
-        ).catchError((error) {
-          print('⚠️ Erro ao logar like: $error');
-        });
-      } else {
-        _analyticsRepository.logPostUnlike(
-          postId: int.tryParse(postId) ?? 0,
-          postType: post.type.toString().split('.').last,
-        ).catchError((error) {
-          print('⚠️ Erro ao logar unlike: $error');
-        });
-      }
-    }
+    // NÃO FAZ NADA - deixa o PostActionsViewModel gerenciar
+    // Este método existe apenas para compatibilidade com callbacks
   }
 
   void logPostShare(String postId, String shareMethod) {

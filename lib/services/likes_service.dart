@@ -110,15 +110,14 @@ class LikesService {
       await _supabase.from('curtidas').insert({
         'user_id': userId,
         'feed_id': feedId,
-        'ref': firebaseUid, // Ref do Firebase do usuário que curtiu
+        'ref': firebaseUid,
       });
 
       // Atualiza o contador de curtidas na tabela feed
       await _updateFeedLikesCount(feedId);
 
-      // ===== NOVO: CRIAR NOTIFICAÇÃO =====
+      // Cria notificação
       await _createLikeNotification(feedId, firebaseUid);
-      // ===================================
 
       print('✅ Post curtido com sucesso');
       return true;

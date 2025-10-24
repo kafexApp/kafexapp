@@ -66,7 +66,7 @@ class LikesRepositoryImpl implements LikesRepository {
         return Result.error(Exception('Usuário não autenticado'));
       }
 
-      // Verifica se já curtiu
+      // Verifica se já curtiu ANTES de fazer a ação
       final isLiked = await _likesService.checkIfUserLikedFeedPost(
         feedId: feedId,
         userId: userId,

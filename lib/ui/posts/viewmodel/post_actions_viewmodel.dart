@@ -191,22 +191,27 @@ class PostActionsViewModel extends ChangeNotifier {
       final previousIsLiked = _post.isLiked;
       final previousLikes = _post.likes;
 
+      // Atualização otimista
       _post = _post.copyWith(
         isLiked: !_post.isLiked,
         likes: _post.isLiked ? _post.likes - 1 : _post.likes + 1,
       );
       notifyListeners();
 
+      // Faz a chamada ao banco
       final result = await _likesRepository.toggleLikeFeedPost(feedId);
 
       if (result.isError) {
+        // Rollback em caso de erro
         _post = _post.copyWith(isLiked: previousIsLiked, likes: previousLikes);
         notifyListeners();
         return Result.error(result.asError.error);
       }
 
+      // ✅ CORREÇÃO: Confia no valor retornado pelo repository
       final isNowLiked = result.asOk.value;
 
+      // Busca o contador atualizado do banco (para sincronizar com outras curtidas)
       final likesCountResult = await _likesRepository.getFeedPostLikesCount(
         feedId,
       );
@@ -221,6 +226,7 @@ class PostActionsViewModel extends ChangeNotifier {
 
       return Result.ok(null);
     } catch (e) {
+      // Rollback em caso de exceção
       _post = _post.copyWith(
         isLiked: !_post.isLiked,
         likes: _post.isLiked ? _post.likes + 1 : _post.likes - 1,
