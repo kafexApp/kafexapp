@@ -42,7 +42,8 @@ dependencies:
   # UI
   phosphor_flutter: ^2.1.0
   flutter_local_notifications: ^17.0.0  # Notificações locais
-  intl_phone_field: ^3.2.0  # NOVO - Seletor de código de país com formatação
+  intl_phone_field: ^3.2.0  # Seletor de código de país com formatação
+  mask_text_input_formatter: ^2.9.0  # Máscaras para campos de texto
   
   # Storage
   shared_preferences: ^2.2.3

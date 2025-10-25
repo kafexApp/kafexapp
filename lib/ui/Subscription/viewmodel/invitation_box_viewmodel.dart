@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import '../../../utils/command.dart';
 import '../../../utils/result.dart';
 import '../../../data/repositories/subscription_repository.dart';
@@ -11,6 +12,12 @@ class InvitationBoxViewModel extends ChangeNotifier {
   final SubscriptionRepository _subscriptionRepository;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  
+  final _phoneMaskFormatter = MaskTextInputFormatter(
+    mask: '+55 (##) # ####-####',
+    filter: {"#": RegExp(r'[0-9]')},
+    type: MaskAutoCompletionType.lazy,
+  );
   
   String? errorMessage;
   bool _isLoading = true;
@@ -29,6 +36,8 @@ class InvitationBoxViewModel extends ChangeNotifier {
   late Command0<void> submitWaitlist;
 
   bool get isLoading => _isLoading;
+
+  MaskTextInputFormatter get phoneMaskFormatter => _phoneMaskFormatter;
 
   /// Carrega dados do usuário do Supabase e preenche os campos
   Future<void> _loadUserData() async {
@@ -52,7 +61,12 @@ class InvitationBoxViewModel extends ChangeNotifier {
       if (profile != null) {
         // Preencher campos com dados do Supabase
         emailController.text = profile.email ?? firebaseUser.email ?? '';
-        phoneController.text = profile.telefone ?? '';
+        
+        // Aplicar máscara no telefone vindo do banco
+        if (profile.telefone != null && profile.telefone!.isNotEmpty) {
+          final unmaskedPhone = profile.telefone!.replaceAll(RegExp(r'[^0-9]'), '');
+          phoneController.text = _phoneMaskFormatter.maskText(unmaskedPhone);
+        }
         
         print('✅ Dados carregados do Supabase');
         print('   Email: ${emailController.text}');

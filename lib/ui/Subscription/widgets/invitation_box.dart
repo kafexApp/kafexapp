@@ -17,8 +17,30 @@ class InvitationBox extends StatelessWidget {
   }
 }
 
-class _InvitationBoxContent extends StatelessWidget {
+class _InvitationBoxContent extends StatefulWidget {
   const _InvitationBoxContent({Key? key}) : super(key: key);
+
+  @override
+  State<_InvitationBoxContent> createState() => _InvitationBoxContentState();
+}
+
+class _InvitationBoxContentState extends State<_InvitationBoxContent> {
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _phoneFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFocusNode.addListener(() => setState(() {}));
+    _phoneFocusNode.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _emailFocusNode.dispose();
+    _phoneFocusNode.dispose();
+    super.dispose();
+  }
 
   void _handleSubmit(BuildContext context, InvitationBoxViewModel viewModel) async {
     await viewModel.submitWaitlist.execute();
@@ -49,10 +71,10 @@ class _InvitationBoxContent extends StatelessWidget {
               ),
             ),
             child: SingleChildScrollView(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                // Handle do topo
                 Container(
                   margin: EdgeInsets.only(top: 16, bottom: 24),
                   width: 40,
@@ -63,31 +85,15 @@ class _InvitationBoxContent extends StatelessWidget {
                   ),
                 ),
 
-                // Ícone triste
-                Container(
+                Image.asset(
+                  'assets/images/icon-negative.png',
                   width: 80,
                   height: 80,
-                  decoration: BoxDecoration(
-                    color: AppColors.whiteWhite,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.carbon.withOpacity(0.1),
-                      width: 2,
-                    ),
-                  ),
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/icon-negative.png',
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
+                  fit: BoxFit.contain,
                 ),
 
                 SizedBox(height: 24),
 
-                // Título
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
@@ -104,7 +110,6 @@ class _InvitationBoxContent extends StatelessWidget {
 
                 SizedBox(height: 16),
 
-                // Descrição
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
@@ -121,7 +126,6 @@ class _InvitationBoxContent extends StatelessWidget {
 
                 SizedBox(height: 16),
 
-                // Instrução
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
@@ -138,56 +142,130 @@ class _InvitationBoxContent extends StatelessWidget {
 
                 SizedBox(height: 32),
 
-                // Campo de Email
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
-                  child: TextField(
-                    controller: viewModel.emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    enabled: !viewModel.submitWaitlist.running,
-                    style: GoogleFonts.albertSans(fontSize: 16, color: AppColors.carbon),
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      labelStyle: GoogleFonts.albertSans(fontSize: 14, color: AppColors.grayScale2),
-                      filled: true,
-                      fillColor: AppColors.oatWhite,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.papayaSensorial, width: 2)),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  child: AnimatedContainer(
+                    duration: Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      color: AppColors.whiteWhite,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _emailFocusNode.hasFocus 
+                            ? AppColors.papayaSensorial 
+                            : AppColors.oatWhite,
+                        width: _emailFocusNode.hasFocus ? 2 : 1,
+                      ),
+                      boxShadow: _emailFocusNode.hasFocus
+                          ? [
+                              BoxShadow(
+                                color: AppColors.papayaSensorial.withOpacity(0.1),
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: TextField(
+                      controller: viewModel.emailController,
+                      focusNode: _emailFocusNode,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      enabled: !viewModel.submitWaitlist.running,
+                      style: GoogleFonts.albertSans(
+                        fontSize: 16,
+                        color: AppColors.carbon,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        prefixIcon: Icon(
+                          Icons.email_outlined,
+                          color: _emailFocusNode.hasFocus 
+                              ? AppColors.papayaSensorial 
+                              : AppColors.grayScale2,
+                          size: 22,
+                        ),
+                        hintText: 'Email',
+                        hintStyle: GoogleFonts.albertSans(
+                          fontSize: 16,
+                          color: AppColors.grayScale2.withOpacity(0.6),
+                          fontWeight: FontWeight.w400,
+                        ),
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      ),
                     ),
                   ),
                 ),
 
                 SizedBox(height: 16),
 
-                // Campo de Telefone
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
-                  child: TextField(
-                    controller: viewModel.phoneController,
-                    keyboardType: TextInputType.phone,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                    enabled: !viewModel.submitWaitlist.running,
-                    style: GoogleFonts.albertSans(fontSize: 16, color: AppColors.carbon),
-                    decoration: InputDecoration(
-                      labelText: 'Telefone',
-                      labelStyle: GoogleFonts.albertSans(fontSize: 14, color: AppColors.grayScale2),
-                      filled: true,
-                      fillColor: AppColors.oatWhite,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppColors.papayaSensorial, width: 2)),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  child: AnimatedContainer(
+                    duration: Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      color: AppColors.whiteWhite,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: _phoneFocusNode.hasFocus 
+                            ? AppColors.papayaSensorial 
+                            : AppColors.oatWhite,
+                        width: _phoneFocusNode.hasFocus ? 2 : 1,
+                      ),
+                      boxShadow: _phoneFocusNode.hasFocus
+                          ? [
+                              BoxShadow(
+                                color: AppColors.papayaSensorial.withOpacity(0.1),
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: TextField(
+                      controller: viewModel.phoneController,
+                      focusNode: _phoneFocusNode,
+                      keyboardType: TextInputType.phone,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                      enabled: !viewModel.submitWaitlist.running,
+                      inputFormatters: [viewModel.phoneMaskFormatter],
+                      style: GoogleFonts.albertSans(
+                        fontSize: 16,
+                        color: AppColors.carbon,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        prefixIcon: Icon(
+                          Icons.phone_outlined,
+                          color: _phoneFocusNode.hasFocus 
+                              ? AppColors.papayaSensorial 
+                              : AppColors.grayScale2,
+                          size: 22,
+                        ),
+                        hintText: '+55 (00) 0 0000-0000',
+                        hintStyle: GoogleFonts.albertSans(
+                          fontSize: 16,
+                          color: AppColors.grayScale2.withOpacity(0.6),
+                          fontWeight: FontWeight.w400,
+                        ),
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                      ),
                     ),
                   ),
                 ),
 
                 SizedBox(height: 24),
 
-                // Botão
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
                   child: SizedBox(
