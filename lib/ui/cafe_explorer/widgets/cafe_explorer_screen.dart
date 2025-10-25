@@ -242,9 +242,28 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
               children: [
                 Consumer<CafeExplorerViewModel>(
                   builder: (context, viewModel, _) {
-                    return viewModel.isMapView
-                        ? _buildMapView(viewModel)
-                        : _buildListView(viewModel);
+                    return Expanded(
+                      child: Stack(
+                        children: [
+                          // Mapa - sempre presente, mas visível apenas quando isMapView = true
+                          Visibility(
+                            visible: viewModel.isMapView,
+                            maintainState: true,
+                            maintainAnimation: true,
+                            maintainSize: false,
+                            child: _buildMapView(viewModel),
+                          ),
+                          // Lista - sempre presente, mas visível apenas quando isMapView = false
+                          Visibility(
+                            visible: !viewModel.isMapView,
+                            maintainState: true,
+                            maintainAnimation: true,
+                            maintainSize: false,
+                            child: _buildListView(viewModel),
+                          ),
+                        ],
+                      ),
+                    );
                   },
                 ),
               ],
@@ -266,9 +285,8 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
   }
 
   Widget _buildMapView(CafeExplorerViewModel viewModel) {
-    return Expanded(
-      child: Stack(
-        children: [
+    return Stack(
+      children: [
           CafeMapView(
             cafes: viewModel.visibleCafes,
             initialPosition: viewModel.currentPosition,
@@ -343,16 +361,14 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
               },
             ),
         ],
-      ),
     );
   }
 
   Widget _buildListView(CafeExplorerViewModel viewModel) {
-    return Expanded(
-      child: Container(
-        color: AppColors.oatWhite,
-        child: Stack(
-          children: [
+    return Container(
+      color: AppColors.oatWhite,
+      child: Stack(
+        children: [
             CafeListView(
               cafes: viewModel.cafesInViewport,
               isShowingSearchResults: viewModel.isShowingSearchResults,
@@ -388,7 +404,6 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
             ),
           ],
         ),
-      ),
     );
   }
 
