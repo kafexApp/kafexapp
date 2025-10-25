@@ -327,7 +327,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> with TickerProv
               color: AppColors.carbon,
             ),
           ),
-          SizedBox(height: 16),
+          SizedBox(height: 12),
+          Text(
+            'R\$ 67,90',
+            style: GoogleFonts.albertSans(
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              color: AppColors.grayScale2,
+              decoration: TextDecoration.lineThrough,
+              decorationColor: AppColors.grayScale2,
+              decorationThickness: 2,
+            ),
+          ),
+          SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
