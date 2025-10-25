@@ -9,6 +9,7 @@ import '../../posts/factories/post_card_factory.dart';
 import '../viewmodel/home_feed_viewmodel.dart';
 import '../../../services/auth_state_handler.dart';
 import 'welcome_section.dart';
+import 'clube_xicara_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -234,14 +235,18 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.only(bottom: 120, top: 0, left: 0, right: 0),
       itemCount:
           viewModel.posts.length +
-          2,
+          3,
       itemBuilder: (context, index) {
         if (index == 0) {
           return WelcomeSection();
         }
 
-        if (index <= viewModel.posts.length) {
-          final post = viewModel.posts[index - 1];
+        if (index == 1) {
+          return ClubeXicaraBanner();
+        }
+
+        if (index <= viewModel.posts.length + 1) {
+          final post = viewModel.posts[index - 2];
           return PostCardFactory.create(
             post: post,
             onLike: () => viewModel.likePost(post.id),
