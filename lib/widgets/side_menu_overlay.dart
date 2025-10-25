@@ -26,10 +26,12 @@ class SideMenuOverlay extends StatefulWidget {
 }
 
 class _SideMenuOverlayState extends State<SideMenuOverlay> 
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
+  late AnimationController _pulseController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  late Animation<double> _pulseAnimation;
   final AuthService _authService = AuthService();
 
   @override
@@ -57,12 +59,26 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
       curve: Curves.easeOut,
     ));
     
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+    
+    _pulseAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.05,
+    ).animate(CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    ));
+    
     _animationController.forward();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
@@ -172,12 +188,12 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                     ),
                     
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       child: _buildUserHeader(),
                     ),
                     
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       child: Column(
                         children: [
                           SizedBox(
@@ -205,7 +221,7 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             ),
                           ),
                           
-                          SizedBox(height: 20),
+                          SizedBox(height: 16),
                           
                           GridView.count(
                             shrinkWrap: true,
@@ -217,9 +233,9 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                             children: [
                               _buildGridItem(PhosphorIcons.house(), 'Início', 
                                 () => _navigateToScreen(HomeScreenProvider())),
-                              _buildGridItem(PhosphorIcons.coffee(), 'Cafés', 
+                              _buildGridItem(PhosphorIcons.coffee(), 'Cafeterias', 
                                 () => _navigateToScreen(CafeExplorerProvider())),
-                              _buildGridItem(PhosphorIcons.bell(), 'Avisos', 
+                              _buildGridItem(PhosphorIcons.bell(), 'Notificações', 
                                 () => _pushToScreen(NotificationsProvider())),
                               _buildGridItem(PhosphorIcons.user(), 'Perfil', () {
                                 final um = UserManager.instance;
@@ -231,14 +247,16 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
                               }),
                               _buildGridItem(PhosphorIcons.gear(), 'Config.', 
                                 () => _pushToScreen(ProfileSettingsProvider())),
-                              _buildGridItem(PhosphorIcons.crownSimple(), 'Clube', 
+                              _buildGridItemWithImagePulse('assets/images/icon-clube-da-xicara.png', 'Nosso clube', 
                                 () => _pushToScreen(const SubscriptionScreen())),
                             ],
                           ),
                           
-                          SizedBox(height: 20),
+                          SizedBox(height: 16),
                           
                           _buildCreatePostButton(),
+                          
+                          SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -311,29 +329,64 @@ class _SideMenuOverlayState extends State<SideMenuOverlay>
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.moonAsh,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 44, height: 44,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  color: AppColors.whiteWhite,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, 
-                  color: Theme.of(context).colorScheme.onSecondaryContainer, size: 22),
+                  color: AppColors.carbon, size: 22),
               ),
               SizedBox(height: 8),
               Text(title, style: GoogleFonts.albertSans(fontSize: 12, fontWeight: FontWeight.w500,
                 color: Theme.of(context).colorScheme.onSurface),
                 textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridItemWithImagePulse(String imagePath, String title, VoidCallback onTap) {
+    return ScaleTransition(
+      scale: _pulseAnimation,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.pear,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  imagePath,
+                  width: 53,
+                  height: 53,
+                  fit: BoxFit.contain,
+                ),
+                SizedBox(height: 8),
+                Text(title, style: GoogleFonts.albertSans(fontSize: 12, fontWeight: FontWeight.w500,
+                  color: AppColors.carbon),
+                  textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+              ],
+            ),
           ),
         ),
       ),
