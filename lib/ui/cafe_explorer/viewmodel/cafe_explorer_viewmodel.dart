@@ -307,16 +307,29 @@ class CafeExplorerViewModel extends ChangeNotifier {
 
   /// Alternar entre mapa e lista
   void toggleView() {
+    debugPrint('🔄 toggleView: _isMapView antes = $_isMapView');
+    debugPrint('🔄 _visibleCafes.length antes = ${_visibleCafes.length}');
+    debugPrint('🔄 _cafesInViewport.length antes = ${_cafesInViewport.length}');
+
     _isMapView = !_isMapView;
 
-    // Ao alternar para modo lista, aplicar filtro de raio
+    // Ao alternar para modo lista, usar os cafés do viewport atual ao invés de filtrar por raio
     if (!_isMapView) {
-      _filterCafesByMapRadius();
-    }
-
-    // Limpar busca ao voltar para o mapa
-    if (_isMapView && _isShowingSearchResults) {
-      clearSearch();
+      // Se temos cafés no viewport, usar eles na lista
+      if (_cafesInViewport.isNotEmpty) {
+        _visibleCafes = List.from(_cafesInViewport);
+        debugPrint('🔄 Modo LISTA ativado - usando cafés do viewport: ${_visibleCafes.length}');
+      } else {
+        // Fallback: filtrar por raio
+        _filterCafesByMapRadius();
+        debugPrint('🔄 Modo LISTA ativado - filtrado por raio: ${_visibleCafes.length}');
+      }
+    } else {
+      // Ao voltar para o modo mapa, restaurar todos os cafés se não estiver em busca
+      if (!_isShowingSearchResults) {
+        _visibleCafes = List.from(_allCafes);
+      }
+      debugPrint('🔄 Modo MAPA ativado - _visibleCafes.length = ${_visibleCafes.length}');
     }
 
     notifyListeners();
@@ -348,10 +361,22 @@ class CafeExplorerViewModel extends ChangeNotifier {
 
   /// Filtrar cafés dentro do raio do centro do mapa (modo lista)
   void _filterCafesByMapRadius() {
+    debugPrint('📍 Filtrando cafés por raio ao redor de $_currentPosition');
+    debugPrint('📍 Raio de filtro: $_filterRadiusKm km');
+
     _visibleCafes = _allCafes.where((cafe) {
       final distance = _calculateDistance(_currentPosition, cafe.position);
       return distance <= _filterRadiusKm;
     }).toList();
+
+    debugPrint('📍 Cafés encontrados no raio: ${_visibleCafes.length}');
+    if (_visibleCafes.isEmpty && _allCafes.isNotEmpty) {
+      debugPrint('⚠️ Nenhum café encontrado no raio! Primeiros 3 cafés e suas distâncias:');
+      for (int i = 0; i < math.min(3, _allCafes.length); i++) {
+        final distance = _calculateDistance(_currentPosition, _allCafes[i].position);
+        debugPrint('   ${_allCafes[i].name}: ${distance.toStringAsFixed(2)} km');
+      }
+    }
 
     notifyListeners();
   }
