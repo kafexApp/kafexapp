@@ -13,12 +13,14 @@ import '../../../data/repositories/cafe_repository.dart';
 import '../../../data/repositories/quero_visitar_repository.dart';
 import '../../../data/repositories/favorito_repository.dart';
 import '../../../data/repositories/avaliacao_repository.dart';
+import '../../../services/event_bus_service.dart'; // ✅ ADICIONADO
 
 class CafeDetailViewModel extends ChangeNotifier {
   final CafeRepository _cafeRepository;
   final QueroVisitarRepository _queroVisitarRepository;
   final FavoritoRepository _favoritoRepository;
   final AvaliacaoRepository _avaliacaoRepository;
+  final EventBusService _eventBus = EventBusService(); // ✅ ADICIONADO
 
   CafeDetailModel _cafe;
   bool _isLoading = false;
@@ -33,13 +35,12 @@ class CafeDetailViewModel extends ChangeNotifier {
     QueroVisitarRepository? queroVisitarRepository,
     FavoritoRepository? favoritoRepository,
     AvaliacaoRepository? avaliacaoRepository,
-  })  : _cafe = cafe,
-        _cafeRepository = cafeRepository ?? CafeRepositoryImpl(),
-        _queroVisitarRepository =
-            queroVisitarRepository ?? QueroVisitarRepositoryImpl(),
-        _favoritoRepository = favoritoRepository ?? FavoritoRepositoryImpl(),
-        _avaliacaoRepository =
-            avaliacaoRepository ?? AvaliacaoRepositoryImpl() {
+  }) : _cafe = cafe,
+       _cafeRepository = cafeRepository ?? CafeRepositoryImpl(),
+       _queroVisitarRepository =
+           queroVisitarRepository ?? QueroVisitarRepositoryImpl(),
+       _favoritoRepository = favoritoRepository ?? FavoritoRepositoryImpl(),
+       _avaliacaoRepository = avaliacaoRepository ?? AvaliacaoRepositoryImpl() {
     // Carrega o status inicial e as avaliações
     _loadQueroVisitarStatus();
     _loadFavoritoStatus();
@@ -138,8 +139,9 @@ class CafeDetailViewModel extends ChangeNotifier {
       final cafeIdInt = int.tryParse(_cafe.id);
       if (cafeIdInt == null) return;
 
-      final result =
-          await _queroVisitarRepository.checkIfUserWantsToVisit(cafeIdInt);
+      final result = await _queroVisitarRepository.checkIfUserWantsToVisit(
+        cafeIdInt,
+      );
 
       if (result.isOk) {
         _wantToVisit = result.asOk.value;
@@ -198,46 +200,76 @@ class CafeDetailViewModel extends ChangeNotifier {
   }
 
   /// Toggle favorito
-  /// ✅ CORRIGIDO: Usa toggleFavorito() que já existe no repositório
+  /// ✅ CORRIGIDO: Emite evento para sincronizar com o feed
   Future<void> toggleFavorite() async {
     try {
       final cafeIdInt = int.tryParse(_cafe.id);
       if (cafeIdInt == null) return;
 
+      // Atualiza UI imediatamente (optimistic update)
+      final previousState = _isFavorited;
+      _isFavorited = !_isFavorited;
+      notifyListeners();
+
       final result = await _favoritoRepository.toggleFavorito(cafeIdInt);
-      
+
       if (result.isOk) {
-        // Inverte o estado local
-        _isFavorited = !_isFavorited;
-        notifyListeners();
         print('✅ Favorito alternado: $_isFavorited');
+
+        // ✅ NOVO: Emite evento para sincronizar com o feed
+        _eventBus.emit(FavoriteChangedEvent(_cafe.id, _isFavorited));
+        print(
+          '🚀 Evento FavoriteChangedEvent emitido: coffeeId=${_cafe.id}, isFavorited=$_isFavorited',
+        );
       } else {
+        // Reverte em caso de erro
+        _isFavorited = previousState;
+        notifyListeners();
         print('❌ Erro ao alternar favorito: ${result.asError.error}');
       }
     } catch (e) {
       print('❌ Erro ao toggle favorito: $e');
+      // Reverte em caso de exceção
+      _isFavorited = !_isFavorited;
+      notifyListeners();
     }
   }
 
   /// Toggle quero visitar
-  /// ✅ CORRIGIDO: Usa toggleQueroVisitar() que já existe no repositório
+  /// ✅ CORRIGIDO: Emite evento para sincronizar com o feed
   Future<void> toggleWantToVisit() async {
     try {
       final cafeIdInt = int.tryParse(_cafe.id);
       if (cafeIdInt == null) return;
 
-      final result = await _queroVisitarRepository.toggleQueroVisitar(cafeIdInt);
-      
+      // Atualiza UI imediatamente (optimistic update)
+      final previousState = _wantToVisit;
+      _wantToVisit = !_wantToVisit;
+      notifyListeners();
+
+      final result = await _queroVisitarRepository.toggleQueroVisitar(
+        cafeIdInt,
+      );
+
       if (result.isOk) {
-        // Inverte o estado local
-        _wantToVisit = !_wantToVisit;
-        notifyListeners();
         print('✅ Quero visitar alternado: $_wantToVisit');
+
+        // ✅ NOVO: Emite evento para sincronizar com o feed
+        _eventBus.emit(WantToVisitChangedEvent(_cafe.id, _wantToVisit));
+        print(
+          '🚀 Evento WantToVisitChangedEvent emitido: coffeeId=${_cafe.id}, wantToVisit=$_wantToVisit',
+        );
       } else {
+        // Reverte em caso de erro
+        _wantToVisit = previousState;
+        notifyListeners();
         print('❌ Erro ao alternar quero visitar: ${result.asError.error}');
       }
     } catch (e) {
       print('❌ Erro ao toggle quero visitar: $e');
+      // Reverte em caso de exceção
+      _wantToVisit = !_wantToVisit;
+      notifyListeners();
     }
   }
 
@@ -301,11 +333,7 @@ class CafeDetailViewModel extends ChangeNotifier {
 
   /// Mostra todas as reviews
   void showAllReviews(BuildContext context) {
-    showCafeReviewsModal(
-      context,
-      _cafe.name,
-      _cafe.reviews,
-    );
+    showCafeReviewsModal(context, _cafe.name, _cafe.reviews);
   }
 
   /// Reportar mudança na cafeteria
@@ -336,11 +364,7 @@ class CafeDetailViewModel extends ChangeNotifier {
 
   /// Abre o modal de reviews
   void openReviewsModal(BuildContext context) {
-    showCafeReviewsModal(
-      context,
-      _cafe.name,
-      _cafe.reviews,
-    );
+    showCafeReviewsModal(context, _cafe.name, _cafe.reviews);
   }
 
   void _setLoading(bool value) {
