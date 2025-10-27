@@ -1,7 +1,7 @@
 name: kafex
 description: "Um guia confiável para quem ama café especial"
 publish_to: 'none'
-version: 3.0.0+6
+version: 3.0.1+1
 
 environment:
   sdk: ^3.9.2
