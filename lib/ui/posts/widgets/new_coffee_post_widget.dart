@@ -176,7 +176,7 @@ class _NewCoffeePostWidgetState
         // Tag "NOVA CAFETERIA"
         Positioned(
           top: 16,
-          left: 32,
+          left: 16,
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
