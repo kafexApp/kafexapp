@@ -32,8 +32,8 @@ class CafeSearchBar extends StatelessWidget {
         final isSearching = viewModel.searchPlaces.running;
         final hasText = controller.text.isNotEmpty;
 
-        return AnimatedContainer(
-          duration: Duration(milliseconds: 200),
+        return Container(
+          height: 50,
           decoration: BoxDecoration(
             color: AppColors.whiteWhite,
             borderRadius: BorderRadius.circular(10),
@@ -53,62 +53,60 @@ class CafeSearchBar extends StatelessWidget {
           ),
           child: Row(
             children: [
+              // TextField SIMPLES - sem background ou bordas
               Expanded(
-                child: Container(
+                child: Padding(
                   padding: EdgeInsets.only(left: 16),
                   child: TextField(
                     controller: controller,
                     focusNode: focusNode,
+                    style: GoogleFonts.albertSans(
+                      fontSize: 16,
+                      color: AppColors.carbon,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Busque endereços, cafés ou estabelecimentos',
                       hintStyle: GoogleFonts.albertSans(
                         color: AppColors.grayScale2,
                         fontSize: 16,
                       ),
+                      // CRÍTICO: remover TODAS as bordas e backgrounds
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
                       errorBorder: InputBorder.none,
                       disabledBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      fillColor: Colors.transparent,
                       filled: false,
-                    ),
-                    style: GoogleFonts.albertSans(
-                      fontSize: 16,
-                      color: AppColors.carbon,
+                      fillColor: Colors.transparent,
+                      contentPadding: EdgeInsets.zero,
                     ),
                     cursorColor: AppColors.papayaSensorial,
                     textInputAction: TextInputAction.search,
                     onSubmitted: (_) => onSearch(),
+                    onChanged: (query) {
+                      if (query.trim().isNotEmpty) {
+                        viewModel.searchPlaces.execute(query);
+                      } else {
+                        viewModel.clearSuggestions();
+                      }
+                    },
                   ),
                 ),
               ),
+              
+              // Botão X
               if (hasText)
-                Container(
-                  width: 40,
-                  height: 40,
-                  margin: EdgeInsets.only(right: 5),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () {
-                        controller.clear();
-                        viewModel.clearSuggestions();
-                        viewModel.clearSearch();
-                        focusNode.unfocus();
-                      },
-                      child: Center(
-                        child: Icon(
-                          Icons.close,
-                          size: 20,
-                          color: AppColors.grayScale2,
-                        ),
-                      ),
-                    ),
-                  ),
+                IconButton(
+                  icon: Icon(Icons.close, size: 20, color: AppColors.grayScale2),
+                  onPressed: () {
+                    controller.clear();
+                    viewModel.clearSuggestions();
+                    viewModel.clearSearch();
+                    focusNode.unfocus();
+                  },
                 ),
+              
+              // Botão de busca
               Container(
                 width: 40,
                 height: 40,

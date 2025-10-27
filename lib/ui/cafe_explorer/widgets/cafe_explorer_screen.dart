@@ -95,7 +95,6 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
     }
   }
 
-  // 📍 Centraliza na localização do usuário
   Future<void> _centerOnUserLocation() async {
     try {
       final location = await LocationService.instance.getCurrentLocation();
@@ -133,11 +132,9 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
     _mapController = controller;
     
     final viewModel = context.read<CafeExplorerViewModel>();
-    debugPrint('📍 Posição atual do ViewModel: ${viewModel.currentPosition}');
 
     if (viewModel.currentPosition.latitude != -23.5505 ||
         viewModel.currentPosition.longitude != -46.6333) {
-      debugPrint('🗺️ Movendo mapa para posição customizada');
       _mapController!.animateCamera(
         CameraUpdate.newLatLngZoom(viewModel.currentPosition, 15.0),
       );
@@ -234,18 +231,19 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
     return WillPopScope(
       onWillPop: () async => false,
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: AppColors.oatWhite,
         appBar: CustomAppBar(),
-        body: Stack(
-          children: [
-            Column(
+        body: Consumer<CafeExplorerViewModel>(
+          builder: (context, viewModel, _) {
+            return Stack(
               children: [
-                Consumer<CafeExplorerViewModel>(
-                  builder: (context, viewModel, _) {
-                    return Expanded(
+                // MAPA/LISTA EM TELA CHEIA (atrás de tudo)
+                Column(
+                  children: [
+                    Expanded(
                       child: Stack(
                         children: [
-                          // Mapa - sempre presente, mas visível apenas quando isMapView = true
                           Visibility(
                             visible: viewModel.isMapView,
                             maintainState: true,
@@ -253,7 +251,6 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
                             maintainSize: false,
                             child: _buildMapView(viewModel),
                           ),
-                          // Lista - sempre presente, mas visível apenas quando isMapView = false
                           Visibility(
                             visible: !viewModel.isMapView,
                             maintainState: true,
@@ -263,22 +260,76 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
                           ),
                         ],
                       ),
-                    );
-                  },
+                    ),
+                  ],
+                ),
+                
+                // OVERLAY COM SEARCHBAR E CONTROLES (na frente, fora do Positioned)
+                SafeArea(
+                  child: Column(
+                    children: [
+                      // SearchBar no topo
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: CafeSearchBar(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          viewModel: viewModel,
+                          onSearch: _performSearch,
+                        ),
+                      ),
+                      
+                      // Controles (toggle + counter)
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        child: Row(
+                          children: [
+                            ViewToggle(
+                              isMapView: viewModel.isMapView,
+                              onToggle: () => viewModel.toggleView(),
+                            ),
+                            Spacer(),
+                            CafeCounter(count: viewModel.cafesInViewport.length),
+                          ],
+                        ),
+                      ),
+                      
+                      // Espaço flexível restante
+                      Spacer(),
+                    ],
+                  ),
+                ),
+                
+                // SUGGESTIONS em Positioned para sobrepor os controles
+                Positioned(
+                  top: 74, // Logo abaixo do SearchBar
+                  left: 0,
+                  right: 0,
+                  // Altura máxima: deixa espaço apenas para o bottom navbar
+                  bottom: 80, // Espaço apenas para o navbar
+                  child: SuggestionsList(
+                    viewModel: viewModel,
+                    searchController: _searchController,
+                    searchFocusNode: _searchFocusNode,
+                    mapController: _mapController,
+                    onSuggestionSelected: _handleSuggestionSelected,
+                  ),
+                ),
+                
+                // Bottom navbar
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: CustomBottomNavbar(
+                    isInCafeExplorer: true,
+                    onMenuPressed: () => showSideMenu(context),
+                    onSearchPressed: () {},
+                  ),
                 ),
               ],
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: CustomBottomNavbar(
-                isInCafeExplorer: true,
-                onMenuPressed: () => showSideMenu(context),
-                onSearchPressed: () {},
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -287,139 +338,67 @@ class _CafeExplorerContentState extends State<_CafeExplorerContent> {
   Widget _buildMapView(CafeExplorerViewModel viewModel) {
     return Stack(
       children: [
-          CafeMapView(
-            cafes: viewModel.visibleCafes,
-            initialPosition: viewModel.currentPosition,
-            initialZoom: 15.0,
-            onMapCreated: _onMapCreated,
-            onCameraMove: _onCameraMove,
-            onCameraIdle: _onCameraIdle,
-            onPinTap: _onPinTapped,
-            onMapTap: () {
-              viewModel.clearSuggestions();
-              _searchFocusNode.unfocus();
-            },
-          ),
-          Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
-            child: CafeSearchBar(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              viewModel: viewModel,
-              onSearch: _performSearch,
-            ),
-          ),
-          Positioned(
-            top: 80,
-            left: 0,
-            right: 0,
-            child: _buildControls(viewModel),
-          ),
-          // 📍 Botão de localização
-          Positioned(
-            right: 16,
-            bottom: 280,
-            child: Material(
-              elevation: 2,
+        CafeMapView(
+          cafes: viewModel.visibleCafes,
+          initialPosition: viewModel.currentPosition,
+          initialZoom: 15.0,
+          onMapCreated: _onMapCreated,
+          onCameraMove: _onCameraMove,
+          onCameraIdle: _onCameraIdle,
+          onPinTap: _onPinTapped,
+          onMapTap: () {
+            viewModel.clearSuggestions();
+            _searchFocusNode.unfocus();
+          },
+        ),
+        Positioned(
+          right: 16,
+          bottom: 200,
+          child: Material(
+            elevation: 2,
+            borderRadius: BorderRadius.circular(8),
+            color: AppColors.whiteWhite,
+            child: InkWell(
+              onTap: _centerOnUserLocation,
               borderRadius: BorderRadius.circular(8),
-              color: AppColors.whiteWhite,
-              child: InkWell(
-                onTap: _centerOnUserLocation,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.my_location,
-                    size: 20,
-                    color: AppColors.grayScale1,
-                  ),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.my_location,
+                  size: 20,
+                  color: AppColors.grayScale1,
                 ),
               ),
             ),
           ),
-          SuggestionsList(
-            viewModel: viewModel,
-            searchController: _searchController,
-            searchFocusNode: _searchFocusNode,
-            mapController: _mapController,
-            onSuggestionSelected: _handleSuggestionSelected,
+        ),
+        if (viewModel.cafesInViewport.isNotEmpty)
+          CafeCarousel(
+            cafes: viewModel.cafesInViewport,
+            scrollController: _horizontalScrollController,
+            onCafeTap: _onCarouselCafeTap,
+            onPageChanged: _onCarouselPageChanged,
+            onPageControllerCreated: (controller) {
+              _carouselPageController = controller;
+            },
           ),
-          if (viewModel.cafesInViewport.isNotEmpty)
-            CafeCarousel(
-              cafes: viewModel.cafesInViewport,
-              scrollController: _horizontalScrollController,
-              onCafeTap: _onCarouselCafeTap,
-              onPageChanged: _onCarouselPageChanged,
-              onPageControllerCreated: (controller) {
-                _carouselPageController = controller;
-              },
-            ),
-        ],
+      ],
     );
   }
 
   Widget _buildListView(CafeExplorerViewModel viewModel) {
-    return Container(
-      color: AppColors.oatWhite,
-      child: Stack(
-        children: [
-            CafeListView(
-              cafes: viewModel.cafesInViewport,
-              isShowingSearchResults: viewModel.isShowingSearchResults,
-              searchAddress: viewModel.searchAddress,
-              onClearSearch: () {
-                viewModel.clearSearch();
-                _searchController.clear();
-              },
-            ),
-            Positioned(
-              top: 16,
-              left: 16,
-              right: 16,
-              child: CafeSearchBar(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                viewModel: viewModel,
-                onSearch: _performSearch,
-              ),
-            ),
-            Positioned(
-              top: 80,
-              left: 0,
-              right: 0,
-              child: _buildControls(viewModel),
-            ),
-            SuggestionsList(
-              viewModel: viewModel,
-              searchController: _searchController,
-              searchFocusNode: _searchFocusNode,
-              mapController: _mapController,
-              onSuggestionSelected: _handleSuggestionSelected,
-            ),
-          ],
-        ),
-    );
-  }
-
-  Widget _buildControls(CafeExplorerViewModel viewModel) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          ViewToggle(
-            isMapView: viewModel.isMapView,
-            onToggle: () => viewModel.toggleView(),
-          ),
-          Spacer(),
-          CafeCounter(count: viewModel.cafesInViewport.length),
-        ],
-      ),
+    return CafeListView(
+      cafes: viewModel.cafesInViewport,
+      isShowingSearchResults: viewModel.isShowingSearchResults,
+      searchAddress: viewModel.searchAddress,
+      onClearSearch: () {
+        viewModel.clearSearch();
+        _searchController.clear();
+      },
     );
   }
 }
