@@ -79,8 +79,8 @@ serve(async (req) => {
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                   <!-- Header com logo -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #6B4423 0%, #8B5A3C 100%); padding: 40px 20px; text-align: center;">
-                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">☕ Kafex</h1>
+                    <td style="background-color: #45242D; padding: 40px 20px; text-align: center;">
+                      <img src="https://firebasestorage.googleapis.com/v0/b/kafexapp.appspot.com/o/kafex_logo_negative.svg?alt=media&token=b7134768-fb07-4fc6-8899-2cca623991b0" alt="Kafex" style="height: 50px; width: auto;">
                     </td>
                   </tr>
                   
@@ -103,15 +103,14 @@ serve(async (req) => {
                         <tr>
                           <td align="center" style="padding: 20px 0;">
                             <a href="${verificationLink}" 
-                               style="background: linear-gradient(135deg, #6B4423 0%, #8B5A3C 100%); 
+                               style="background-color: #EB8052; 
                                       color: #ffffff; 
                                       text-decoration: none; 
                                       padding: 16px 40px; 
                                       border-radius: 6px; 
                                       display: inline-block; 
                                       font-weight: bold;
-                                      font-size: 16px;
-                                      box-shadow: 0 4px 6px rgba(107, 68, 35, 0.3);">
+                                      font-size: 16px;">
                               ✉️ Verificar Email
                             </a>
                           </td>
@@ -120,7 +119,7 @@ serve(async (req) => {
                       
                       <p style="color: #999999; line-height: 1.6; margin: 30px 0 0 0; font-size: 14px;">
                         Ou copie e cole este link no seu navegador:<br>
-                        <a href="${verificationLink}" style="color: #6B4423; word-break: break-all;">${verificationLink}</a>
+                        <a href="${verificationLink}" style="color: #EB8052; word-break: break-all;">${verificationLink}</a>
                       </p>
                       
                       <p style="color: #999999; line-height: 1.6; margin: 20px 0 0 0; font-size: 14px;">
@@ -200,10 +199,10 @@ serve(async (req) => {
             <tr>
               <td align="center">
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                  <!-- Header -->
+                  <!-- Header com logo -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #6B4423 0%, #8B5A3C 100%); padding: 40px 20px; text-align: center;">
-                      <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: bold;">☕ Bem-vindo ao Kafex!</h1>
+                    <td style="background-color: #45242D; padding: 40px 20px; text-align: center;">
+                      <img src="https://firebasestorage.googleapis.com/v0/b/kafexapp.appspot.com/o/kafex_logo_negative.svg?alt=media&token=b7134768-fb07-4fc6-8899-2cca623991b0" alt="Kafex" style="height: 50px; width: auto;">
                     </td>
                   </tr>
                   
@@ -265,7 +264,7 @@ serve(async (req) => {
                   <tr>
                     <td style="background-color: #f8f8f8; padding: 30px; text-align: center; border-top: 1px solid #eeeeee;">
                       <p style="color: #999999; margin: 0 0 10px 0; font-size: 14px;">
-                        Precisa de ajuda? Entre em contato conosco em <a href="mailto:suporte@kafex.com.br" style="color: #6B4423;">suporte@kafex.com.br</a>
+                        Precisa de ajuda? Entre em contato conosco em <a href="mailto:suporte@kafex.com.br" style="color: #EB8052;">suporte@kafex.com.br</a>
                       </p>
                       <p style="color: #cccccc; margin: 0; font-size: 12px;">
                         © ${new Date().getFullYear()} Kafex. Todos os direitos reservados.
