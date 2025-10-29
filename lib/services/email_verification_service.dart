@@ -106,7 +106,18 @@ class EmailVerificationService {
     }
   }
 
-  /// Verifica um token de email
+  /// Verifica um email usando o token (versão simplificada)
+  /// 
+  /// Parâmetros:
+  /// - [token]: Token de verificação recebido no email
+  /// 
+  /// Retorna: true se verificado com sucesso, false caso contrário
+  static Future<bool> verifyEmail(String token) async {
+    final result = await verifyEmailToken(token);
+    return result['success'] == true;
+  }
+
+  /// Verifica um token de email (versão completa)
   /// 
   /// Parâmetros:
   /// - [token]: Token de verificação recebido no email

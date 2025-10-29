@@ -106,7 +106,7 @@ class AppRoutes {
           builder: (_) => ForgotPasswordScreen(),
         );
 
-      // Rota de verificação de email (via link)
+      // Rota de verificação de email (via link do email)
       case emailVerification:
         final args = settings.arguments as Map<String, dynamic>?;
         final token = args?['token'] as String?;
@@ -130,7 +130,7 @@ class AppRoutes {
         return MaterialPageRoute(
           settings: settings,
           builder: (_) => EmailConfirmationScreen(
-            email: email, // Agora email é String, não String?
+            email: email,
           ),
         );
 
