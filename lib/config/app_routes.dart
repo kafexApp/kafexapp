@@ -8,7 +8,7 @@ import '../screens/login_screen.dart';
 import '../screens/forgot_password_screen.dart';
 import '../ui/create_account/widgets/create_account.dart';
 import '../ui/create_account/widgets/email_verification_page.dart';
-import '../ui/create_account/widgets/email_confirmation_screen.dart'; // ✅ NOVO
+import '../ui/create_account/widgets/email_confirmation_screen.dart';
 
 // Screens - Main
 import '../ui/home/widgets/home_screen_provider.dart';
@@ -44,7 +44,7 @@ class AppRoutes {
   static const String createAccount = '/create-account';
   static const String forgotPassword = '/forgot-password';
   static const String emailVerification = '/email-verification';
-  static const String emailConfirmation = '/email-confirmation'; // ✅ NOVO
+  static const String emailConfirmation = '/email-confirmation';
   static const String completeProfile = '/complete-profile';
   
   // Telas Principais (Bottom Navigation)
@@ -65,7 +65,7 @@ class AppRoutes {
   // Posts
   static const String createPost = '/create-post';
   static const String postDetails = '/post-details';
-  static const String postDetail = '/post-detail'; // Alias para compatibilidade
+  static const String postDetail = '/post-detail';
   
   // Outras
   static const String homeTest = '/home-test';
@@ -75,7 +75,7 @@ class AppRoutes {
   /// Gerador de rotas centralizado
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     // Log da navegação para debug
-    print('🗺️ onGenerateRoute chamado para: ${settings.name}');
+    print('🗺️ Navegando para: ${settings.name}');
     if (settings.arguments != null) {
       print('   Arguments: ${settings.arguments}');
     }
@@ -106,7 +106,7 @@ class AppRoutes {
           builder: (_) => ForgotPasswordScreen(),
         );
 
-      // Rota de verificação de email (antiga - processa token)
+      // Rota de verificação de email (via link)
       case emailVerification:
         final args = settings.arguments as Map<String, dynamic>?;
         final token = args?['token'] as String?;
@@ -116,19 +116,22 @@ class AppRoutes {
           builder: (_) => EmailVerificationPage(token: token),
         );
 
-      // ✅ NOVO: Rota de confirmação de email (nova - mostra após cadastro)
+      // Rota de confirmação de email (após cadastro)
       case emailConfirmation:
         final args = settings.arguments as Map<String, dynamic>?;
         final email = args?['email'] as String?;
 
+        // Validar se email foi fornecido
         if (email == null || email.isEmpty) {
           print('❌ email não fornecido para emailConfirmation');
-          return _errorRoute(settings, 'email obrigatório');
+          return _errorRoute(settings, 'Email obrigatório');
         }
 
         return MaterialPageRoute(
           settings: settings,
-          builder: (_) => EmailConfirmationScreen(email: email),
+          builder: (_) => EmailConfirmationScreen(
+            email: email, // Agora email é String, não String?
+          ),
         );
 
       // ===== TELAS PRINCIPAIS =====

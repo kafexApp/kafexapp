@@ -252,20 +252,21 @@ class _EmailConfirmationScreenState extends State<EmailConfirmationScreen> {
     );
   }
 
+  // ✅ CORRIGIDO: OutlineButton → CustomOutlineButton
+  // ✅ CORRIGIDO: Removido parâmetro icon
   Widget _buildResendButton() {
-    return OutlineButton(
+    return CustomOutlineButton(
       text: 'Reenviar email',
       onPressed: _isResending ? null : _handleResendEmail,
       isLoading: _isResending,
-      icon: Icons.refresh_rounded,
     );
   }
 
+  // ✅ CORRIGIDO: Removido parâmetro icon
   Widget _buildLoginButton() {
     return PrimaryButton(
       text: 'Já confirmei, fazer login',
       onPressed: _handleGoToLogin,
-      icon: Icons.arrow_forward_rounded,
     );
   }
 
