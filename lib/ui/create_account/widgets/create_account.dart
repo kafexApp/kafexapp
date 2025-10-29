@@ -671,16 +671,17 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     final result = await _viewModel.createAccount(
       name: _nameController.text,
       email: _emailController.text,
-      phone: _completePhoneNumber, // ✅ Número no formato internacional
+      phone: _completePhoneNumber,
       password: _passwordController.text,
       confirmPassword: _confirmPasswordController.text,
       termsAccepted: _acceptTerms,
     );
 
     if (result.success) {
+      // ✅ Navegar para tela de confirmação de email
       Navigator.pushReplacementNamed(
         context,
-        AppRoutes.emailVerification,
+        AppRoutes.emailConfirmation,
         arguments: {'email': _emailController.text.trim()},
       );
     } else {
@@ -758,6 +759,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: EdgeInsets.all(16),
+        duration: Duration(seconds: 2),
       ),
     );
   }

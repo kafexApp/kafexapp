@@ -47,6 +47,19 @@
                 <action android:name="FLUTTER_NOTIFICATION_CLICK" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            
+            <!-- ✅ NOVO - Deep Links / App Links para verificação de email -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <!-- Link de verificação -->
+                <data
+                    android:scheme="https"
+                    android:host="link.kafex.com.br"
+                    android:pathPrefix="/verify-email" />
+            </intent-filter>
         </activity>
         
         <!-- NOVO - Firebase Cloud Messaging Service -->

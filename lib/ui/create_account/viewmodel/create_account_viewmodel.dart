@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/user_profile_service.dart';
 import '../../../services/username_service.dart';
+import '../../../services/email_verification_service.dart'; // ✅ NOVO
 import '../../../utils/user_manager.dart';
 import '../../../utils/validators/form_validator.dart';
 
@@ -267,7 +268,7 @@ class CreateAccountViewModel extends ChangeNotifier {
         
         final String firebaseUid = result.user!.uid;
         
-        // Criar perfil no Supabase com username
+        // Criar perfil no Supabase com username e email_verificado = false
         final bool profileCreated = await UserProfileService.createUserProfile(
           firebaseUid: firebaseUid,
           nomeExibicao: name.trim(),
@@ -278,11 +279,27 @@ class CreateAccountViewModel extends ChangeNotifier {
         );
 
         if (profileCreated) {
+          // ✅ NOVO: Enviar email de verificação
+          print('📧 Enviando email de verificação...');
+          final emailSent = await EmailVerificationService.sendVerificationEmail(
+            userRef: firebaseUid,
+            email: email.trim(),
+            nomeExibicao: name.trim(),
+          );
+
+          if (emailSent) {
+            print('✅ Email de verificação enviado com sucesso!');
+          } else {
+            print('⚠️ Não foi possível enviar o email de verificação');
+          }
+
           print('✅ Conta criada com sucesso: $name (@$_selectedUsername) (UID: $firebaseUid)');
           _setLoading(false);
+          
           return CreateAccountResult(
             success: true,
-            successMessage: 'Conta criada com sucesso!',
+            successMessage: 'Conta criada com sucesso! Verifique seu email.',
+            needsEmailVerification: true, // ✅ NOVO
           );
         } else {
           // Deletar conta do Firebase se falhar no Supabase
@@ -340,6 +357,16 @@ class CreateAccountViewModel extends ChangeNotifier {
             telefone: '',
             fotoUrl: result.user?.photoURL,
           );
+
+          // ✅ NOVO: Marcar email como verificado para login social
+          await EmailVerificationService.markEmailAsVerified(firebaseUid);
+
+          // ✅ NOVO: Enviar email de boas-vindas
+          await EmailVerificationService.sendWelcomeEmail(
+            userRef: firebaseUid,
+            email: email,
+            nomeExibicao: name,
+          );
         } else {
           // Carregar perfil existente
           await UserProfileService.loadAndSyncUserProfile();
@@ -392,6 +419,16 @@ class CreateAccountViewModel extends ChangeNotifier {
             email: email,
             telefone: '',
             fotoUrl: result.user?.photoURL,
+          );
+
+          // ✅ NOVO: Marcar email como verificado para login social
+          await EmailVerificationService.markEmailAsVerified(firebaseUid);
+
+          // ✅ NOVO: Enviar email de boas-vindas
+          await EmailVerificationService.sendWelcomeEmail(
+            userRef: firebaseUid,
+            email: email,
+            nomeExibicao: name,
           );
         } else {
           // Carregar perfil existente
@@ -448,10 +485,12 @@ class CreateAccountResult {
   final bool success;
   final String? successMessage;
   final String? errorMessage;
+  final bool needsEmailVerification; // ✅ NOVO
 
   CreateAccountResult({
     required this.success,
     this.successMessage,
     this.errorMessage,
+    this.needsEmailVerification = false, // ✅ NOVO
   });
 }

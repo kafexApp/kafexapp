@@ -44,6 +44,7 @@ class UserProfileService {
     required String telefone,
     String? nomeUsuario, // ✅ NOVO: Aceita username opcional
     String? fotoUrl,
+    bool isEmailVerified = false, // ✅ NOVO: Controle de verificação de email
   }) async {
     try {
       print('👤 Criando perfil completo no Supabase...');
@@ -63,6 +64,7 @@ class UserProfileService {
         'cadastro_completo': false,
         'nivel_usuario': 'usuario',
         'profissional': false,
+        'email_verificado': isEmailVerified, // ✅ NOVO: Padrão false para cadastro com email/senha
         'criado_em': DateTime.now().toIso8601String(),
       };
 
@@ -159,6 +161,7 @@ class UserProfileService {
         'nivel_usuario': 'usuario',
         'profissional': false,
         'login_social': true,
+        'email_verificado': true, // ✅ NOVO: Login social já vem verificado
         'criado_em': DateTime.now().toIso8601String(),
       };
 
@@ -195,6 +198,7 @@ class UserProfileService {
     String? cnpj,
     bool? profissional,
     bool? cadastroCompleto,
+    bool? emailVerificado, // ✅ NOVO: Permite atualizar status de verificação
     // Redes sociais
     String? instagram,
     String? facebook,
@@ -231,6 +235,7 @@ class UserProfileService {
       if (cnpj != null) updates['cnpj'] = cnpj;
       if (profissional != null) updates['profissional'] = profissional;
       if (cadastroCompleto != null) updates['cadastro_completo'] = cadastroCompleto;
+      if (emailVerificado != null) updates['email_verificado'] = emailVerificado; // ✅ NOVO
       if (instagram != null) updates['instagram'] = instagram;
       if (facebook != null) updates['facebook'] = facebook;
       if (twitter != null) updates['twitter'] = twitter;

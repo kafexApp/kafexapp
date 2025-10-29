@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uni_links/uni_links.dart'; // ✅ NOVO
+import 'dart:async'; // ✅ NOVO
 import 'firebase_options.dart';
 import 'utils/app_colors.dart';
 import 'config/app_routes.dart';
@@ -101,7 +103,77 @@ Future<void> _initializePushNotifications() async {
   }
 }
 
-class KafexApp extends StatelessWidget {
+class KafexApp extends StatefulWidget {
+  @override
+  State<KafexApp> createState() => _KafexAppState();
+}
+
+class _KafexAppState extends State<KafexApp> {
+  StreamSubscription? _deepLinkSubscription; // ✅ NOVO
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks(); // ✅ NOVO
+  }
+
+  @override
+  void dispose() {
+    _deepLinkSubscription?.cancel(); // ✅ NOVO
+    super.dispose();
+  }
+
+  // ✅ NOVO: Inicializar Deep Links
+  Future<void> _initDeepLinks() async {
+    // Tratar link inicial (app foi aberto por um deep link)
+    try {
+      final initialLink = await getInitialLink();
+      if (initialLink != null) {
+        print('🔗 Deep Link inicial: $initialLink');
+        _handleDeepLink(initialLink);
+      }
+    } catch (e) {
+      print('❌ Erro ao obter deep link inicial: $e');
+    }
+
+    // Escutar novos deep links (app já está aberto)
+    _deepLinkSubscription = linkStream.listen((String? link) {
+      if (link != null) {
+        print('🔗 Deep Link recebido: $link');
+        _handleDeepLink(link);
+      }
+    }, onError: (err) {
+      print('❌ Erro no stream de deep links: $err');
+    });
+  }
+
+  // ✅ NOVO: Processar Deep Link
+  void _handleDeepLink(String link) {
+    final uri = Uri.parse(link);
+    
+    print('📍 Path: ${uri.path}');
+    print('📍 Query params: ${uri.queryParameters}');
+
+    // Verificar se é link de verificação de email
+    if (uri.path.contains('/verify-email')) {
+      final token = uri.queryParameters['token'];
+      
+      if (token != null) {
+        print('✅ Token de verificação encontrado: $token');
+        
+        // Navegar para página de verificação
+        Future.delayed(const Duration(milliseconds: 500), () {
+          navigatorKey.currentState?.pushNamed(
+            AppRoutes.emailVerification,
+            arguments: {'token': token},
+          );
+        });
+      } else {
+        print('⚠️ Token não encontrado no deep link');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
