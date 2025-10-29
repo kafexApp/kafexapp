@@ -3,10 +3,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
-const BREVO_API_KEY = "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";
+// ✅ CORRETO: Usar variável de ambiente ao invés de hardcoded
+const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY") ?? "";
 const SENDER_EMAIL = "noreply@kafex.com.br";
 const SENDER_NAME = "Kafex App";
-const APP_URL = "https://link.kafex.com.br/verify-email"; // ✅ ATUALIZADO
+const APP_URL = "https://link.kafex.com.br/verify-email";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,7 +60,7 @@ serve(async (req) => {
         throw insertError;
       }
 
-      // Link de verificação - ✅ ATUALIZADO
+      // Link de verificação
       const verificationLink = `${APP_URL}?token=${token}`;
 
       // Template HTML do email de verificação
